@@ -34,7 +34,7 @@ const showPage = (name) => {
   const page = document.getElementById('page-' + name);
   if (page) page.classList.add('active');
 
-  const pages = ['cadastro', 'anamnese', 'antropometria', 'treino', 'evolucao', 'pagamentos'];
+  const pages = ['cadastro', 'meus-alunos', 'anamnese', 'antropometria', 'treino', 'evolucao', 'pagamentos'];
   const idx = pages.indexOf(name);
   const btns = document.querySelectorAll('.nav-btn');
   if (idx >= 0 && btns[idx]) {
@@ -43,6 +43,7 @@ const showPage = (name) => {
   }
 
   if (name !== 'cadastro') populateAlunoSelects();
+  if (name === 'meus-alunos') renderListaGeralAlunos();
   if (name === 'pagamentos') renderPagamentos();
   if (name === 'evolucao') carregarEvolucao();
 };
@@ -143,6 +144,7 @@ function calcularFC() {
 
 function salvarCadastro() {
   const nome = document.getElementById('nome').value.trim();
+  const email = document.getElementById('email').value.trim().toLowerCase();
   const dataNasc = document.getElementById('dataNasc').value;
   const sexo = document.getElementById('sexo').value;
   if (!nome || !dataNasc || !sexo) { showToast('Preencha os campos obrigatórios (*)', 'error'); return; }
@@ -150,13 +152,19 @@ function salvarCadastro() {
   const id = window._editingId || Date.now();
   const patologias = [...document.querySelectorAll('input[name="patologia"]:checked')].map(c => c.value);
   
+  // Buscar se o aluno já existe para não perder a senha se for edição
+  const alunoExistente = state.alunos.find(a => a.id === id);
+
   const aluno = {
     id,
-    nome, dataNasc, sexo,
+    nome, 
+    email,
+    senha: alunoExistente ? alunoExistente.senha : '123456', // Senha padrão se for novo
+    dataNasc, 
+    sexo,
     idade: parseInt(document.getElementById('idade').value) || '',
     cpf: document.getElementById('cpf').value,
     telefone: document.getElementById('telefone').value,
-    email: document.getElementById('email').value,
     profissao: document.getElementById('profissao').value,
     peso: document.getElementById('peso').value,
     altura: document.getElementById('altura').value,
@@ -165,6 +173,7 @@ function salvarCadastro() {
     nivel: document.getElementById('nivel').value,
     freqAtual: document.getElementById('freqAtual').value,
     objetivo: document.getElementById('objetivo').value,
+    tipo: document.getElementById('aluno-tipo')?.value || 'pago',
     patologias,
     obs: document.getElementById('obs')?.value || '',
     fcRepouso: document.getElementById('fcRepouso').value,
@@ -198,17 +207,73 @@ function renderAlunosGrid() {
   `).join('');
 }
 
+function renderListaGeralAlunos() {
+  const tbody = document.getElementById('corpo-lista-geral-alunos');
+  if (!tbody) return;
+
+  const filtro = document.getElementById('filtro-alunos-lista')?.value.toLowerCase() || '';
+  const listaFiltrada = state.alunos.filter(a => 
+    a.nome.toLowerCase().includes(filtro) || 
+    (a.objetivo || '').toLowerCase().includes(filtro)
+  );
+
+  if (listaFiltrada.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Nenhum aluno encontrado</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = listaFiltrada.map(a => {
+    const ultimaAv = state.avaliacoes.filter(av => av.alunoId == a.id).pop();
+    const dataAv = ultimaAv ? new Date(ultimaAv.data).toLocaleDateString('pt-BR') : '—';
+    
+    const pagamentos = state.pagamentos.filter(p => p.alunoId == a.id);
+    const ultimoPag = pagamentos.sort((x, y) => new Date(y.dataPag) - new Date(x.dataPag))[0];
+    
+    let statusPag = ultimoPag ? ultimoPag.status : 'pendente';
+    // Se o tipo do aluno for gratuito, o status de pagamento deve ser GRATUITO (liberado)
+    if (a.tipo === 'gratuito') statusPag = 'gratuito';
+    
+    const statusClass = `badge-${statusPag}`;
+
+    return `
+      <tr>
+        <td>
+          <strong>${a.nome}</strong>
+          ${a.origem === 'online' ? '<br><span style="font-size:0.65rem; color:#2563eb; background:#dbeafe; padding:2px 4px; border-radius:4px;">CADASTRO ONLINE</span>' : ''}
+        </td>
+        <td>${a.idade} anos / ${a.sexo}</td>
+        <td style="text-transform: capitalize;">${a.objetivo || '—'}</td>
+        <td>${dataAv}</td>
+        <td><span class="badge ${statusClass}">${statusPag === 'gratuito' ? 'GRATUITO' : statusPag.toUpperCase()}</span></td>
+        <td>
+          <button class="btn-primary" onclick="editarAluno(${a.id}); showPage('cadastro')" style="padding: 4px 8px; font-size: 0.75rem;">Editar</button>
+          <button class="btn-secondary" onclick="excluirAluno(${a.id})" style="padding: 4px 8px; font-size: 0.75rem; background:#dc2626; color:white; border:none;">Excluir</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function excluirAluno(id) {
+  if (!confirm('Tem certeza que deseja excluir este aluno? Todos os dados vinculados (testes, treinos, pagamentos) serão mantidos, mas o aluno não aparecerá mais na lista principal.')) return;
+  state.alunos = state.alunos.filter(a => a.id !== id);
+  saveState();
+  renderListaGeralAlunos();
+  renderAlunosGrid();
+  showToast('Aluno removido da lista', 'success');
+}
+
 function editarAluno(id) {
   const a = state.alunos.find(x => x.id === id);
   if (!a) return;
   window._editingId = id;
   document.getElementById('nome').value = a.nome;
+  document.getElementById('email').value = a.email || '';
   document.getElementById('dataNasc').value = a.dataNasc;
   document.getElementById('sexo').value = a.sexo;
   document.getElementById('idade').value = a.idade;
   document.getElementById('cpf').value = a.cpf || '';
   document.getElementById('telefone').value = a.telefone || '';
-  document.getElementById('email').value = a.email || '';
   document.getElementById('profissao').value = a.profissao || '';
   document.getElementById('peso').value = a.peso;
   document.getElementById('altura').value = a.altura;
@@ -216,6 +281,7 @@ function editarAluno(id) {
   document.getElementById('nivel').value = a.nivel;
   document.getElementById('freqAtual').value = a.freqAtual;
   document.getElementById('objetivo').value = a.objetivo;
+  if (document.getElementById('aluno-tipo')) document.getElementById('aluno-tipo').value = a.tipo || 'pago';
   if (document.getElementById('obs')) document.getElementById('obs').value = a.obs;
   document.getElementById('fcRepouso').value = a.fcRepouso;
   calcularFC();
@@ -724,9 +790,104 @@ function salvarVO2() {
   showToast('Teste salvo com sucesso!', 'success');
 }
 
+// ==================== ADMIN LOGIN ====================
+function showPortalScreen(screen) {
+  const landing = document.getElementById('portal-landing');
+  const login = document.getElementById('admin-login-screen');
+  
+  if (screen === 'admin') {
+    landing.style.display = 'none';
+    login.style.display = 'flex';
+  } else {
+    landing.style.display = 'flex';
+    login.style.display = 'none';
+  }
+}
+
+function loginAdmin() {
+  const user = document.getElementById('admin-user').value;
+  const pass = document.getElementById('admin-pass').value;
+  const error = document.getElementById('admin-login-error');
+
+  // Login simples fixo para o administrador
+  if (user === 'adrianoquake' && pass === 'adri080979') {
+    localStorage.setItem('isAdmin', 'true');
+    
+    // Transição de página: Ocultar Portal e mostrar Dashboard
+    document.getElementById('admin-login-screen').style.display = 'none';
+    document.getElementById('portal-landing').style.display = 'none';
+    
+    const app = document.getElementById('app');
+    app.classList.add('auth-ready');
+    
+    error.style.display = 'none';
+    
+    // Inicializar dados após login
+    renderAlunosGrid();
+    if (typeof initPresc === 'function') initPresc();
+    
+    showPage('cadastro');
+  } else {
+    error.style.display = 'block';
+  }
+}
+
+function logoutAdmin() {
+  localStorage.removeItem('isAdmin');
+  location.reload();
+}
+
+function checkAdminAuth() {
+  const isAdmin = localStorage.getItem('isAdmin') === 'true';
+  const app = document.getElementById('app');
+  const portal = document.getElementById('portal-landing');
+  const loginScreen = document.getElementById('admin-login-screen');
+
+  if (isAdmin) {
+    if (loginScreen) loginScreen.style.display = 'none';
+    if (portal) portal.style.display = 'none';
+    if (app) {
+      app.classList.add('auth-ready');
+    }
+  } else {
+    if (app) {
+      app.classList.remove('auth-ready');
+    }
+    if (loginScreen) loginScreen.style.display = 'none';
+    if (portal) portal.style.display = 'flex';
+  }
+}
+
 // ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', () => {
-  renderAlunosGrid();
+  // Pré-cadastro da Jessica Bruna solicitado pelo usuário
+  const alunosExistentes = JSON.parse(localStorage.getItem('alunos') || '[]');
+  if (!alunosExistentes.some(a => a.nome.toLowerCase() === 'jessicabruna' || a.email === 'jessica@email.com')) {
+    const jessica = {
+      id: 1711111111111,
+      nome: 'Jessica Bruna',
+      email: 'jessica@email.com',
+      senha: '12345678',
+      dataNasc: '1995-01-01',
+      sexo: 'F',
+      idade: 31,
+      telefone: '(00) 00000-0000',
+      objetivo: 'hipertrofia',
+      tipo: 'pago',
+      origem: 'online'
+    };
+    alunosExistentes.push(jessica);
+    localStorage.setItem('alunos', JSON.stringify(alunosExistentes));
+    state.alunos = alunosExistentes; // Atualiza o estado em memória
+  }
+
+  checkAdminAuth();
+  
+  if (localStorage.getItem('isAdmin') === 'true') {
+    renderAlunosGrid();
+    if (typeof initPresc === 'function') initPresc();
+  }
+  
   const hoje = new Date().toISOString().slice(0, 10);
   const dVO2 = document.getElementById('dataVO2');
   if (dVO2) dVO2.value = hoje;
@@ -735,5 +896,4 @@ document.addEventListener('DOMContentLoaded', () => {
   
   if (document.getElementById('protocoloAntro')) mostrarProtocolo();
   if (document.getElementById('protocoloVO2')) carregarProtocolo();
-  if (typeof initPresc === 'function') initPresc();
 });

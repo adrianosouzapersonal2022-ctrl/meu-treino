@@ -8,7 +8,54 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
-  <div id="app">
+  <!-- TELA DE ENTRADA DO PORTAL (LANDING) -->
+  <div id="portal-landing" class="screen-overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);">
+    <div class="login-hero" style="text-align: center; color: white; margin-bottom: 2rem;">
+      <span style="font-size: 4rem;">🏋️</span>
+      <h1 style="font-size: 2.5rem; margin-top: 1rem;">TREINOFITASM</h1>
+      <p style="opacity: 0.9;">Escolha como deseja acessar a plataforma</p>
+    </div>
+    
+    <div style="display: grid; gap: 1.5rem; width: 100%; max-width: 400px; padding: 0 1.5rem;">
+      <button class="btn-primary" onclick="showPortalScreen('admin')" style="height: 60px; font-size: 1.1rem; background: white; color: #1e3a8a; border: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+        🔐 Sou Administrador
+      </button>
+      
+      <button class="btn-primary" onclick="window.location.href='aluno.html'" style="height: 60px; font-size: 1.1rem; background: #10b981; color: white; border: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+        💪 Sou Aluno (Entrar)
+      </button>
+
+      <div style="text-align: center; margin-top: 1rem;">
+        <button onclick="window.location.href='aluno.html?action=register'" style="background: none; border: none; color: white; text-decoration: underline; cursor: pointer; font-size: 1rem; opacity: 0.8;">
+          Não é aluno? Clique aqui para começar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TELA DE LOGIN ADMIN (OCULTA POR PADRÃO) -->
+  <div id="admin-login-screen" class="screen-overlay" style="display: none;">
+    <div class="login-card">
+      <div class="nav-brand" style="justify-content: center; margin-bottom: 2rem;">
+        <span class="brand-icon">&#127947;</span>
+        <span class="brand-name">TREINOFITASM ADMIN</span>
+      </div>
+      <h2 style="text-align: center; margin-bottom: 1.5rem;">Acesso Administrativo</h2>
+      <div class="form-group">
+        <label>Usuário</label>
+        <input type="text" id="admin-user" placeholder="Seu usuário" />
+      </div>
+      <div class="form-group">
+        <label>Senha</label>
+        <input type="password" id="admin-pass" placeholder="Sua senha" />
+      </div>
+      <div id="admin-login-error" style="color: #dc2626; font-size: 0.85rem; margin-top: 0.5rem; display: none; text-align: center;">Usuário ou senha incorretos.</div>
+      <button class="btn-primary" onclick="loginAdmin()" style="width: 100%; margin-top: 1.5rem; height: 45px;">Entrar no Painel</button>
+      <button class="btn-secondary" onclick="showPortalScreen('landing')" style="width: 100%; margin-top: 0.5rem; background: none; color: #64748b; border: 1px solid #e2e8f0;">Voltar</button>
+    </div>
+  </div>
+
+  <div id="app" style="display: none;">
     <header class="navbar">
       <div class="nav-brand">
         <span class="brand-icon" aria-hidden="true">&#127947;</span>
@@ -16,11 +63,13 @@
       </div>
       <nav class="nav-links" aria-label="Navegação Principal">
         <button class="nav-btn active" onclick="showPage('cadastro')" aria-current="page">Cadastro</button>
+        <button class="nav-btn admin-only" onclick="showPage('meus-alunos')">Meus Alunos</button>
         <button class="nav-btn" onclick="showPage('anamnese')">Anamnese</button>
         <button class="nav-btn" onclick="showPage('antropometria')">Antropometria</button>
-        <button class="nav-btn" onclick="showPage('treino')">Treino & Testes</button>
-        <button class="nav-btn" onclick="showPage('evolucao')">Evolução</button>
+        <button class="nav-btn admin-only" onclick="showPage('treino')">Treino & Testes</button>
+        <button class="nav-btn admin-only" onclick="showPage('evolucao')">Evolução</button>
         <button class="nav-btn" onclick="showPage('pagamentos')">Pagamentos</button>
+        <button class="nav-btn" onclick="logoutAdmin()" style="background: #ef4444; color: white; border-radius: 4px; padding: 5px 10px; margin-left: 10px;">Sair</button>
       </nav>
     </header>
 
@@ -145,6 +194,15 @@
                   </select>
                 </div>
               </div>
+              <div class="form-row">
+                <div class="form-group full">
+                  <label for="aluno-tipo">Tipo de Acesso</label>
+                  <select id="aluno-tipo">
+                    <option value="pago">Aluno Pago (Bloqueia acesso sem pagamento)</option>
+                    <option value="gratuito">Aluno Gratuito (Acesso sempre liberado)</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
             <div class="form-section">
@@ -186,6 +244,38 @@
           <div id="lista-alunos" class="alunos-section" style="display:none;">
             <h2 class="section-title">Alunos Cadastrados</h2>
             <div id="alunos-grid" class="alunos-grid"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== MEUS ALUNOS ===================== -->
+      <section id="page-meus-alunos" class="page">
+        <div class="page-header">
+          <h1>Meus Alunos</h1>
+          <p>Lista completa de alunos ativos e cadastrados no programa</p>
+        </div>
+        <div class="container">
+          <div class="form-section">
+            <div class="form-row">
+              <div class="form-group full">
+                <input type="text" id="filtro-alunos-lista" placeholder="Filtrar por nome ou objetivo..." oninput="renderListaGeralAlunos()" />
+              </div>
+            </div>
+            <div class="table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Idade/Sexo</th>
+                    <th>Objetivo</th>
+                    <th>Última Avaliação</th>
+                    <th>Status Pagamento</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="corpo-lista-geral-alunos"></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </section>
@@ -1116,6 +1206,21 @@
   <script src="extras.js"></script>
   <script src="prescricao_pro.js"></script>
   <script>
+    function showPortalScreen(screen) {
+      const landing = document.getElementById('portal-landing');
+      const login = document.getElementById('admin-login-screen');
+      const app = document.getElementById('app');
+      
+      if (screen === 'admin') {
+        landing.style.display = 'none';
+        login.style.display = 'flex';
+      } else if (screen === 'landing') {
+        landing.style.display = 'flex';
+        login.style.display = 'none';
+        app.style.display = 'none';
+      }
+    }
+
     // Renderizar tabelas de referência ao carregar
     document.addEventListener('DOMContentLoaded', () => {
       // Tabela de técnicas

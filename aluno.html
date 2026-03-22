@@ -19,10 +19,42 @@
     </div>
     <div class="login-card">
       <h2>Entrar</h2>
-      <div class="field"><label>Nome (para busca)</label><input type="text" id="login-nome" placeholder="Seu nome completo"/></div>
+      <div class="field"><label>E-mail</label><input type="email" id="login-email" placeholder="Seu e-mail cadastrado"/></div>
+      <div class="field"><label>Senha</label><input type="password" id="login-senha" placeholder="Sua senha"/></div>
       <div id="login-erro" class="login-erro" style="display:none;"></div>
       <button class="btn-full" onclick="fazerLogin()">Entrar</button>
+      <div class="login-links" style="text-align:center; margin-top:1rem;">
+        <a href="#" onclick="showOnlineRegistration()" style="color: #2563eb; text-decoration: none; font-size: 0.9rem;">Não tem cadastro? Clique aqui</a>
+      </div>
       <p class="login-hint">Seu acesso é liberado pelo seu professor.</p>
+    </div>
+  </div>
+
+  <!-- TELA DE CADASTRO ONLINE -->
+  <div id="screen-cadastro-online" class="screen" style="display:none; padding: 1rem;">
+    <div class="login-hero" style="padding: 1rem 0;">
+      <h1>Cadastro TREINOFITASM</h1>
+      <p>Preencha seus dados para começar no programa</p>
+    </div>
+    <div class="login-card" style="margin-top: 0;">
+      <div class="field"><label>Nome Completo *</label><input type="text" id="reg-nome" placeholder="Seu nome completo"/></div>
+      <div class="field"><label>E-mail (será seu login) *</label><input type="email" id="reg-email" placeholder="seu@email.com"/></div>
+      <div class="field"><label>Crie uma Senha *</label><input type="password" id="reg-senha" placeholder="Mínimo 6 caracteres"/></div>
+      <div class="field"><label>Data de Nascimento *</label><input type="date" id="reg-dataNasc"/></div>
+      <div class="field"><label>Sexo *</label>
+        <select id="reg-sexo"><option value="M">Masculino</option><option value="F">Feminino</option></select>
+      </div>
+      <div class="field"><label>WhatsApp/Telefone *</label><input type="text" id="reg-telefone" placeholder="(00) 00000-0000"/></div>
+      <div class="field"><label>Objetivo Principal *</label>
+        <select id="reg-objetivo">
+          <option value="hipertrofia">Hipertrofia</option>
+          <option value="emagrecimento">Emagrecimento</option>
+          <option value="saude">Saúde/Bem-estar</option>
+        </select>
+      </div>
+      <div id="reg-erro" class="login-erro" style="display:none;"></div>
+      <button class="btn-full" onclick="realizarCadastroOnline()">Finalizar Cadastro</button>
+      <button class="btn-full" onclick="voltarLogin()" style="background:#64748b; margin-top:0.5rem;">Voltar ao Login</button>
     </div>
   </div>
 
@@ -45,6 +77,13 @@
 
       <!-- ABA: INÍCIO / RESUMO -->
       <div id="tab-inicio" class="tab-pane active">
+        <!-- ANAMNESE PENDENTE ALERT -->
+        <div id="anamnese-pendente-alert" class="section-card" style="display:none; background:#fff7ed; border:1px solid #fb923c;">
+          <h3 style="color:#c2410c; font-size:1rem; margin-bottom:0.5rem;">📋 Anamnese Pendente</h3>
+          <p style="font-size:0.85rem; color:#9a3412;">Precisamos conhecer seu perfil de saúde antes de começar.</p>
+          <button class="btn-full" style="background:#f97316; margin-top:0.8rem;" onclick="abrirAnamneseInicial()">Preencher Agora</button>
+        </div>
+
         <div class="section-card">
           <h3 class="card-title">📊 Resumo</h3>
           <div id="resumo-grid" class="resumo-grid"></div>
@@ -59,29 +98,77 @@
         </div>
       </div>
 
+      <!-- ABA: ANAMNESE INICIAL -->
+      <div id="tab-anamnese-aluno" class="tab-pane">
+        <div class="section-card">
+          <h2 class="card-title">📋 Anamnese de Saúde</h2>
+          <p style="font-size:0.8rem; color:#64748b; margin-bottom:1.5rem;">Responda com sinceridade para sua segurança.</p>
+          
+          <div class="field">
+            <label>Você possui alguma doença diagnosticada?</label>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:0.85rem;">
+              <label><input type="checkbox" class="anam-doenca" value="diabetes"> Diabetes</label>
+              <label><input type="checkbox" class="anam-doenca" value="hipertensao"> Hipertensão</label>
+              <label><input type="checkbox" class="anam-doenca" value="cardiopatia"> Cardiopatia</label>
+              <label><input type="checkbox" class="anam-doenca" value="lesao"> Lesão Articular</label>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:1rem;">
+            <label>Toma algum medicamento controlado?</label>
+            <textarea id="anam-meds" placeholder="Nome do medicamento e para quê serve..." rows="2"></textarea>
+          </div>
+
+          <div class="field" style="margin-top:1rem;">
+            <label>Já sentiu dores no peito ao se exercitar?</label>
+            <select id="anam-dor-peito">
+              <option value="nao">Não</option>
+              <option value="sim">Sim</option>
+            </select>
+          </div>
+
+          <button class="btn-full btn-primary" style="margin-top:1.5rem;" onclick="salvarAnamneseAluno()">Salvar e Finalizar</button>
+        </div>
+      </div>
+
       <!-- ABA: MEU TREINO -->
       <div id="tab-treino" class="tab-pane">
-        <div class="section-card">
-          <h3 class="card-title">💪 Minha Ficha de Treino</h3>
-          <div id="ficha-treino-content"></div>
-          <div class="btn-row" style="margin-top:1rem;">
-            <button class="btn-full btn-primary" onclick="baixarTreinoPDF()">📥 Baixar Treino PDF</button>
+        <div id="treino-bloqueado" class="section-card" style="display:none; text-align:center; padding:2rem;">
+          <div style="font-size:3rem; margin-bottom:1rem;">🔒</div>
+          <h3>Acesso Bloqueado</h3>
+          <p>Seu treino estará disponível após a confirmação do pagamento.</p>
+          <button class="btn-full btn-primary" style="margin-top:1rem;" onclick="showTab('pagamento')">Ir para Pagamento</button>
+        </div>
+        <div id="treino-liberado">
+          <div class="section-card">
+            <h3 class="card-title">💪 Minha Ficha de Treino</h3>
+            <div id="ficha-treino-content"></div>
+            <div class="btn-row" style="margin-top:1rem;">
+              <button class="btn-full btn-primary" onclick="baixarTreinoPDF()">📥 Baixar Treino PDF</button>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- ABA: MINHA AVALIAÇÃO -->
       <div id="tab-avaliacao" class="tab-pane">
-        <div class="section-card">
-          <h3 class="card-title">📏 Composição Corporal</h3>
-          <div id="aval-composicao"></div>
+        <div id="avaliacao-bloqueada" class="section-card" style="display:none; text-align:center; padding:2rem;">
+          <div style="font-size:3rem; margin-bottom:1rem;">🔒</div>
+          <h3>Acesso Bloqueado</h3>
+          <p>Sua avaliação estará disponível após a confirmação do pagamento.</p>
         </div>
-        <div class="section-card">
-          <h3 class="card-title">📈 Evolução</h3>
-          <canvas id="chart-aluno-composicao" style="max-height:220px;"></canvas>
-        </div>
-        <div class="btn-row" style="margin-top:1rem;">
-          <button class="btn-full btn-primary" onclick="baixarAvaliacaoPDF()">📥 Baixar Avaliação PDF</button>
+        <div id="avaliacao-liberada">
+          <div class="section-card">
+            <h3 class="card-title">📏 Composição Corporal</h3>
+            <div id="aval-composicao"></div>
+          </div>
+          <div class="section-card">
+            <h3 class="card-title">📈 Evolução</h3>
+            <canvas id="chart-aluno-composicao" style="max-height:220px;"></canvas>
+          </div>
+          <div class="btn-row" style="margin-top:1rem;">
+            <button class="btn-full btn-primary" onclick="baixarAvaliacaoPDF()">📥 Baixar Avaliação PDF</button>
+          </div>
         </div>
       </div>
 
@@ -96,9 +183,42 @@
       <!-- ABA: PAGAMENTO -->
       <div id="tab-pagamento" class="tab-pane">
         <div class="section-card">
+          <h3 class="card-title">💎 Nossos Planos</h3>
+          <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1rem;">Escolha o plano que melhor se adapta ao seu objetivo.</p>
+          
+          <div class="planos-grid" style="display: grid; gap: 1rem; margin-bottom: 1.5rem;">
+            <div class="plano-card" style="border: 1px solid #e2e8f0; padding: 1rem; border-radius: 8px; background: #fff;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong>MENSAL</strong>
+                <span style="color: #2563eb; font-weight: bold;">R$ 150,00</span>
+              </div>
+              <p style="font-size: 0.75rem; color: #64748b; margin-top: 0.5rem;">• Renovação mês a mês<br>• Prescrição completa<br>• Suporte via App</p>
+            </div>
+            
+            <div class="plano-card" style="border: 2px solid #2563eb; padding: 1rem; border-radius: 8px; background: #eff6ff; position: relative;">
+              <span style="position: absolute; top: -10px; right: 10px; background: #2563eb; color: white; font-size: 0.65rem; padding: 2px 8px; border-radius: 10px;">MAIS POPULAR</span>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong>TRIMESTRAL</strong>
+                <span style="color: #2563eb; font-weight: bold;">R$ 390,00</span>
+              </div>
+              <p style="font-size: 0.75rem; color: #64748b; margin-top: 0.5rem;">• 3 meses de acompanhamento<br>• R$ 130,00 por mês<br>• Avaliações mensais</p>
+            </div>
+
+            <div class="plano-card" style="border: 1px solid #e2e8f0; padding: 1rem; border-radius: 8px; background: #fff;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong>SEMESTRAL</strong>
+                <span style="color: #2563eb; font-weight: bold;">R$ 720,00</span>
+              </div>
+              <p style="font-size: 0.75rem; color: #64748b; margin-top: 0.5rem;">• 6 meses de acompanhamento<br>• R$ 120,00 por mês<br>• Melhor custo-benefício</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
           <h3 class="card-title">💳 Meus Pagamentos</h3>
           <div id="historico-pagamentos"></div>
         </div>
+
         <div class="section-card">
           <h3 class="card-title">Realizar Pagamento (PIX)</h3>
           <div class="pix-container">
@@ -106,6 +226,7 @@
               <p><strong>Chave PIX:</strong></p>
               <div class="pix-chave" id="pix-chave-box">treinofitasm@contato.com.br</div>
               <button class="btn-copy" onclick="copiarPix()">📋 Copiar Chave</button>
+              <p style="font-size: 0.75rem; color: #64748b; margin-top: 1rem; text-align: center;">Após o pagamento, envie o comprovante para o seu professor para liberação imediata.</p>
             </div>
           </div>
         </div>

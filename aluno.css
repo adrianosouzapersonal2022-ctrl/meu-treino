@@ -29,7 +29,7 @@ html, body {
 }
 
 /* ===== SCREENS ===== */
-.screen { min-height: 100vh; }
+.screen { display: none; min-height: 100vh; }
 .screen.active { display: block; }
 
 /* ===== LOGIN ===== */

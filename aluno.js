@@ -16,21 +16,22 @@ function toast(msg, type = '') {
 
 // ===== LOGIN =====
 function fazerLogin() {
-  const nomeBusca = document.getElementById('login-nome').value.trim().toLowerCase();
-  if (!nomeBusca) {
-    const erro = document.getElementById('login-erro');
-    erro.style.display = 'block';
-    erro.textContent = 'Informe seu nome completo.';
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const senha = document.getElementById('login-senha').value;
+  const error = document.getElementById('login-erro');
+
+  if (!email || !senha) {
+    error.style.display = 'block';
+    error.textContent = 'Informe e-mail e senha.';
     return;
   }
   
   const alunos = JSON.parse(localStorage.getItem('alunos') || '[]');
-  const aluno = alunos.find(a => a.nome.toLowerCase().includes(nomeBusca));
+  const aluno = alunos.find(a => (a.email && a.email.toLowerCase() === email) && (a.senha === senha));
   
   if (!aluno) {
-    const erro = document.getElementById('login-erro');
-    erro.style.display = 'block';
-    erro.textContent = 'Aluno não encontrado. Verifique com seu professor.';
+    error.style.display = 'block';
+    error.textContent = 'E-mail ou senha incorretos.';
     return;
   }
   
@@ -41,6 +42,7 @@ function fazerLogin() {
 
 function entrarNoApp() {
   document.getElementById('screen-login').style.display = 'none';
+  if (document.getElementById('screen-cadastro-online')) document.getElementById('screen-cadastro-online').style.display = 'none';
   document.getElementById('screen-app').style.display = 'block';
   
   const nome = alunoLogado.nome || 'Aluno';
@@ -48,11 +50,108 @@ function entrarNoApp() {
   document.getElementById('av-inicial').textContent = nome.charAt(0).toUpperCase();
   document.getElementById('header-sub').textContent = 'Seu treino está pronto!';
   
+  // Verificar Acesso (Pagamento)
+  verificarAcesso();
+
   carregarInicio();
   carregarTreino();
   carregarAvaliacao();
   carregarPerfil();
   carregarHistoricoPagamentos();
+}
+
+function verificarAcesso() {
+  const pagamentos = JSON.parse(localStorage.getItem('pagamentos') || '[]');
+  const alunoPags = pagamentos.filter(p => p.alunoId == alunoLogado.id && p.status === 'pago');
+  
+  // Se for aluno gratuito (definido pelo admin) ou tiver pagamento pago
+  const temAcesso = alunoLogado.tipo === 'gratuito' || alunoPags.length > 0;
+
+  if (temAcesso) {
+    document.getElementById('treino-liberado').style.display = 'block';
+    document.getElementById('treino-bloqueado').style.display = 'none';
+    document.getElementById('avaliacao-liberada').style.display = 'block';
+    document.getElementById('avaliacao-bloqueada').style.display = 'none';
+  } else {
+    document.getElementById('treino-liberado').style.display = 'none';
+    document.getElementById('treino-bloqueado').style.display = 'block';
+    document.getElementById('avaliacao-liberada').style.display = 'none';
+    document.getElementById('avaliacao-bloqueada').style.display = 'block';
+  }
+}
+
+// ===== CADASTRO ONLINE =====
+function showOnlineRegistration() {
+  document.getElementById('screen-login').style.display = 'none';
+  document.getElementById('screen-cadastro-online').style.display = 'block';
+}
+
+function voltarLogin() {
+  document.getElementById('screen-cadastro-online').style.display = 'none';
+  document.getElementById('screen-login').style.display = 'block';
+}
+
+function realizarCadastroOnline() {
+  const nome = document.getElementById('reg-nome').value.trim();
+  const email = document.getElementById('reg-email').value.trim().toLowerCase();
+  const senha = document.getElementById('reg-senha').value;
+  const dataNasc = document.getElementById('reg-dataNasc').value;
+  const sexo = document.getElementById('reg-sexo').value;
+  const telefone = document.getElementById('reg-telefone').value;
+  const objetivo = document.getElementById('reg-objetivo').value;
+
+  if (!nome || !email || !senha || !dataNasc || !sexo || !telefone) {
+    const erro = document.getElementById('reg-erro');
+    erro.style.display = 'block';
+    erro.textContent = 'Preencha todos os campos obrigatórios (*).';
+    return;
+  }
+
+  if (senha.length < 6) {
+    const erro = document.getElementById('reg-erro');
+    erro.style.display = 'block';
+    erro.textContent = 'A senha deve ter pelo menos 6 caracteres.';
+    return;
+  }
+
+  const alunos = JSON.parse(localStorage.getItem('alunos') || '[]');
+  
+  // Verificar se e-mail já existe
+  if (alunos.some(a => a.email === email)) {
+    const erro = document.getElementById('reg-erro');
+    erro.style.display = 'block';
+    erro.textContent = 'Este e-mail já está cadastrado.';
+    return;
+  }
+
+  const novoAluno = {
+    id: Date.now(),
+    nome,
+    email,
+    senha,
+    dataNasc,
+    sexo,
+    telefone,
+    objetivo,
+    idade: calcularIdade(dataNasc),
+    origem: 'online',
+    tipo: 'pago' // Padrão para cadastro online
+  };
+
+  alunos.push(novoAluno);
+  localStorage.setItem('alunos', JSON.stringify(alunos));
+  
+  toast('Cadastro realizado! Agora faça login.', 'success');
+  voltarLogin();
+}
+
+function calcularIdade(dn) {
+  const hoje = new Date();
+  const nasc = new Date(dn);
+  let age = hoje.getFullYear() - nasc.getFullYear();
+  const m = hoje.getMonth() - nasc.getMonth();
+  if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) age--;
+  return age;
 }
 
 function fazerLogout() {
@@ -77,6 +176,11 @@ function carregarInicio() {
   const avs = JSON.parse(localStorage.getItem('avaliacoes') || '[]').filter(x => String(x.alunoId) === String(a.id));
   const lastAv = avs[avs.length - 1];
 
+  // Verificar se já tem anamnese
+  const anamneses = JSON.parse(localStorage.getItem('anamneses') || '[]');
+  const jaTemAnamnese = anamneses.some(an => String(an.alunoId) === String(a.id));
+  document.getElementById('anamnese-pendente-alert').style.display = jaTemAnamnese ? 'none' : 'block';
+
   document.getElementById('resumo-grid').innerHTML = `
     <div class="resumo-item"><div class="resumo-label">Peso</div><div class="resumo-valor">${a.peso || '—'}</div><div class="resumo-unit">kg</div></div>
     <div class="resumo-item"><div class="resumo-label">% Gordura</div><div class="resumo-valor">${lastAv ? lastAv.percGordura : '—'}</div></div>
@@ -92,6 +196,38 @@ function carregarInicio() {
   } else {
     prox.textContent = 'Aguarde a prescrição do professor.';
   }
+}
+
+// ===== ANAMNESE ALUNO =====
+function abrirAnamneseInicial() {
+  showTab('anamnese-aluno');
+}
+
+function salvarAnamneseAluno() {
+  const doencas = [...document.querySelectorAll('.anam-doenca:checked')].map(cb => cb.value);
+  const meds = document.getElementById('anam-meds').value;
+  const dorPeito = document.getElementById('anam-dor-peito').value;
+
+  const anamnese = {
+    id: Date.now(),
+    alunoId: alunoLogado.id,
+    data: new Date().toISOString().slice(0, 10),
+    doencas,
+    medicamentos: meds,
+    dorPeito,
+    paSistolica: '', // Preenchido depois pelo professor
+    paDiastolica: '',
+    classPA: '',
+    origem: 'aluno'
+  };
+
+  const anamneses = JSON.parse(localStorage.getItem('anamneses') || '[]');
+  anamneses.push(anamnese);
+  localStorage.setItem('anamneses', JSON.stringify(anamneses));
+
+  toast('Dados de saúde salvos! Obrigado.', 'success');
+  showTab('inicio');
+  carregarInicio();
 }
 
 function carregarTreino() {
@@ -200,6 +336,19 @@ function carregarPerfil() {
 
 function carregarHistoricoPagamentos() {
   const container = document.getElementById('historico-pagamentos');
+  
+  // Se for aluno gratuito, mostrar mensagem informativa
+  if (alunoLogado.tipo === 'gratuito') {
+    container.innerHTML = `
+      <div style="text-align:center; padding: 2rem; background: #f0fdf4; border-radius: 12px; border: 1px solid #bbf7d0;">
+        <div style="font-size: 2.5rem; margin-bottom: 1rem;">✅</div>
+        <h3 style="color: #166534; margin-bottom: 0.5rem;">Acesso Gratuito Liberado</h3>
+        <p style="color: #15803d; font-size: 0.9rem;">Você possui acesso ilimitado e gratuito à plataforma TREINOFITASM.</p>
+      </div>
+    `;
+    return;
+  }
+
   const pags = JSON.parse(localStorage.getItem('pagamentos') || '[]').filter(p => String(p.alunoId) === String(alunoLogado.id));
   
   if (pags.length === 0) {
@@ -267,6 +416,11 @@ function copiarPix() {
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('action') === 'register') {
+    showOnlineRegistration();
+  }
+
   const savedId = localStorage.getItem('alunoLogadoId');
   if (savedId) {
     const alunos = JSON.parse(localStorage.getItem('alunos') || '[]');
