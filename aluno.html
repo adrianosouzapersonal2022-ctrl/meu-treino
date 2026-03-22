@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="theme-color" content="#2563eb"/>
+  <title>TREINOFITASM – Aluno</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="stylesheet" href="aluno.css"/>
+</head>
+<body>
+  <!-- LOGIN -->
+  <div id="screen-login" class="screen active">
+    <div class="login-hero">
+      <div class="login-icon">🏋️</div>
+      <h1>TREINOFITASM</h1>
+      <p>Seu app de treino personalizado</p>
+    </div>
+    <div class="login-card">
+      <h2>Entrar</h2>
+      <div class="field"><label>Nome (para busca)</label><input type="text" id="login-nome" placeholder="Seu nome completo"/></div>
+      <div id="login-erro" class="login-erro" style="display:none;"></div>
+      <button class="btn-full" onclick="fazerLogin()">Entrar</button>
+      <p class="login-hint">Seu acesso é liberado pelo seu professor.</p>
+    </div>
+  </div>
+
+  <!-- APP PRINCIPAL -->
+  <div id="screen-app" class="screen" style="display:none;">
+    <!-- HEADER -->
+    <header class="app-header">
+      <div class="header-info">
+        <div class="avatar" id="av-inicial">A</div>
+        <div>
+          <div class="header-nome" id="header-nome">Aluno</div>
+          <div class="header-sub" id="header-sub">Bem-vindo!</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="fazerLogout()">Sair</button>
+    </header>
+
+    <!-- CONTEÚDO DAS ABAS -->
+    <main class="app-main">
+
+      <!-- ABA: INÍCIO / RESUMO -->
+      <div id="tab-inicio" class="tab-pane active">
+        <div class="section-card">
+          <h3 class="card-title">📊 Resumo</h3>
+          <div id="resumo-grid" class="resumo-grid"></div>
+        </div>
+        <div class="section-card">
+          <h3 class="card-title">🎯 Meu Objetivo</h3>
+          <div id="resumo-objetivo" class="objetivo-badge"></div>
+        </div>
+        <div class="section-card">
+          <h3 class="card-title">📅 Meu Treino</h3>
+          <div id="proximo-treino" class="proximo-treino-box"></div>
+        </div>
+      </div>
+
+      <!-- ABA: MEU TREINO -->
+      <div id="tab-treino" class="tab-pane">
+        <div class="section-card">
+          <h3 class="card-title">💪 Minha Ficha de Treino</h3>
+          <div id="ficha-treino-content"></div>
+          <div class="btn-row" style="margin-top:1rem;">
+            <button class="btn-full btn-primary" onclick="baixarTreinoPDF()">📥 Baixar Treino PDF</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ABA: MINHA AVALIAÇÃO -->
+      <div id="tab-avaliacao" class="tab-pane">
+        <div class="section-card">
+          <h3 class="card-title">📏 Composição Corporal</h3>
+          <div id="aval-composicao"></div>
+        </div>
+        <div class="section-card">
+          <h3 class="card-title">📈 Evolução</h3>
+          <canvas id="chart-aluno-composicao" style="max-height:220px;"></canvas>
+        </div>
+        <div class="btn-row" style="margin-top:1rem;">
+          <button class="btn-full btn-primary" onclick="baixarAvaliacaoPDF()">📥 Baixar Avaliação PDF</button>
+        </div>
+      </div>
+
+      <!-- ABA: PERFIL -->
+      <div id="tab-perfil" class="tab-pane">
+        <div class="section-card">
+          <h3 class="card-title">👤 Meus Dados</h3>
+          <div id="perfil-view"></div>
+        </div>
+      </div>
+
+      <!-- ABA: PAGAMENTO -->
+      <div id="tab-pagamento" class="tab-pane">
+        <div class="section-card">
+          <h3 class="card-title">💳 Meus Pagamentos</h3>
+          <div id="historico-pagamentos"></div>
+        </div>
+        <div class="section-card">
+          <h3 class="card-title">Realizar Pagamento (PIX)</h3>
+          <div class="pix-container">
+            <div class="pix-info">
+              <p><strong>Chave PIX:</strong></p>
+              <div class="pix-chave" id="pix-chave-box">treinofitasm@contato.com.br</div>
+              <button class="btn-copy" onclick="copiarPix()">📋 Copiar Chave</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- BOTTOM NAV -->
+    <nav class="bottom-nav">
+      <button class="bnav-btn active" id="bnav-inicio" onclick="showTab('inicio')">
+        <span class="bnav-icon">🏠</span><span class="bnav-label">Início</span>
+      </button>
+      <button class="bnav-btn" id="bnav-treino" onclick="showTab('treino')">
+        <span class="bnav-icon">💪</span><span class="bnav-label">Treino</span>
+      </button>
+      <button class="bnav-btn" id="bnav-avaliacao" onclick="showTab('avaliacao')">
+        <span class="bnav-icon">📊</span><span class="bnav-label">Avaliação</span>
+      </button>
+      <button class="bnav-btn" id="bnav-perfil" onclick="showTab('perfil')">
+        <span class="bnav-icon">👤</span><span class="bnav-label">Perfil</span>
+      </button>
+      <button class="bnav-btn" id="bnav-pagamento" onclick="showTab('pagamento')">
+        <span class="bnav-icon">💳</span><span class="bnav-label">Pagamento</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast-aluno" class="toast-aluno"></div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="aluno.js"></script>
+</body>
+</html>
