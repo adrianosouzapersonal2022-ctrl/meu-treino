@@ -8,54 +8,58 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
-  <!-- TELA DE ENTRADA DO PORTAL (LANDING) -->
-  <div id="portal-landing" class="screen-overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);">
-    <div class="login-hero" style="text-align: center; color: white; margin-bottom: 2rem;">
-      <span style="font-size: 4rem;">🏋️</span>
-      <h1 style="font-size: 2.5rem; margin-top: 1rem;">TREINOFITASM</h1>
-      <p style="opacity: 0.9;">Escolha como deseja acessar a plataforma</p>
-    </div>
-    
-    <div style="display: grid; gap: 1.5rem; width: 100%; max-width: 400px; padding: 0 1.5rem;">
-      <button class="btn-primary" onclick="showPortalScreen('admin')" style="height: 60px; font-size: 1.1rem; background: white; color: #1e3a8a; border: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-        🔐 Sou Administrador
-      </button>
+  <!-- CONTÊINER 1: PORTAL DE ACESSO (SÓ APARECE SE NÃO ESTIVER LOGADO) -->
+  <div id="portal-container" style="display: block;">
+    <!-- TELA DE ENTRADA DO PORTAL (LANDING) -->
+    <div id="portal-landing" class="screen-overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);">
+      <div class="login-hero" style="text-align: center; color: white; margin-bottom: 2rem;">
+        <span style="font-size: 4rem;">🏋️</span>
+        <h1 style="font-size: 2.5rem; margin-top: 1rem;">TREINOFITASM</h1>
+        <p style="opacity: 0.9;">Escolha como deseja acessar a plataforma</p>
+      </div>
       
-      <button class="btn-primary" onclick="window.location.href='aluno.html'" style="height: 60px; font-size: 1.1rem; background: #10b981; color: white; border: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-        💪 Sou Aluno (Entrar)
-      </button>
-
-      <div style="text-align: center; margin-top: 1rem;">
-        <button onclick="window.location.href='aluno.html?action=register'" style="background: none; border: none; color: white; text-decoration: underline; cursor: pointer; font-size: 1rem; opacity: 0.8;">
-          Não é aluno? Clique aqui para começar
+      <div style="display: grid; gap: 1.5rem; width: 100%; max-width: 400px; padding: 0 1.5rem;">
+        <button class="btn-primary" onclick="showPortalScreen('admin')" style="height: 60px; font-size: 1.1rem; background: white; color: #1e3a8a; border: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+          🔐 Sou Administrador
         </button>
+        
+        <button class="btn-primary" onclick="window.location.href='aluno.html'" style="height: 60px; font-size: 1.1rem; background: #10b981; color: white; border: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+          💪 Sou Aluno (Entrar)
+        </button>
+
+        <div style="text-align: center; margin-top: 1rem;">
+          <button onclick="window.location.href='aluno.html?action=register'" style="background: none; border: none; color: white; text-decoration: underline; cursor: pointer; font-size: 1rem; opacity: 0.8;">
+            Não é aluno? Clique aqui para começar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TELA DE LOGIN ADMIN -->
+    <div id="admin-login-screen" class="screen-overlay" style="display: none;">
+      <div class="login-card">
+        <div class="nav-brand" style="justify-content: center; margin-bottom: 2rem;">
+          <span class="brand-icon">&#127947;</span>
+          <span class="brand-name">TREINOFITASM ADMIN</span>
+        </div>
+        <h2 style="text-align: center; margin-bottom: 1.5rem;">Acesso Administrativo</h2>
+        <div class="form-group">
+          <label>Usuário</label>
+          <input type="text" id="admin-user" placeholder="Seu usuário" />
+        </div>
+        <div class="form-group">
+          <label>Senha</label>
+          <input type="password" id="admin-pass" placeholder="Sua senha" />
+        </div>
+        <div id="admin-login-error" style="color: #dc2626; font-size: 0.85rem; margin-top: 0.5rem; display: none; text-align: center;">Usuário ou senha incorretos.</div>
+        <button class="btn-primary" onclick="loginAdmin()" style="width: 100%; margin-top: 1.5rem; height: 45px;">Entrar no Painel</button>
+        <button class="btn-secondary" onclick="showPortalScreen('landing')" style="width: 100%; margin-top: 0.5rem; background: none; color: #64748b; border: 1px solid #e2e8f0;">Voltar</button>
       </div>
     </div>
   </div>
 
-  <!-- TELA DE LOGIN ADMIN (OCULTA POR PADRÃO) -->
-  <div id="admin-login-screen" class="screen-overlay" style="display: none;">
-    <div class="login-card">
-      <div class="nav-brand" style="justify-content: center; margin-bottom: 2rem;">
-        <span class="brand-icon">&#127947;</span>
-        <span class="brand-name">TREINOFITASM ADMIN</span>
-      </div>
-      <h2 style="text-align: center; margin-bottom: 1.5rem;">Acesso Administrativo</h2>
-      <div class="form-group">
-        <label>Usuário</label>
-        <input type="text" id="admin-user" placeholder="Seu usuário" />
-      </div>
-      <div class="form-group">
-        <label>Senha</label>
-        <input type="password" id="admin-pass" placeholder="Sua senha" />
-      </div>
-      <div id="admin-login-error" style="color: #dc2626; font-size: 0.85rem; margin-top: 0.5rem; display: none; text-align: center;">Usuário ou senha incorretos.</div>
-      <button class="btn-primary" onclick="loginAdmin()" style="width: 100%; margin-top: 1.5rem; height: 45px;">Entrar no Painel</button>
-      <button class="btn-secondary" onclick="showPortalScreen('landing')" style="width: 100%; margin-top: 0.5rem; background: none; color: #64748b; border: 1px solid #e2e8f0;">Voltar</button>
-    </div>
-  </div>
-
-  <div id="app" style="display: none;">
+  <!-- CONTÊINER 2: PAINEL ADMINISTRATIVO (SÓ APARECE APÓS LOGIN) -->
+  <div id="app" style="display: none !important;">
     <header class="navbar">
       <div class="nav-brand">
         <span class="brand-icon" aria-hidden="true">&#127947;</span>
@@ -445,6 +449,12 @@
                 <div class="form-row">
                   <div class="form-group full"><label>Técnica de Treinamento</label>
                     <select id="presc-tecnica" onchange="mostrarInfoTecnica()"></select>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group full">
+                    <label>URL do Vídeo ou GIF (Ex: YouTube, Giphy)</label>
+                    <input type="text" id="presc-video" placeholder="Cole aqui o link do vídeo/GIF para o aluno" />
                   </div>
                 </div>
                 <div id="tecnica-info-box" class="info-box" style="display:none;background:#fef9c3;border-color:#fde68a;color:#78350f;"></div>
@@ -1209,7 +1219,7 @@
     function showPortalScreen(screen) {
       const landing = document.getElementById('portal-landing');
       const login = document.getElementById('admin-login-screen');
-      const app = document.getElementById('app');
+      const portalContainer = document.getElementById('portal-container');
       
       if (screen === 'admin') {
         landing.style.display = 'none';
@@ -1217,7 +1227,6 @@
       } else if (screen === 'landing') {
         landing.style.display = 'flex';
         login.style.display = 'none';
-        app.style.display = 'none';
       }
     }
 

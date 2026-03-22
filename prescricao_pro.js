@@ -50,6 +50,17 @@ function initPresc() {
       </div>
     `).join('');
   }
+
+  // Povoar filtros de grupos musculares
+  const filterContainer = document.getElementById('presc-grupos-filter');
+  if (filterContainer) {
+    const grupos = [...new Set(EXERCICIOS_DB.map(e => e.grupo))].sort();
+    filterContainer.innerHTML = grupos.map(g => `
+      <label class="check-label">
+        <input type="checkbox" name="grupo-filter" value="${g}" onchange="renderListaExercicios()"> ${g}
+      </label>
+    `).join('');
+  }
 }
 
 function carregarPresc() {
@@ -69,6 +80,14 @@ function carregarPresc() {
   const fichaExistente = state.fichas.find(f => f.alunoId === currentAlunoId);
   fichaExercicios = fichaExistente ? [...fichaExistente.exercicios] : [];
   
+  if (fichaExistente) {
+    if (document.getElementById('presc-objetivo-pro')) document.getElementById('presc-objetivo-pro').value = fichaExistente.objetivo || '';
+    if (document.getElementById('presc-semana')) document.getElementById('presc-semana').value = fichaExistente.semana || '';
+  } else {
+    if (document.getElementById('presc-objetivo-pro')) document.getElementById('presc-objetivo-pro').value = '';
+    if (document.getElementById('presc-semana')) document.getElementById('presc-semana').value = '';
+  }
+  
   renderListaExercicios();
   renderFichaTabela();
 }
@@ -79,14 +98,20 @@ function renderListaExercicios() {
   if (!container) return;
   
   const busca = (document.getElementById('presc-busca')?.value || '').toLowerCase();
+  const gruposChecked = Array.from(document.querySelectorAll('input[name="grupo-filter"]:checked')).map(cb => cb.value);
+  
   let lista = EXERCICIOS_DB; 
   
   if (busca) {
     lista = lista.filter(e => e.nome.toLowerCase().includes(busca) || e.grupo.toLowerCase().includes(busca));
   }
   
+  if (gruposChecked.length > 0) {
+    lista = lista.filter(e => gruposChecked.includes(e.grupo));
+  }
+  
   container.innerHTML = lista.map(e => `
-    <div class="exer-item" onclick="selecionarExercicio(${e.id})">
+    <div class="exer-item" onclick="selecionarExercicio('${e.id}')">
       <div class="exer-nome">${e.nome}</div>
       <div class="exer-meta">${e.grupo} · ${e.equip}</div>
     </div>`).join('');
@@ -104,6 +129,8 @@ function selecionarExercicio(id) {
   const painel = document.getElementById('painel-add-exercicio');
   if (painel) {
     document.getElementById('exer-sel-nome').textContent = ex.nome;
+    document.getElementById('exer-sel-grupo').textContent = ex.grupo;
+    document.getElementById('exer-sel-equip').textContent = ex.equip;
     painel.style.display = 'block';
     painel.dataset.exId = id;
     
@@ -137,26 +164,39 @@ function calcularCargaPorRM() {
 // ===== ADICIONAR EXERCÍCIO =====
 function adicionarExercicio() {
   const painel = document.getElementById('painel-add-exercicio');
+  if (!painel) return;
   const exId = painel.dataset.exId;
   const ex = EXERCICIOS_DB.find(e => e.id == exId);
+  if (!ex) return;
   
   const item = {
     id: Date.now(),
-    exId: parseInt(exId),
+    exId: exId,
     nome: ex.nome,
     grupo: ex.grupo,
-    series: document.getElementById('presc-series').value,
-    reps: document.getElementById('presc-reps').value,
-    carga: document.getElementById('presc-carga').value,
-    pct: document.getElementById('presc-pct-rm').value,
+    series: document.getElementById('presc-series')?.value || '',
+    reps: document.getElementById('presc-reps')?.value || '',
+    carga: document.getElementById('presc-carga')?.value || '',
+    pct: document.getElementById('presc-pct-rm')?.value || '',
     tecnica: document.getElementById('presc-tecnica')?.value || 'tradicional',
-    descanso: document.getElementById('presc-descanso').value
+    descanso: document.getElementById('presc-descanso')?.value || '',
+    cadencia: document.getElementById('presc-cadencia')?.value || '',
+    video: document.getElementById('presc-video')?.value || '',
+    obs: document.getElementById('presc-obs-ex')?.value || ''
   };
   
   fichaExercicios.push(item);
   renderFichaTabela();
   painel.style.display = 'none';
   showToast('Exercício adicionado!', 'success');
+  
+  // Limpar campos para o próximo
+  if (document.getElementById('presc-carga')) document.getElementById('presc-carga').value = '';
+  if (document.getElementById('presc-reps')) document.getElementById('presc-reps').value = '';
+  if (document.getElementById('presc-pct-rm')) document.getElementById('presc-pct-rm').value = '';
+  if (document.getElementById('presc-cadencia')) document.getElementById('presc-cadencia').value = '';
+  if (document.getElementById('presc-video')) document.getElementById('presc-video').value = '';
+  if (document.getElementById('presc-obs-ex')) document.getElementById('presc-obs-ex').value = '';
 }
 
 function renderFichaTabela() {
@@ -177,6 +217,7 @@ function renderFichaTabela() {
           <th>Reps</th>
           <th>Carga</th>
           <th>% 1RM</th>
+          <th>Cadência</th>
           <th>Técnica</th>
           <th>Descanso</th>
           <th>Ações</th>
@@ -187,14 +228,23 @@ function renderFichaTabela() {
   
   html += fichaExercicios.map(e => `
     <tr>
-      <td>${e.nome}</td>
+      <td>
+        <strong>${e.nome}</strong><br>
+        <span style="font-size:0.7rem; color:#666;">${e.grupo} ${e.obs ? ' · ' + e.obs : ''}</span>
+      </td>
       <td>${e.series}</td>
       <td>${e.reps}</td>
       <td>${e.carga} kg</td>
       <td>${e.pct ? e.pct + '%' : '—'}</td>
+      <td>${e.cadencia || '—'}</td>
       <td>${e.tecnica ? e.tecnica.charAt(0).toUpperCase() + e.tecnica.slice(1) : 'Tradicional'}</td>
       <td>${e.descanso}s</td>
-      <td><button class="btn-del" onclick="removerExercicio(${e.id})">✕</button></td>
+      <td>
+        <div style="display:flex; gap:5px;">
+          ${e.video ? `<a href="${e.video}" target="_blank" class="btn-secondary" style="padding:2px 6px; font-size:0.7rem; text-decoration:none;">🎥</a>` : ''}
+          <button class="btn-del" onclick="removerExercicio(${e.id})">✕</button>
+        </div>
+      </td>
     </tr>
   `).join('');
   
@@ -289,6 +339,8 @@ function salvarFichaCompleta() {
   const ficha = {
     alunoId: currentAlunoId,
     exercicios: fichaExercicios,
+    objetivo: document.getElementById('presc-objetivo-pro')?.value || '',
+    semana: document.getElementById('presc-semana')?.value || '',
     data: new Date().toISOString().slice(0, 10)
   };
   
@@ -311,11 +363,15 @@ function imprimirFichaPro() {
   
   let rows = fichaExercicios.map(e => `
     <tr>
-      <td>${e.nome}</td>
+      <td>
+        <strong>${e.nome}</strong><br>
+        <small>${e.grupo}${e.obs ? ' · ' + e.obs : ''}</small>
+      </td>
       <td>${e.series}</td>
       <td>${e.reps}</td>
       <td>${e.carga} kg</td>
       <td>${e.pct ? e.pct + '%' : '—'}</td>
+      <td>${e.cadencia || '—'}</td>
       <td>${e.tecnica ? e.tecnica.charAt(0).toUpperCase() + e.tecnica.slice(1) : 'Tradicional'}</td>
       <td>${e.descanso}s</td>
     </tr>
@@ -326,10 +382,11 @@ function imprimirFichaPro() {
     <style>
       body{font-family:sans-serif;padding:2rem;}
       table{width:100%;border-collapse:collapse;margin-top:1rem;}
-      th,td{border:1px solid #ddd;padding:8px;text-align:left;}
+      th,td{border:1px solid #ddd;padding:8px;text-align:left; font-size:0.85rem;}
       th{background:#1d4ed8;color:white;}
       .header{text-align:center;border-bottom:2px solid #1d4ed8;margin-bottom:1rem;}
       .params{margin-top:2rem; font-size:0.8rem; background:#f1f5f9; padding:10px; border-radius:5px;}
+      small{color:#666;}
     </style>
     </head><body>
     <div class="header">
@@ -339,7 +396,7 @@ function imprimirFichaPro() {
     </div>
     <table>
       <thead>
-        <tr><th>Exercício</th><th>Séries</th><th>Reps</th><th>Carga</th><th>% 1RM</th><th>Técnica</th><th>Descanso</th></tr>
+        <tr><th>Exercício</th><th>Séries</th><th>Reps</th><th>Carga</th><th>% 1RM</th><th>Cadência</th><th>Técnica</th><th>Descanso</th></tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>

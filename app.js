@@ -814,11 +814,14 @@ function loginAdmin() {
     localStorage.setItem('isAdmin', 'true');
     
     // Transição de página: Ocultar Portal e mostrar Dashboard
-    document.getElementById('admin-login-screen').style.display = 'none';
-    document.getElementById('portal-landing').style.display = 'none';
-    
+    const portalContainer = document.getElementById('portal-container');
     const app = document.getElementById('app');
-    app.classList.add('auth-ready');
+    
+    if (portalContainer) portalContainer.style.display = 'none';
+    if (app) {
+      app.style.setProperty('display', 'block', 'important');
+      app.classList.add('auth-ready');
+    }
     
     error.style.display = 'none';
     
@@ -839,22 +842,21 @@ function logoutAdmin() {
 
 function checkAdminAuth() {
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
+  const portalContainer = document.getElementById('portal-container');
   const app = document.getElementById('app');
-  const portal = document.getElementById('portal-landing');
-  const loginScreen = document.getElementById('admin-login-screen');
 
   if (isAdmin) {
-    if (loginScreen) loginScreen.style.display = 'none';
-    if (portal) portal.style.display = 'none';
+    if (portalContainer) portalContainer.style.display = 'none';
     if (app) {
+      app.style.setProperty('display', 'block', 'important');
       app.classList.add('auth-ready');
     }
   } else {
+    if (portalContainer) portalContainer.style.display = 'block';
     if (app) {
+      app.style.setProperty('display', 'none', 'important');
       app.classList.remove('auth-ready');
     }
-    if (loginScreen) loginScreen.style.display = 'none';
-    if (portal) portal.style.display = 'flex';
   }
 }
 
