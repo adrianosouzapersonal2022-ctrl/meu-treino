@@ -369,6 +369,7 @@
                   <select id="presc-objetivo-pro"><option value="hipertrofia">Hipertrofia</option><option value="forca">Força</option><option value="resistencia">Resistência Muscular</option><option value="emagrecimento">Emagrecimento</option><option value="potencia">Potência</option></select>
                 </div>
                 <div class="form-group"><label>Semana / Fase</label><input type="text" id="presc-semana" placeholder="Ex: Semana 3 – Fase Hipertrofia" /></div>
+                <div class="form-group" style="flex: 0 1 120px;"><label>Sessões</label><input type="number" id="presc-meta-sessoes" placeholder="12" min="1" /></div>
               </div>
               <div class="form-row">
                 <div class="form-group full"><label>Protocolo de Periodização</label>
@@ -376,6 +377,7 @@
                 </div>
               </div>
               <div id="protocolo-info-box" class="info-box" style="display:none;"></div>
+              <div id="alerta-vencimento-treino" class="info-box" style="display:none; margin-top: 1rem;"></div>
             </div>
 
             <div id="presc-content" style="display:none;">
@@ -474,13 +476,17 @@
               <!-- BUSCADOR DE EXERCÍCIOS -->
               <div class="form-section">
                 <h2 class="section-title">Banco de Exercícios</h2>
-                <div class="form-row">
+                <div class="form-row" style="display: flex; gap: 10px; align-items: flex-end;">
                   <div class="form-group" style="flex: 1;">
                     <label>Buscar Exercício</label>
-                    <input type="text" id="presc-busca" placeholder="Digite nome, grupo ou equipamento..." oninput="filtrarExercicios()" />
+                    <div style="display: flex; gap: 5px;">
+                      <input type="text" id="presc-busca" placeholder="Digite nome, grupo ou equipamento..." oninput="filtrarExercicios()" style="flex: 1;" />
+                      <button class="btn-primary" onclick="filtrarExercicios()" style="width: 45px; height: 45px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;" title="Pesquisar">🔍</button>
+                    </div>
                   </div>
-                  <div class="form-group" style="align-self: flex-end;">
-                    <button class="btn-success" onclick="abrirModalNovoExercicio()">+ Novo</button>
+                  <div class="form-group" style="display: flex; gap: 10px;">
+                    <button class="btn-success" onclick="abrirModalNovoExercicio()" style="height: 45px; font-weight: 700; display: flex; align-items: center; gap: 5px; padding: 0 15px;" title="Cadastrar Novo Exercício">+ 📝 Novo</button>
+                    <button class="btn-primary" onclick="abrirModalGerenciarBanco()" style="height: 45px; font-weight: 700; display: flex; align-items: center; gap: 5px; background: #6366f1; padding: 0 15px;" title="Gerenciar Banco de Exercícios">⚙️ Gerenciar Banco</button>
                   </div>
                 </div>
                 <div class="form-group full" style="margin-bottom:0.5rem;">
@@ -779,15 +785,28 @@
                       </select>
                     </div>
                     <div class="form-group"><label>Nível</label>
-                      <select id="aerobio-nivel">
-                        <option value="iniciante">Iniciante</option>
-                        <option value="intermediario">Intermediário</option>
-                        <option value="avancado">Avançado</option>
-                      </select>
-                    </div>
+                    <select id="aerobio-nivel">
+                      <option value="iniciante">Iniciante</option>
+                      <option value="intermediario">Intermediário</option>
+                      <option value="avancado">Avançado</option>
+                    </select>
                   </div>
-                  <div class="btn-row"><button type="button" class="btn-primary" onclick="gerarPrescricaoAerobio()">Gerar Prescrição</button></div>
+                  <div class="form-group"><label>Sessões</label><input type="number" id="aerobio-sessoes" placeholder="12" min="1" /></div>
                 </div>
+                <div class="form-group full">
+                  <label>Dias da Semana</label>
+                  <div class="checkbox-grid">
+                    <label class="check-label"><input type="checkbox" name="aerobio-dia" value="segunda"> Seg</label>
+                    <label class="check-label"><input type="checkbox" name="aerobio-dia" value="terca"> Ter</label>
+                    <label class="check-label"><input type="checkbox" name="aerobio-dia" value="quarta"> Qua</label>
+                    <label class="check-label"><input type="checkbox" name="aerobio-dia" value="quinta"> Qui</label>
+                    <label class="check-label"><input type="checkbox" name="aerobio-dia" value="sexta"> Sex</label>
+                    <label class="check-label"><input type="checkbox" name="aerobio-dia" value="sabado"> Sáb</label>
+                    <label class="check-label"><input type="checkbox" name="aerobio-dia" value="domingo"> Dom</label>
+                  </div>
+                </div>
+                <div class="btn-row"><button type="button" class="btn-primary" onclick="gerarPrescricaoAerobio()">Gerar Prescrição</button></div>
+              </div>
 
                 <div id="aerobio-presc-resultado" style="display:none;">
                   <div class="form-section">
@@ -850,100 +869,8 @@
             </div>
 
     <!-- MODAL SUCESSO CADASTRO -->
-    <div id="modal-sucesso-cadastro" class="screen-overlay" style="display: none; z-index: 3000;">
-      <div class="login-card" style="max-width: 450px; text-align: center; padding: 2rem;">
-        <div style="font-size: 4rem; color: var(--success); margin-bottom: 1rem;">✅</div>
-        <h2 class="section-title">Cadastro Realizado!</h2>
-        <p style="color: var(--text-muted); margin-bottom: 2rem;">O aluno foi cadastrado com sucesso no sistema TreinoFitASM.</p>
-        
-        <div class="pwa-badge" id="pwa-banner-success" style="display: none; flex-direction: column; gap: 10px; margin-bottom: 1.5rem; text-align: center; background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534;">
-          <div class="pwa-badge-text">
-            <h4 style="color: #166534;">Instale nosso Aplicativo</h4>
-            <p style="color: #166534; font-size: 0.75rem;">Para que o aluno acesse os treinos e avaliações direto pelo celular!</p>
-          </div>
-          <button class="btn-install" id="btn-pwa-install-success" style="background: #166534; color: white; width: 100%;">Baixar App Agora</button>
-        </div>
-
-        <div class="btn-row" style="flex-direction: column; gap: 10px;">
-          <button class="btn-primary" onclick="fecharModalSucesso()" style="width: 100%;">Concluir</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- MODAL NOVO EXERCÍCIO -->
-    <div id="modal-novo-exercicio" class="screen-overlay" style="display: none; z-index: 2000;">
-      <div class="login-card" style="max-width: 500px; width: 90%;">
-        <h2 class="section-title">Cadastrar Novo Exercício</h2>
-        <div class="form-group">
-          <label>Nome do Exercício</label>
-          <input type="text" id="novo-exer-nome" placeholder="Ex: Rosca Martelo Unilateral" />
-        </div>
-        
-        <div class="form-group">
-          <label>Selecione os Agrupamentos Musculares</label>
-          <div id="novo-exer-grupos-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; max-height: 150px; overflow-y: auto;">
-            <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 5px; color: var(--text);">
-              <input type="checkbox" name="novo-grupo" value="Peito"> Peito
-            </label>
-            <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 5px; color: var(--text);">
-              <input type="checkbox" name="novo-grupo" value="Costas"> Costas
-            </label>
-            <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 5px; color: var(--text);">
-              <input type="checkbox" name="novo-grupo" value="Pernas"> Pernas
-            </label>
-            <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 5px; color: var(--text);">
-              <input type="checkbox" name="novo-grupo" value="Ombros"> Ombros
-            </label>
-            <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 5px; color: var(--text);">
-              <input type="checkbox" name="novo-grupo" value="Bíceps"> Bíceps
-            </label>
-            <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 5px; color: var(--text);">
-              <input type="checkbox" name="novo-grupo" value="Tríceps"> Tríceps
-            </label>
-            <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 5px; color: var(--text);">
-              <input type="checkbox" name="novo-grupo" value="Abdômen"> Abdômen
-            </label>
-            <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 5px; color: var(--text);">
-              <input type="checkbox" name="novo-grupo" value="Cardio"> Cardio
-            </label>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>Equipamento</label>
-            <input type="text" id="novo-exer-equip" placeholder="Ex: Halter" />
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Link do Vídeo/GIF (URL)</label>
-          <input type="text" id="novo-exer-video" placeholder="https://..." />
-        </div>
-        <div class="btn-row" style="margin-top: 1rem;">
-          <button class="btn-secondary" onclick="fecharModalNovoExercicio()">Cancelar</button>
-          <button class="btn-primary" onclick="salvarNovoExercicioBanco()">Gravar Exercício</button>
-        </div>
-      </div>
-    </div>
-
-            <div id="modal-ver-exercicios" class="screen-overlay" style="display: none; z-index: 2000;">
-              <div class="login-card" style="max-width: 600px; width: 90%;">
-                <h2 id="modal-ver-titulo" class="section-title">Exercícios do Treino</h2>
-                <div id="modal-ver-lista" style="max-height: 400px; overflow-y: auto; margin-bottom: 1.5rem;"></div>
-                <div class="form-section" id="secao-add-extra" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px;">
-                  <h4 style="font-size: 0.8rem; margin-bottom: 0.5rem;">Adicionar mais exercício a este modelo</h4>
-                  <div style="display: flex; gap: 5px;">
-                    <select id="select-add-extra" style="flex: 1; font-size: 0.8rem;"></select>
-                    <button class="btn-primary" onclick="adicionarExercicioAoModelo()" style="padding: 5px 10px; font-size: 0.8rem;">+</button>
-                  </div>
-                </div>
-                <div class="btn-row" style="margin-top: 1rem;">
-                  <button class="btn-secondary" onclick="document.getElementById('modal-ver-exercicios').style.display='none'">Fechar</button>
-                </div>
-              </div>
-            </div>
-
-            <div class="form-section" style="background: #f1f5f9; border: 1px dashed var(--primary);">
+    <!-- MODAL NOVO EXERCÍCIO (Página Menor Flutuante) -->
+    <div class="form-section" style="background: #f1f5f9; border: 1px dashed var(--primary);">
               <h2 class="section-title" style="color: var(--primary);">💾 Criar Novo Modelo de Treino</h2>
               <p style="font-size: 0.8rem; margin-bottom: 1rem;">Monte o treino na aba "Prescrição" e salve como modelo aqui.</p>
               <div class="form-row">
@@ -1208,6 +1135,7 @@
       </div>
     </div>
 
+    <!-- MODAL FICHA AERÓBIA REMOVED -->
     <!-- ===================== ANTROPOMETRIA ===================== -->
     <div id="page-antropometria" class="page">
       <div class="page-header">
@@ -1260,15 +1188,24 @@
               <div class="form-group">
                 <label for="protocolo-composicao-circ">Protocolo de Composição (Circunferências)</label>
                 <select id="protocolo-composicao-circ" onchange="mostrarEquacaoProtocolo()">
-                  <option value="">Selecione um protocolo</option>
-                  <option value="USNAVY">U.S. Navy (Circunferências)</option>
-                  <option value="WELTMAN">Weltman (Circunferências - Mulheres)</option>
-                  <option value="HODGDON">Hodgdon & Beckett (Homens)</option>
-                </select>
+                    <option value="">Selecione um protocolo</option>
+                    <option value="USNAVY">U.S. Navy (Circunferências)</option>
+                    <option value="WELTMAN">Weltman (Circunferências - Mulheres)</option>
+                    <option value="HODGDON">Hodgdon & Beckett (Homens)</option>
+                    <option value="YMCA">YMCA (Cintura e Peso)</option>
+                    <option value="DEURENBERG">Deurenberg (Baseado no IMC)</option>
+                  </select>
+                </div>
+              </div>
+              <div id="container-equacao-circ" class="info-box" style="display:none; background: #fffbeb; border: 1px solid #fef3c7; color: #92400e; font-family: monospace; font-size: 0.8rem;"></div>
+              
+              <!-- NOVO BOTÃO DE CÁLCULO -->
+              <div class="btn-row" style="margin-bottom: 1rem; border-top: none; padding-top: 0;">
+                <button type="button" class="btn-primary" onclick="calcularComposicaoCorporal()" style="width: 100%; background: var(--success);">
+                  🧮 Calcular Percentual de Gordura e Massa Magra
+                </button>
               </div>
             </div>
-            <div id="container-equacao-circ" class="info-box" style="display:none; background: #fffbeb; border: 1px solid #fef3c7; color: #92400e; font-family: monospace; font-size: 0.8rem;"></div>
-          </div>
 
           <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
             <!-- Guia Visual do Corpo Humano Interativo -->
@@ -1613,22 +1550,178 @@
       </div>
     </div>
 
-    <!-- ===================== MODAL RELATÓRIO ===================== -->
-    <div id="modal-relatorio" class="modal-overlay" style="display:none;">
-      <div class="modal-box">
-        <div class="modal-header">
-          <h2>Relatório Completo do Aluno</h2>
-          <button onclick="fecharModal()" class="modal-close">&#10005;</button>
-        </div>
-        <div id="modal-conteudo" class="modal-conteudo"></div>
-        <div class="btn-row" style="padding:1rem;">
-          <button type="button" class="btn-secondary" onclick="fecharModal()">Fechar</button>
-          <button type="button" class="btn-success" onclick="imprimirRelatorio()">Imprimir / Salvar PDF</button>
-        </div>
-      </div>
     </div>
 
   </div><!-- #app -->
+
+  <!-- MODALS GLOBAIS (FORA DO CONTAINER APP) -->
+  <div id="modal-sucesso-cadastro" class="screen-overlay" style="display: none; z-index: 3000;">
+    <div class="login-card" style="max-width: 450px; text-align: center; padding: 2rem; background: #f1f5f9; color: #000;">
+      <div style="font-size: 4rem; color: var(--success); margin-bottom: 1rem;">✅</div>
+      <h2 class="section-title" style="color: var(--success);">Cadastro Realizado!</h2>
+      <p style="color: var(--text-muted); margin-bottom: 2rem;">O aluno foi cadastrado com sucesso no sistema TreinoFitASM.</p>
+      
+      <div class="pwa-badge" id="pwa-banner-success" style="display: none; flex-direction: column; gap: 10px; margin-bottom: 1.5rem; text-align: center; background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534;">
+        <div class="pwa-badge-text">
+          <h4 style="color: #166534;">Instale nosso Aplicativo</h4>
+          <p style="color: #166534; font-size: 0.75rem;">Para que o aluno acesse os treinos e avaliações direto pelo celular!</p>
+        </div>
+        <button class="btn-install" id="btn-pwa-install-success" style="background: #166534; color: white; width: 100%;">Baixar App Agora</button>
+      </div>
+
+      <div class="btn-row" style="flex-direction: column; gap: 10px;">
+        <button class="btn-primary" onclick="fecharModalSucesso()" style="width: 100%;">Concluir</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-gerenciar-banco" class="screen-overlay" style="display: none; z-index: 2000; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);">
+    <div class="login-card" style="max-width: 600px; width: 95%; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); padding: 2rem; background: #1a1a1a; color: #ffffff; border: 1px solid #333;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid #333; padding-bottom: 15px;">
+        <h2 style="font-size: 1.25rem; color: #6366f1; margin: 0; font-weight: 800; letter-spacing: -0.5px;">⚙️ Gerenciar Banco de Exercícios</h2>
+        <button onclick="fecharModalGerenciarBanco()" style="background: #333; border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; color: #fff; display: flex; align-items: center; justify-content: center;">&times;</button>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 1.5rem;">
+        <label style="font-weight: 700; color: #94a3b8; display: block; margin-bottom: 8px; font-size: 0.85rem; text-transform: uppercase;">Pesquisar Exercício para Editar/Excluir</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="gerenciar-busca" placeholder="Digite o nome do exercício..." style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #333; background: #000; color: #fff; font-size: 1rem; outline: none;" oninput="filtrarGerenciarBanco()" />
+        </div>
+      </div>
+
+      <div id="gerenciar-lista" style="max-height: 350px; overflow-y: auto; background: #000; border-radius: 12px; border: 1px solid #333; padding: 10px; display: flex; flex-direction: column; gap: 10px;">
+        <!-- Lista de exercícios personalizados aqui -->
+      </div>
+
+      <div class="btn-row" style="margin-top: 1.5rem; border-top: 1px solid #333; padding-top: 20px;">
+        <button class="btn-secondary" onclick="fecharModalGerenciarBanco()" style="width: 100%; height: 50px; border-radius: 12px; background: #333; color: #fff; border: none; font-weight: 600; cursor: pointer;">Fechar Gerenciador</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-novo-exercicio" class="screen-overlay" style="display: none; z-index: 2000; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);">
+    <div class="login-card" style="max-width: 450px; width: 95%; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); padding: 2rem; background: #1a1a1a; color: #ffffff; border: 1px solid #333;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid #333; padding-bottom: 15px;">
+        <h2 id="modal-novo-exer-titulo" style="font-size: 1.25rem; color: #3b82f6; margin: 0; font-weight: 800; letter-spacing: -0.5px;">📝 Cadastrar Exercício</h2>
+        <button onclick="fecharModalNovoExercicio()" style="background: #333; border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; color: #fff; display: flex; align-items: center; justify-content: center;">&times;</button>
+      </div>
+      
+      <input type="hidden" id="novo-exer-id" value="">
+
+      <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label style="font-weight: 700; color: #94a3b8; display: block; margin-bottom: 8px; font-size: 0.85rem; text-transform: uppercase;">Nome do Exercício *</label>
+          <input type="text" id="novo-exer-nome" placeholder="Ex: Agachamento Sumô com Halter" style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #333; background: #000; color: #fff; font-size: 1rem; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#333'" />
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label style="font-weight: 700; color: #94a3b8; display: block; margin-bottom: 8px; font-size: 0.85rem; text-transform: uppercase;">Agrupamentos Musculares *</label>
+        <div id="novo-exer-grupos-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #000; padding: 15px; border-radius: 12px; border: 1px solid #333; max-height: 200px; overflow-y: auto;">
+          <label style="font-size: 0.9rem; display: flex; align-items: center; gap: 10px; color: #fff; cursor: pointer; background: #1a1a1a; padding: 8px 12px; border-radius: 8px; border: 1px solid #333; transition: all 0.2s;">
+            <input type="checkbox" name="novo-grupo" value="Peito" style="width: 18px; height: 18px; accent-color: #3b82f6;"> Peito
+          </label>
+          <label style="font-size: 0.9rem; display: flex; align-items: center; gap: 10px; color: #fff; cursor: pointer; background: #1a1a1a; padding: 8px 12px; border-radius: 8px; border: 1px solid #333; transition: all 0.2s;">
+            <input type="checkbox" name="novo-grupo" value="Costas" style="width: 18px; height: 18px; accent-color: #3b82f6;"> Costas
+          </label>
+          <label style="font-size: 0.9rem; display: flex; align-items: center; gap: 10px; color: #fff; cursor: pointer; background: #1a1a1a; padding: 8px 12px; border-radius: 8px; border: 1px solid #333; transition: all 0.2s;">
+            <input type="checkbox" name="novo-grupo" value="Pernas" style="width: 18px; height: 18px; accent-color: #3b82f6;"> Pernas
+          </label>
+          <label style="font-size: 0.9rem; display: flex; align-items: center; gap: 10px; color: #fff; cursor: pointer; background: #1a1a1a; padding: 8px 12px; border-radius: 8px; border: 1px solid #333; transition: all 0.2s;">
+            <input type="checkbox" name="novo-grupo" value="Ombros" style="width: 18px; height: 18px; accent-color: #3b82f6;"> Ombros
+          </label>
+          <label style="font-size: 0.9rem; display: flex; align-items: center; gap: 10px; color: #fff; cursor: pointer; background: #1a1a1a; padding: 8px 12px; border-radius: 8px; border: 1px solid #333; transition: all 0.2s;">
+            <input type="checkbox" name="novo-grupo" value="Bíceps" style="width: 18px; height: 18px; accent-color: #3b82f6;"> Bíceps
+          </label>
+          <label style="font-size: 0.9rem; display: flex; align-items: center; gap: 10px; color: #fff; cursor: pointer; background: #1a1a1a; padding: 8px 12px; border-radius: 8px; border: 1px solid #333; transition: all 0.2s;">
+            <input type="checkbox" name="novo-grupo" value="Tríceps" style="width: 18px; height: 18px; accent-color: #3b82f6;"> Tríceps
+          </label>
+          <label style="font-size: 0.9rem; display: flex; align-items: center; gap: 10px; color: #fff; cursor: pointer; background: #1a1a1a; padding: 8px 12px; border-radius: 8px; border: 1px solid #333; transition: all 0.2s;">
+            <input type="checkbox" name="novo-grupo" value="Abdômen" style="width: 18px; height: 18px; accent-color: #3b82f6;"> Abdômen
+          </label>
+          <label style="font-size: 0.9rem; display: flex; align-items: center; gap: 10px; color: #fff; cursor: pointer; background: #1a1a1a; padding: 8px 12px; border-radius: 8px; border: 1px solid #333; transition: all 0.2s;">
+            <input type="checkbox" name="novo-grupo" value="Antebraço" style="width: 18px; height: 18px; accent-color: #3b82f6;"> Antebraço
+          </label>
+          <label style="font-size: 0.9rem; display: flex; align-items: center; gap: 10px; color: #fff; cursor: pointer; background: #1a1a1a; padding: 8px 12px; border-radius: 8px; border: 1px solid #333; transition: all 0.2s;">
+            <input type="checkbox" name="novo-grupo" value="Glúteos" style="width: 18px; height: 18px; accent-color: #3b82f6;"> Glúteos
+          </label>
+          <label style="font-size: 0.9rem; display: flex; align-items: center; gap: 10px; color: #fff; cursor: pointer; background: #1a1a1a; padding: 8px 12px; border-radius: 8px; border: 1px solid #333; transition: all 0.2s;">
+            <input type="checkbox" name="novo-grupo" value="Cardio" style="width: 18px; height: 18px; accent-color: #3b82f6;"> Cardio
+          </label>
+        </div>
+      </div>
+
+      <div class="form-row" style="margin-bottom: 1.5rem;">
+          <div class="form-group">
+            <label style="font-weight: 700; color: #94a3b8; display: block; margin-bottom: 8px; font-size: 0.85rem; text-transform: uppercase;">Equipamento</label>
+            <input type="text" id="novo-exer-equip" placeholder="Ex: Halter, Máquina, Smith" style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #333; background: #000; color: #fff; outline: none;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#333'" />
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 2rem;">
+          <label style="font-weight: 700; color: #94a3b8; display: block; margin-bottom: 8px; font-size: 0.85rem; text-transform: uppercase;">Vídeo/GIF (Opcional)</label>
+          <input type="text" id="novo-exer-video" placeholder="https://youtube.com/..." style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #333; background: #000; color: #fff; outline: none;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#333'" />
+        </div>
+
+      <div class="btn-row" style="margin-top: 1rem; border-top: 1px solid #333; padding-top: 20px; gap: 12px; display: flex;">
+        <button class="btn-secondary" onclick="fecharModalNovoExercicio()" style="flex: 1; height: 50px; border-radius: 12px; background: #333; color: #fff; border: none; font-weight: 600; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#444'" onmouseout="this.style.background='#333'">Cancelar</button>
+        <button id="btn-salvar-novo-exer" class="btn-primary" onclick="salvarNovoExercicioBanco()" style="flex: 2; height: 50px; border-radius: 12px; background: #3b82f6; color: #fff; border: none; font-weight: 800; cursor: pointer; transition: transform 0.2s, background 0.2s;" onmouseover="this.style.background='#2563eb'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#3b82f6'; this.style.transform='translateY(0)'">💾 SALVAR EXERCÍCIO</button>
+      </div>
+
+      <!-- LISTA DE EXERCÍCIOS PARA GESTÃO (EDITAR/EXCLUIR) -->
+      <div style="margin-top: 2rem; border-top: 2px dashed #333; padding-top: 1.5rem;">
+        <h3 style="font-size: 0.9rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
+          📋 Meus Exercícios Cadastrados 
+          <span style="font-size: 0.7rem; background: #333; padding: 2px 8px; border-radius: 10px; color: #fff;" id="count-custom-exer">0</span>
+        </h3>
+        <div id="lista-gestao-custom" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+          <!-- Itens injetados via JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-ver-exercicios" class="screen-overlay" style="display: none; z-index: 2000;">
+    <div class="login-card" style="max-width: 600px; width: 90%; background: #f8fafc; color: #000;">
+      <h2 id="modal-ver-titulo" class="section-title" style="color: var(--primary);">Exercícios do Treino</h2>
+      <div id="modal-ver-lista" style="max-height: 400px; overflow-y: auto; margin-bottom: 1.5rem;"></div>
+      <div class="form-section" id="secao-add-extra" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px;">
+        <h4 style="font-size: 0.8rem; margin-bottom: 0.5rem;">Adicionar mais exercício a este modelo</h4>
+        <div style="display: flex; gap: 5px;">
+          <select id="select-add-extra" style="flex: 1; font-size: 0.8rem;"></select>
+          <button class="btn-primary" onclick="adicionarExercicioAoModelo()" style="padding: 5px 10px; font-size: 0.8rem;">+</button>
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top: 1rem;">
+        <button class="btn-secondary" onclick="document.getElementById('modal-ver-exercicios').style.display='none'">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-ficha-aerobia" class="screen-overlay" style="display:none; z-index: 2000;">
+    <div class="login-card" style="max-width: 800px; width: 95%; background: #fff; color: #000;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 class="section-title" style="color: var(--primary);">Ficha de Treino Aeróbio</h2>
+        <button onclick="document.getElementById('modal-ficha-aerobia').style.display='none'" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+      </div>
+      <div id="conteudo-ficha-aerobia" style="margin-top: 1rem;"></div>
+      <div class="btn-row" style="margin-top: 1.5rem;">
+        <button class="btn-primary" onclick="baixarPDFAerobio()">Baixar PDF da Ficha</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-relatorio" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>Relatório Completo do Aluno</h2>
+        <button onclick="fecharModal()" class="modal-close">&#10005;</button>
+      </div>
+      <div id="modal-conteudo" class="modal-conteudo"></div>
+      <div class="btn-row" style="padding:1rem;">
+        <button type="button" class="btn-secondary" onclick="fecharModal()">Fechar</button>
+        <button type="button" class="btn-success" onclick="imprimirRelatorio()">Imprimir / Salvar PDF</button>
+      </div>
+    </div>
+  </div>
 
   <div id="toast" class="toast"></div>
   <script src="exercicios.js"></script>

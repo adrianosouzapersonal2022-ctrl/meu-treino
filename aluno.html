@@ -98,8 +98,15 @@
         <!-- ANAMNESE PENDENTE ALERT -->
         <div id="anamnese-pendente-alert" class="section-card" style="display:none; background:#fff7ed; border:1px solid #fb923c;">
           <h3 style="color:#c2410c; font-size:1rem; margin-bottom:0.5rem;">📋 Anamnese Pendente</h3>
-          <p style="font-size:0.85rem; color:#9a3412;">Precisamos conhecer seu perfil de saúde antes de começar.</p>
-          <button class="btn-full" style="background:#f97316; margin-top:0.8rem;" onclick="abrirAnamneseInicial()">Preencher Agora</button>
+          <p style="font-size:0.85rem; color:#9a3412; margin-bottom:1rem;">Preencha seus dados de saúde para que seu professor possa prescrever seu treino com segurança.</p>
+          <button class="btn-full" onclick="abrirAnamneseInicial()" style="background:#f97316;">Preencher Agora</button>
+        </div>
+
+        <!-- ALERTA DE VENCIMENTO DE TREINO (ALUNO) -->
+        <div id="alerta-treino-vencido-aluno" class="section-card" style="display:none; background: #fef2f2; border: 1px solid #fecaca;">
+          <h3 style="color: #b91c1c; font-size: 1rem; margin-bottom: 0.5rem;">📅 Atualização de Treino</h3>
+          <p id="msg-treino-vencido-aluno" style="font-size: 0.85rem; color: #991b1b; line-height: 1.4;"></p>
+        </div>
         </div>
 
         <div class="section-card">

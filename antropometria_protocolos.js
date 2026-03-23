@@ -67,6 +67,56 @@ const ANTRO_PROTOCOLOS = {
         massaMagraKg: massaMagraKg.toFixed(2)
       };
     }
+  },
+  YMCA: {
+    nome: "YMCA (Métrica)",
+    desc: "Protocolo simplificado da YMCA que utiliza apenas a medida da cintura e peso.",
+    formula_m: "BF% = (1.634 * cintura - 0.1804 * peso - 98.42) / peso * 100",
+    formula_f: "BF% = (1.634 * cintura - 0.1804 * peso - 76.76) / peso * 100",
+    calcular: (dados, sexo) => {
+      const { cintura, peso } = dados;
+      // Convertendo cm para polegadas para a fórmula padrão YMCA se necessário, 
+      // mas usaremos a versão métrica adaptada:
+      let bf = 0;
+      const cinturaPol = cintura / 2.54;
+      const pesoLib = peso * 2.20462;
+      
+      if (sexo === 'M') {
+        bf = ((4.15 * cinturaPol - 0.082 * pesoLib - 98.42) / pesoLib) * 100;
+      } else {
+        bf = ((4.15 * cinturaPol - 0.082 * pesoLib - 76.76) / pesoLib) * 100;
+      }
+      
+      if (bf < 0) bf = 0;
+      const gorduraKg = (bf / 100) * peso;
+      const massaMagraKg = peso - gorduraKg;
+      
+      return {
+        bf: bf.toFixed(2),
+        gorduraKg: gorduraKg.toFixed(2),
+        massaMagraKg: massaMagraKg.toFixed(2)
+      };
+    }
+  },
+  DEURENBERG: {
+    nome: "Deurenberg (IMC)",
+    desc: "Estima o percentual de gordura corporal com base no IMC, idade e sexo.",
+    formula: "BF% = 1.20 * IMC + 0.23 * Idade - 10.8 * Sexo - 5.4",
+    calcular: (dados, sexo, idade) => {
+      const { peso, altura } = dados;
+      const imc = peso / ((altura/100) * (altura/100));
+      const s = sexo === 'M' ? 1 : 0;
+      const bf = (1.20 * imc) + (0.23 * idade) - (10.8 * s) - 5.4;
+      
+      const gorduraKg = (bf / 100) * peso;
+      const massaMagraKg = peso - gorduraKg;
+      
+      return {
+        bf: bf.toFixed(2),
+        gorduraKg: gorduraKg.toFixed(2),
+        massaMagraKg: massaMagraKg.toFixed(2)
+      };
+    }
   }
 };
 

@@ -42,12 +42,31 @@ document.getElementById('btn-pwa-install-aluno')?.addEventListener('click', asyn
   if (deferredPromptAluno) {
     deferredPromptAluno.prompt();
     const { outcome } = await deferredPromptAluno.userChoice;
+    console.log('User choice:', outcome);
     if (outcome === 'accepted') {
       const banner = document.getElementById('pwa-banner-aluno');
       if (banner) banner.style.display = 'none';
+      toast('App instalado com sucesso! Verifique sua tela de início.', 'success');
     }
     deferredPromptAluno = null;
+  } else {
+    // Se o prompt não estiver disponível, pode ser que já esteja instalado ou o navegador não suporte
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    if (isStandalone) {
+      toast('O app já está instalado!', 'info');
+      document.getElementById('pwa-banner-aluno').style.display = 'none';
+    } else {
+      toast('Siga as instruções para instalar no seu dispositivo.', 'info');
+    }
   }
+});
+
+// Detectar quando o app foi instalado
+window.addEventListener('appinstalled', (evt) => {
+  console.log('App instalado!');
+  const banner = document.getElementById('pwa-banner-aluno');
+  if (banner) banner.style.display = 'none';
+  toast('App instalado! Atalho criado na tela inicial.', 'success');
 });
 
 // ===== TOAST =====
@@ -95,7 +114,7 @@ function entrarNoApp() {
   document.getElementById('av-inicial').textContent = nome.charAt(0).toUpperCase();
   document.getElementById('header-sub').textContent = 'Seu treino está pronto!';
   
-  // Verificar Acesso (Pagamento)
+  // Verificar Acesso (Pagamento) e esconder aba se for gratuito
   verificarAcesso();
 
   carregarInicio();
@@ -111,6 +130,7 @@ function verificarAcesso() {
   
   // Se for aluno gratuito (definido pelo admin) ou tiver pagamento pago
   const temAcesso = alunoLogado.tipo === 'gratuito' || alunoPags.length > 0;
+  const isGratuito = alunoLogado.tipo === 'gratuito';
 
   const sections = [
     { lib: 'treino-liberado', block: 'treino-bloqueado' },
@@ -124,8 +144,11 @@ function verificarAcesso() {
     if (blockEl) blockEl.style.display = temAcesso ? 'none' : 'block';
   });
 
-  // Garantir que a aba de perfil/cadastro e pagamentos também reflitam o status se necessário
-  // (No momento essas abas não possuem overlays de bloqueio total, mas o histórico de pagamentos já trata o 'gratuito')
+  // Esconder botão de pagamento na bottom nav se for gratuito
+  const bnavPagamento = document.getElementById('bnav-pagamento');
+  if (bnavPagamento) {
+    bnavPagamento.style.display = isGratuito ? 'none' : 'flex';
+  }
 }
 
 // ===== CADASTRO ONLINE =====
@@ -250,6 +273,24 @@ function carregarInicio() {
   const prox = document.getElementById('proximo-treino');
 
   if (ficha && ficha.exercicios && ficha.exercicios.length > 0) {
+    // Alerta de vencimento de treino para o aluno
+    const sAtuais = ficha.sessoesRealizadas || 0;
+    const sMeta = ficha.metaSessoes || 0;
+    const alertAluno = document.getElementById('alerta-treino-vencido-aluno');
+    const msgAluno = document.getElementById('msg-treino-vencido-aluno');
+
+    if (alertAluno && msgAluno && sMeta > 0) {
+      if (sAtuais >= sMeta) {
+        msgAluno.innerHTML = `⚠️ <strong>Seu treino venceu!</strong> Você completou as ${sMeta} sessões planejadas. Fale com seu professor para atualizar sua ficha.`;
+        alertAluno.style.display = 'block';
+      } else if (sAtuais >= (sMeta * 0.8)) {
+        msgAluno.innerHTML = `🔔 <strong>Faltam poucas sessões!</strong> Você já realizou ${sAtuais} de ${sMeta} sessões deste treino.`;
+        alertAluno.style.display = 'block';
+      } else {
+        alertAluno.style.display = 'none';
+      }
+    }
+
     // Tentar identificar o treino do dia
     const diasSemana = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
     const hoje = diasSemana[new Date().getDay()];
@@ -387,6 +428,7 @@ function carregarTreino() {
               <div class="ex-info-item"><strong>Séries:</strong> ${e.series}</div>
               <div class="ex-info-item"><strong>Reps:</strong> ${e.reps}</div>
               <div class="ex-info-item"><strong>Carga:</strong> ${e.carga} kg</div>
+              ${e.pct ? `<div class="ex-info-item"><strong>% 1RM:</strong> ${e.pct}%</div>` : ''}
               <div class="ex-info-item"><strong>Descanso:</strong> ${e.descanso}s</div>
               ${e.cadencia ? `<div class="ex-info-item"><strong>Cadência:</strong> ${e.cadencia}</div>` : ''}
               <div class="ex-info-item"><strong>Técnica:</strong> ${e.tecnica ? e.tecnica.charAt(0).toUpperCase() + e.tecnica.slice(1) : 'Tradicional'}</div>

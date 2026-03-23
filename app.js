@@ -531,7 +531,7 @@ function calcularComposicaoCorporal() {
     return;
   }
 
-  const res = window.ANTRO_PROTOCOLOS[protId].calcular(dados, aluno.sexo);
+  const res = window.ANTRO_PROTOCOLOS[protId].calcular(dados, aluno.sexo, parseInt(aluno.idade));
   if (!res) {
     showToast('Este protocolo não se aplica ao gênero do aluno.', 'error');
     return;
@@ -777,13 +777,84 @@ function calcularDobras() {
       const mm = peso - mg;
       document.getElementById('massaGorda').value = mg.toFixed(2) + ' kg';
       document.getElementById('massaMagra').value = mm.toFixed(2) + ' kg';
-      document.getElementById('classGordura').value = classGordura(siri, sexo, idade);
+      
+      const classif = classGordura(siri, sexo, idade);
+      document.getElementById('classGordura').value = classif;
+      
+      // Auto-preencher gordura ideal baseada no sexo
+      const gIdeal = sexo === 'M' ? 15 : 22;
+      document.getElementById('percGorduraIdeal').value = gIdeal;
+      calcularPesoIdeal();
     }
   }
 
   renderResultadosAntro();
   showToast('Composição corporal calculada!', 'success');
 }
+
+/**
+ * Calcula a composição corporal baseada em circunferências
+ */
+function calcularComposicaoCorporal() {
+  const protId = document.getElementById('protocolo-composicao-circ').value;
+  if (!protId) {
+    showToast('Selecione um protocolo primeiro!', 'error');
+    return;
+  }
+
+  const sel = document.getElementById('alunoAntro');
+  const id = sel.value;
+  const aluno = id ? state.alunos.find(a => String(a.id) === String(id)) : null;
+  if (!aluno) {
+    showToast('Selecione um aluno!', 'error');
+    return;
+  }
+
+  const get = id => parseFloat(document.getElementById(id)?.value) || 0;
+  const dados = {
+    peso: get('c-peso'),
+    altura: get('c-altura'),
+    abdomen: get('c-abdomen'),
+    cintura: get('c-cintura'),
+    quadril: get('c-quadril'),
+    pescoco: get('c-pescoco') || 38,
+    ombro: get('c-ombro')
+  };
+
+  if (!dados.peso || !dados.altura) {
+    showToast('Peso e Altura são obrigatórios para este cálculo!', 'error');
+    return;
+  }
+
+  const res = window.ANTRO_PROTOCOLOS[protId].calcular(dados, aluno.sexo, parseInt(aluno.idade));
+  if (!res) {
+    showToast('Este protocolo não se aplica ao gênero do aluno.', 'error');
+    return;
+  }
+
+  // Preencher campos ocultos ou globais para compatibilidade com renderResultadosAntro
+  document.getElementById('percGorduraSiri').value = res.bf + '%';
+  document.getElementById('massaGorda').value = res.gorduraKg + ' kg';
+  document.getElementById('massaMagra').value = res.massaMagraKg + ' kg';
+  
+  const classif = classGordura(parseFloat(res.bf), aluno.sexo, parseInt(aluno.idade));
+  document.getElementById('classGordura').value = classif;
+
+  // Calcular Peso Ideal automaticamente
+  const gIdeal = aluno.sexo === 'M' ? 15 : 22;
+  document.getElementById('percGorduraIdeal').value = gIdeal;
+  
+  const mm = parseFloat(res.massaMagraKg);
+  const pi = mm / (1 - gIdeal / 100);
+  document.getElementById('pesoIdeal').value = pi.toFixed(2) + ' kg';
+  const meta = Math.max(0, dados.peso - pi);
+  document.getElementById('gorduraPerder').value = meta.toFixed(2) + ' kg';
+
+  renderResultadosAntro();
+  showTab('tab-resultados-antro');
+  showToast('Cálculo concluído!', 'success');
+}
+
 
 function classGordura(pct, sexo, idade) {
   if (sexo === 'M') {
@@ -822,27 +893,51 @@ function renderResultadosAntro() {
   if (!box) return;
   const dc = document.getElementById('densidade').value;
   const siri = document.getElementById('percGorduraSiri').value;
-  const brozek = document.getElementById('percGorduraBrozek').value;
   const mg = document.getElementById('massaGorda').value;
   const mm = document.getElementById('massaMagra').value;
   const cls = document.getElementById('classGordura').value;
-  const rcq = document.getElementById('rcq').value;
-  const ic = document.getElementById('ic').value;
-  const rcest = document.getElementById('rcest').value;
+  const pi = document.getElementById('pesoIdeal').value;
+  const pgIdeal = document.getElementById('percGorduraIdeal').value;
+  
+  const sel = document.getElementById('alunoAntro');
+  const id = sel.value;
+  const aluno = id ? state.alunos.find(a => String(a.id) === String(id)) : null;
+  const pesoAtual = aluno ? aluno.peso : (document.getElementById('c-peso')?.value || '—');
+
   box.innerHTML = `
     <h2 class="section-title">Resultados da Avaliação</h2>
     <div class="result-grid">
-      <div class="result-card highlight"><div class="rc-label">% Gordura (Siri)</div><div class="rc-value">${siri}</div></div>
-      <div class="result-card highlight"><div class="rc-label">% Gordura (Brozek)</div><div class="rc-value">${brozek}</div></div>
-      <div class="result-card"><div class="rc-label">Densidade Corporal</div><div class="rc-value" style="font-size:1rem">${dc}</div><div class="rc-unit">g/cm³</div></div>
-      <div class="result-card"><div class="rc-label">Massa Gorda</div><div class="rc-value">${mg}</div></div>
-      <div class="result-card"><div class="rc-label">Massa Magra</div><div class="rc-value">${mm}</div></div>
-      <div class="result-card"><div class="rc-label">Classificação</div><div class="rc-value" style="font-size:1rem">${cls}</div></div>
-      <div class="result-card"><div class="rc-label">RCQ</div><div class="rc-value">${rcq || '—'}</div></div>
-      <div class="result-card"><div class="rc-label">Índice Conicidade</div><div class="rc-value">${ic || '—'}</div></div>
-      <div class="result-card"><div class="rc-label">RCEst</div><div class="rc-value">${rcest || '—'}</div></div>
+      <div class="result-card highlight">
+        <div class="rc-label">% Gordura Atual</div>
+        <div class="rc-value">${siri}</div>
+      </div>
+      <div class="result-card highlight">
+        <div class="rc-label">Classificação</div>
+        <div class="rc-value" style="font-size:1.2rem">${cls}</div>
+      </div>
+      <div class="result-card">
+        <div class="rc-label">Peso Atual</div>
+        <div class="rc-value">${pesoAtual} kg</div>
+      </div>
+      <div class="result-card highlight" style="background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%); border-color: #86efac;">
+        <div class="rc-label" style="color: #166534;">Peso Ideal</div>
+        <div class="rc-value" style="color: #15803d;">${pi}</div>
+      </div>
+      <div class="result-card">
+        <div class="rc-label">% Gordura Ideal</div>
+        <div class="rc-value">${pgIdeal}%</div>
+      </div>
+      <div class="result-card">
+        <div class="rc-label">Massa Magra</div>
+        <div class="rc-value">${mm}</div>
+      </div>
+      <div class="result-card">
+        <div class="rc-label">Massa Gorda</div>
+        <div class="rc-value">${mg}</div>
+      </div>
     </div>`;
 }
+
 
 function limparAntro() {
   document.querySelectorAll('#page-antropometria input:not([readonly])').forEach(el => el.value = '');
@@ -869,12 +964,16 @@ function salvarAntro() {
     alunoId: String(selId),
     data: document.getElementById('dataAntro').value || new Date().toISOString().slice(0, 10),
     biotipo: document.getElementById('antro-biotipo').value,
-    peso: state.alunos.find(a => String(a.id) === String(selId))?.peso || '',
+    peso: document.getElementById('c-peso')?.value || state.alunos.find(a => String(a.id) === String(selId))?.peso || '',
+    altura: document.getElementById('c-altura')?.value || '',
     percGordura: (document.getElementById('percGorduraSiri').value || '').replace('%', ''),
     massaMagra: (document.getElementById('massaMagra').value || '').replace(' kg', ''),
     massaGorda: (document.getElementById('massaGorda').value || '').replace(' kg', ''),
     imc: (document.getElementById('imc')?.value || ''),
-    protocolo: document.getElementById('protocoloAntro').value,
+    pesoIdeal: (document.getElementById('pesoIdeal').value || '').replace(' kg', ''),
+    percGorduraIdeal: document.getElementById('percGorduraIdeal').value,
+    classificacao: document.getElementById('classGordura').value,
+    protocolo: document.getElementById('protocoloAntro').value || document.getElementById('protocolo-composicao-circ').value || 'N/A',
     rcq: document.getElementById('rcq').value,
     perimetros,
     dobras

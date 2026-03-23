@@ -83,6 +83,25 @@ function carregarPresc() {
   if (fichaExistente) {
     if (document.getElementById('presc-objetivo-pro')) document.getElementById('presc-objetivo-pro').value = fichaExistente.objetivo || '';
     if (document.getElementById('presc-semana')) document.getElementById('presc-semana').value = fichaExistente.semana || '';
+    if (document.getElementById('presc-meta-sessoes')) document.getElementById('presc-meta-sessoes').value = fichaExistente.metaSessoes || '';
+    
+    // Mostrar contador de sessões atual
+    const sessoesAtuais = fichaExistente.sessoesRealizadas || 0;
+    const metaSessoes = fichaExistente.metaSessoes || 0;
+    const alertBox = document.getElementById('alerta-vencimento-treino');
+    if (alertBox) {
+      if (metaSessoes > 0 && sessoesAtuais >= metaSessoes) {
+        alertBox.innerHTML = `⚠️ <strong>TREINO VENCIDO!</strong> O aluno já completou ${sessoesAtuais} de ${metaSessoes} sessões. Hora de atualizar a prescrição.`;
+        alertBox.style.display = 'block';
+        alertBox.className = 'info-box error';
+      } else if (metaSessoes > 0 && sessoesAtuais >= (metaSessoes * 0.8)) {
+        alertBox.innerHTML = `🔔 <strong>TREINO PRÓXIMO DO VENCIMENTO:</strong> ${sessoesAtuais} de ${metaSessoes} sessões realizadas.`;
+        alertBox.style.display = 'block';
+        alertBox.className = 'info-box warning';
+      } else {
+        alertBox.style.display = 'none';
+      }
+    }
     
     // Carregar dias da semana e mapeamento de divisões
     const dias = fichaExistente.diasTreino || [];
@@ -137,15 +156,23 @@ function renderListaExercicios() {
     const nivelClass = `nivel-${nivel.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
     
     return `
-      <div class="exer-item ${grupoClass}" onclick="selecionarExercicio('${e.id}')">
+      <div class="exer-item ${grupoClass}">
         <div class="nivel-badge ${nivelClass}">${nivel}</div>
-        <div class="exer-media">
+        <div class="exer-media" onclick="selecionarExercicio('${e.id}')">
           ${e.video ? `<img src="https://img.youtube.com/vi/${getYouTubeID(e.video)}/0.jpg" alt="${e.nome}" onerror="this.src='https://via.placeholder.com/300x150?text=Exerc%C3%ADcio'">` : `<div style="font-size:2rem; color:#cbd5e1;">🏋️</div>`}
         </div>
         <div class="exer-info">
-          <div class="badge-grupo ${bgClass}">${e.grupo}</div>
-          <div class="exer-nome">${e.nome}</div>
-          <div class="exer-meta">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px;">
+            <div class="badge-grupo ${bgClass}">${e.grupo}</div>
+            ${String(e.id).startsWith('custom_') ? `
+              <div style="display: flex; gap: 5px;">
+                <button onclick="editarExercicioCustom('${e.id}')" style="background: #3b82f6; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;" title="Editar">✏️</button>
+                <button onclick="excluirExercicioCustom('${e.id}')" style="background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;" title="Excluir">🗑️</button>
+              </div>
+            ` : ''}
+          </div>
+          <div class="exer-nome" onclick="selecionarExercicio('${e.id}')">${e.nome}</div>
+          <div class="exer-meta" onclick="selecionarExercicio('${e.id}')">
             <span>${e.equip || 'Livre'}</span>
             <span>•</span>
             <span>${e.tipo || 'Força'}</span>
@@ -153,6 +180,37 @@ function renderListaExercicios() {
         </div>
       </div>`;
   }).join('');
+}
+
+function editarExercicioCustom(id) {
+  const custom = JSON.parse(localStorage.getItem('exercicios_custom') || '[]');
+  const ex = custom.find(e => String(e.id) === String(id));
+  if (!ex) return;
+
+  document.getElementById('modal-novo-exer-titulo').textContent = '✏️ Editar Exercício';
+  document.getElementById('novo-exer-id').value = id;
+  document.getElementById('novo-exer-nome').value = ex.nome;
+  document.getElementById('novo-exer-equip').value = ex.equip || '';
+  document.getElementById('novo-exer-video').value = ex.video || '';
+  
+  // Marcar grupos
+  const grupos = ex.grupos || [ex.grupo];
+  document.querySelectorAll('input[name="novo-grupo"]').forEach(cb => {
+    cb.checked = grupos.includes(cb.value);
+  });
+
+  abrirModalNovoExercicio();
+}
+
+function excluirExercicioCustom(id) {
+  if (!confirm('Tem certeza que deseja excluir este exercício do seu banco de dados?')) return;
+  
+  let custom = JSON.parse(localStorage.getItem('exercicios_custom') || '[]');
+  custom = custom.filter(e => String(e.id) !== String(id));
+  localStorage.setItem('exercicios_custom', JSON.stringify(custom));
+  
+  showToast('🗑️ Exercício excluído com sucesso!', 'success');
+  renderListaExercicios();
 }
 
 function getYouTubeID(url) {
@@ -264,47 +322,131 @@ function abrirModalNovoExercicio() {
   document.getElementById('modal-novo-exercicio').style.display = 'flex';
 }
 
-function fecharModalNovoExercicio() {
-  document.getElementById('modal-novo-exercicio').style.display = 'none';
-}
-
 function salvarNovoExercicioBanco() {
+  const idEdicao = document.getElementById('novo-exer-id').value;
   const nome = document.getElementById('novo-exer-nome').value;
   const gruposChecked = Array.from(document.querySelectorAll('input[name="novo-grupo"]:checked')).map(cb => cb.value);
   const equip = document.getElementById('novo-exer-equip').value;
   const video = document.getElementById('novo-exer-video').value;
 
-  if (!nome) { showToast('O nome é obrigatório!', 'error'); return; }
+  if (!nome) { showToast('O nome do exercício é obrigatório!', 'error'); return; }
   if (gruposChecked.length === 0) { showToast('Selecione ao menos um grupo muscular!', 'error'); return; }
 
-  // Usar o primeiro grupo como principal para compatibilidade, ou todos se preferir
   const grupoPrincipal = gruposChecked[0];
+  let custom = JSON.parse(localStorage.getItem('exercicios_custom') || '[]');
 
-  const custom = JSON.parse(localStorage.getItem('exercicios_custom') || '[]');
-  const novoEx = {
-    id: 'custom_' + Date.now(),
-    nome,
-    grupo: grupoPrincipal, // Mantendo compatibilidade com o resto do app
-    grupos: gruposChecked, // Guardando todos caso queira usar depois
-    equip: equip || 'Livre',
-    nivel: 'Iniciante',
-    tipo: 'Força',
-    video: video || ''
-  };
+  if (idEdicao) {
+    // Modo Edição
+    const idx = custom.findIndex(e => String(e.id) === String(idEdicao));
+    if (idx !== -1) {
+      custom[idx] = {
+        ...custom[idx],
+        nome,
+        grupo: grupoPrincipal,
+        grupos: gruposChecked,
+        equip: equip || 'Livre',
+        video: video || ''
+      };
+    }
+  } else {
+    // Modo Novo
+    const novoEx = {
+      id: 'custom_' + Date.now(),
+      nome,
+      grupo: grupoPrincipal,
+      grupos: gruposChecked,
+      equip: equip || 'Livre',
+      nivel: 'Iniciante',
+      tipo: 'Força',
+      video: video || ''
+    };
+    custom.push(novoEx);
+  }
 
-  custom.push(novoEx);
   localStorage.setItem('exercicios_custom', JSON.stringify(custom));
   
+  // Limpar busca e atualizar a lista de exercícios na tela de prescrição
+  if (document.getElementById('presc-busca')) document.getElementById('presc-busca').value = '';
   renderListaExercicios();
+  
+  // Fechar modal e limpar campos
   fecharModalNovoExercicio();
-  showToast('Exercício gravado com sucesso!', 'success');
+  limparCamposModalNovoExercicio();
 
-  // Limpar campos
+  showToast(idEdicao ? '✅ Exercício atualizado com sucesso!' : '✅ Exercício salvo com sucesso!', 'success');
+}
+
+function limparCamposModalNovoExercicio() {
+  document.getElementById('modal-novo-exer-titulo').textContent = '📝 Cadastrar Exercício';
+  document.getElementById('novo-exer-id').value = '';
   document.getElementById('novo-exer-nome').value = '';
   document.getElementById('novo-exer-equip').value = '';
   document.getElementById('novo-exer-video').value = '';
   document.querySelectorAll('input[name="novo-grupo"]').forEach(cb => cb.checked = false);
 }
+
+function fecharModalGerenciarBanco() {
+  document.getElementById('modal-gerenciar-banco').style.display = 'none';
+}
+
+function abrirModalGerenciarBanco() {
+  document.getElementById('modal-gerenciar-banco').style.display = 'flex';
+  document.getElementById('gerenciar-busca').value = '';
+  renderListaGerenciarBanco();
+}
+
+function filtrarGerenciarBanco() {
+  renderListaGerenciarBanco();
+}
+
+function renderListaGerenciarBanco() {
+  const container = document.getElementById('gerenciar-lista');
+  if (!container) return;
+  
+  const busca = (document.getElementById('gerenciar-busca')?.value || '').toLowerCase();
+  const custom = JSON.parse(localStorage.getItem('exercicios_custom') || '[]');
+  
+  let lista = custom;
+  if (busca) {
+    lista = lista.filter(e => e.nome.toLowerCase().includes(busca) || e.grupo.toLowerCase().includes(busca));
+  }
+  
+  if (lista.length === 0) {
+    container.innerHTML = `<div style="text-align: center; color: #64748b; padding: 20px;">${busca ? 'Nenhum exercício encontrado.' : 'Nenhum exercício personalizado cadastrado.'}</div>`;
+    return;
+  }
+  
+  container.innerHTML = lista.map(e => `
+    <div style="display: flex; justify-content: space-between; align-items: center; background: #1a1a1a; padding: 12px; border-radius: 10px; border: 1px solid #333;">
+      <div style="flex: 1;">
+        <div style="font-weight: 700; color: #fff;">${e.nome}</div>
+        <div style="font-size: 0.75rem; color: #94a3b8;">${e.grupo} • ${e.equip || 'Livre'}</div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button onclick="editarExercicioGerenciador('${e.id}')" style="background: #3b82f6; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 5px;" title="Editar">✏️ Editar</button>
+        <button onclick="excluirExercicioGerenciador('${e.id}')" style="background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 5px;" title="Excluir">🗑️ Excluir</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function editarExercicioGerenciador(id) {
+  fecharModalGerenciarBanco();
+  editarExercicioCustom(id);
+}
+
+function excluirExercicioGerenciador(id) {
+  if (confirm('Tem certeza que deseja excluir este exercício?')) {
+    excluirExercicioCustom(id);
+    renderListaGerenciarBanco();
+  }
+}
+
+function fecharModalNovoExercicio() {
+  document.getElementById('modal-novo-exercicio').style.display = 'none';
+  limparCamposModalNovoExercicio();
+}
+
 
 function moverExercicio(id, direcao) {
   const idx = fichaExercicios.findIndex(e => e.id === id);
@@ -498,6 +640,8 @@ function salvarFichaCompleta() {
     exercicios: fichaExercicios,
     objetivo: document.getElementById('presc-objetivo-pro')?.value || '',
     semana: document.getElementById('presc-semana')?.value || '',
+    metaSessoes: parseInt(document.getElementById('presc-meta-sessoes')?.value) || 0,
+    sessoesRealizadas: (state.fichas.find(f => String(f.alunoId) === String(currentAlunoId))?.sessoesRealizadas) || 0,
     diasTreino,
     mapeamentoDias,
     data: new Date().toISOString().slice(0, 10)
@@ -548,6 +692,8 @@ function imprimirFichaPro() {
               <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-size: 0.8rem;">Séries</th>
               <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-size: 0.8rem;">Reps</th>
               <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-size: 0.8rem;">Carga</th>
+              <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-size: 0.8rem;">% 1RM</th>
+              <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-size: 0.8rem;">Cadência</th>
               <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-size: 0.8rem;">Descanso</th>
               <th style="border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 0.8rem;">Técnica/Obs</th>
             </tr>
@@ -562,9 +708,11 @@ function imprimirFichaPro() {
                 <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${e.series}</td>
                 <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${e.reps}</td>
                 <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${e.carga} kg</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${e.pct ? e.pct + '%' : '—'}</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${e.cadencia || '—'}</td>
                 <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${e.descanso}s</td>
                 <td style="border: 1px solid #ddd; padding: 10px; font-size: 0.75rem;">
-                  ${e.tecnica !== 'tradicional' ? `<strong>${e.tecnica.toUpperCase()}</strong><br>` : ''}
+                  ${e.tecnica && e.tecnica !== 'tradicional' ? `<strong>${e.tecnica.toUpperCase()}</strong><br>` : ''}
                   ${e.obs || ''}
                 </td>
               </tr>

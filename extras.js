@@ -819,7 +819,20 @@ function salvarModeloCustomizado() {
     nivel,
     objetivo: document.getElementById('presc-objetivo-pro')?.value || 'hipertrofia',
     desc: 'Modelo criado manualmente pelo treinador.',
-    exercicios: fichaExercicios.map(e => e.exId)
+    exercicios: fichaExercicios.map(e => ({
+      exId: e.exId,
+      nome: e.nome,
+      grupo: e.grupo,
+      series: e.series,
+      reps: e.reps,
+      carga: e.carga,
+      pct: e.pct,
+      tecnica: e.tecnica,
+      descanso: e.descanso,
+      cadencia: e.cadencia,
+      video: e.video,
+      obs: e.obs
+    }))
   };
 
   state.treinosCustom.push(novoModelo);
@@ -866,7 +879,18 @@ function aplicarTreinoPronto(treinoId) {
   currentAlunoId = String(alunoId);
   fichaExercicios = [];
 
-  t.exercicios.forEach(exId => {
+  t.exercicios.forEach(item => {
+    // Se for um modelo novo (com objeto completo), usamos os dados salvos
+    if (typeof item === 'object') {
+      fichaExercicios.push({
+        ...item,
+        id: Date.now() + Math.random()
+      });
+      return;
+    }
+
+    // Se for um modelo antigo (apenas string/exId), usamos a lógica padrão
+    const exId = item;
     const ex = EXERCICIOS_DB.find(e => e.id === exId);
     if (ex) {
       // Lógica de Periodização Ondulatória Simples (Ciência)
@@ -998,21 +1022,55 @@ function gerarRelatorioCustomizado() {
       <section style="margin-bottom:2rem;">
         <h3 style="border-bottom:2px solid #0077ff; padding-bottom:5px; color:#1e3a8a;">3. Composição Corporal e Medidas</h3>
         ${lastAv ? `
-          <p><strong>Data:</strong> ${lastAv.data} | <strong>Protocolo:</strong> ${lastAv.protocolo}</p>
-          <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:15px; background:#f0f9ff; padding:15px; border-radius:8px; margin-top:10px; border:1px solid #bae6fd;">
-            <div style="text-align:center;"><div style="font-size:0.8rem; color:#0369a1;">PESO</div><div style="font-size:1.3rem; font-weight:800;">${lastAv.peso}kg</div></div>
-            <div style="text-align:center;"><div style="font-size:0.8rem; color:#0369a1;">% GORDURA</div><div style="font-size:1.3rem; font-weight:800;">${lastAv.percGordura}%</div></div>
-            <div style="text-align:center;"><div style="font-size:0.8rem; color:#0369a1;">MASSA MAGRA</div><div style="font-size:1.3rem; font-weight:800;">${lastAv.massaMagra}kg</div></div>
+          <p><strong>Data:</strong> ${lastAv.data} | <strong>Protocolo:</strong> ${lastAv.protocolo || 'N/A'}</p>
+          
+          <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:15px; background:#f0f9ff; padding:15px; border-radius:8px; margin-top:10px; border:1px solid #bae6fd;">
+            <div style="text-align:center; padding:10px; background:#fff; border-radius:6px; border:1px solid #e0f2fe;">
+              <div style="font-size:0.75rem; color:#0369a1; font-weight:700; text-transform:uppercase;">Peso Atual</div>
+              <div style="font-size:1.4rem; font-weight:800; color:#1e3a8a;">${lastAv.peso || '—'} kg</div>
+            </div>
+            <div style="text-align:center; padding:10px; background:#dcfce7; border-radius:6px; border:1px solid #86efac;">
+              <div style="font-size:0.75rem; color:#166534; font-weight:700; text-transform:uppercase;">Peso Ideal</div>
+              <div style="font-size:1.4rem; font-weight:800; color:#15803d;">${lastAv.pesoIdeal || '—'} kg</div>
+            </div>
+            <div style="text-align:center; padding:10px; background:#fff; border-radius:6px; border:1px solid #e0f2fe;">
+              <div style="font-size:0.75rem; color:#0369a1; font-weight:700; text-transform:uppercase;">% Gordura Atual</div>
+              <div style="font-size:1.4rem; font-weight:800; color:#1e3a8a;">${lastAv.percGordura || '—'}%</div>
+            </div>
+            <div style="text-align:center; padding:10px; background:#fff; border-radius:6px; border:1px solid #e0f2fe;">
+              <div style="font-size:0.75rem; color:#0369a1; font-weight:700; text-transform:uppercase;">% Gordura Ideal</div>
+              <div style="font-size:1.4rem; font-weight:800; color:#1e3a8a;">${lastAv.percGorduraIdeal || '—'}%</div>
+            </div>
           </div>
-          <div style="margin-top:15px;">
-            <strong>Perímetros (cm):</strong>
-            <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; font-size:0.85rem; margin-top:5px;">
-              ${Object.entries(lastAv.perimetros || {}).map(([k,v]) => `<span>${k.toUpperCase()}: ${v}</span>`).join('')}
+
+          <div style="margin-top:15px; padding:12px; background:#fef2f2; border-radius:8px; border:1px solid #fecaca; text-align:center;">
+             <div style="font-size:0.85rem; color:#991b1b; font-weight:700; text-transform:uppercase;">Classificação da Composição</div>
+             <div style="font-size:1.2rem; font-weight:800; color:#b91c1c; margin-top:4px;">${lastAv.classificacao || 'N/A'}</div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:15px;">
+            <div style="padding:10px; background:#f8fafc; border-radius:6px; border:1px solid #e2e8f0;">
+              <strong>Massa Magra:</strong> ${lastAv.massaMagra || '—'} kg
+            </div>
+            <div style="padding:10px; background:#f8fafc; border-radius:6px; border:1px solid #e2e8f0;">
+              <strong>Massa Gorda:</strong> ${lastAv.massaGorda || '—'} kg
+            </div>
+          </div>
+
+          <div style="margin-top:20px;">
+            <strong style="color:#1e3a8a; font-size:0.9rem; border-bottom:1px solid #cbd5e1; display:block; padding-bottom:3px; margin-bottom:8px;">Perímetros e Circunferências (cm):</strong>
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; font-size:0.8rem;">
+              ${Object.entries(lastAv.perimetros || {}).filter(([_,v]) => v !== '').map(([k,v]) => `
+                <div style="padding:4px 8px; background:#f1f5f9; border-radius:4px; border:1px solid #e2e8f0;">
+                  <span style="color:#64748b; font-weight:600;">${k.replace(/-/g, ' ').toUpperCase()}:</span> ${v}
+                </div>
+              `).join('')}
             </div>
           </div>
         ` : '<p>Nenhuma avaliação antropométrica registrada.</p>'}
       </section>`;
   }
+
 
   html += `
       <div style="text-align:center; margin-top:3rem; padding-top:2rem; border-top:1px solid #eee; font-size:0.9rem; color:#666;">
