@@ -4,6 +4,7 @@
 
 let alunoLogado = null;
 let chartAlunoComp = null;
+let divisaoAtiva = 'A'; // Divisão padrão
 
 // ===== TOAST =====
 function toast(msg, type = '') {
@@ -182,17 +183,44 @@ function carregarInicio() {
   document.getElementById('anamnese-pendente-alert').style.display = jaTemAnamnese ? 'none' : 'block';
 
   document.getElementById('resumo-grid').innerHTML = `
-    <div class="resumo-item"><div class="resumo-label">Peso</div><div class="resumo-valor">${a.peso || '—'}</div><div class="resumo-unit">kg</div></div>
+    <div class="resumo-item"><div class="resumo-label">Peso</div><div class="resumo-valor">${a.peso || (lastAv ? lastAv.peso : '—')}</div><div class="resumo-unit">kg</div></div>
     <div class="resumo-item"><div class="resumo-label">% Gordura</div><div class="resumo-valor">${lastAv ? lastAv.percGordura : '—'}</div></div>
   `;
 
   document.getElementById('resumo-objetivo').textContent = a.objetivo || 'Foco no Treino';
 
-  const fichas = JSON.parse(localStorage.getItem('fichas') || '[]').filter(f => String(f.alunoId) === String(a.id));
+  const todasFichas = JSON.parse(localStorage.getItem('fichas') || '[]');
+  const ficha = todasFichas.find(f => String(f.alunoId) === String(a.id));
   const prox = document.getElementById('proximo-treino');
-  if (fichas.length) {
-    const f = fichas[fichas.length - 1];
-    prox.innerHTML = `<strong>${f.data}</strong><br>${f.exercicios.length} exercícios prescritos.`;
+
+  if (ficha && ficha.exercicios && ficha.exercicios.length > 0) {
+    // Tentar identificar o treino do dia
+    const diasSemana = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
+    const hoje = diasSemana[new Date().getDay()];
+    const divHoje = (ficha.mapeamentoDias || {})[hoje] || '0';
+    const treinaHoje = (ficha.diasTreino || []).includes(hoje);
+
+    if (treinaHoje && divHoje !== '0') {
+      prox.innerHTML = `
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="font-size:2rem;">🔥</div>
+          <div>
+            <strong>Treino de Hoje: Divisão ${divHoje}</strong><br>
+            <span style="font-size:0.8rem;">Toque em "Treino" para ver os exercícios.</span>
+          </div>
+        </div>
+      `;
+    } else {
+      prox.innerHTML = `
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="font-size:2rem;">🛌</div>
+          <div>
+            <strong>Hoje é dia de Descanso</strong><br>
+            <span style="font-size:0.8rem;">Aproveite para recuperar suas energias!</span>
+          </div>
+        </div>
+      `;
+    }
   } else {
     prox.textContent = 'Aguarde a prescrição do professor.';
   }
@@ -232,24 +260,97 @@ function salvarAnamneseAluno() {
 
 function carregarTreino() {
   const a = alunoLogado;
-  const fichas = JSON.parse(localStorage.getItem('fichas') || '[]').filter(f => String(f.alunoId) === String(a.id));
+  const todasFichas = JSON.parse(localStorage.getItem('fichas') || '[]');
+  const ficha = todasFichas.find(f => String(f.alunoId) === String(a.id));
   const container = document.getElementById('ficha-treino-content');
+  const tabsContainer = document.getElementById('divisoes-tabs-container');
+  const cronogramaContainer = document.getElementById('cronograma-semanal-aluno');
   
-  if (fichas.length === 0) {
+  if (!ficha || !ficha.exercicios || ficha.exercicios.length === 0) {
     container.innerHTML = '<p class="empty-msg">Nenhum treino prescrito ainda.</p>';
+    if (tabsContainer) tabsContainer.innerHTML = '';
+    if (cronogramaContainer) cronogramaContainer.innerHTML = '<p class="empty-msg">Aguarde a definição dos dias de treino.</p>';
     return;
   }
 
-  const ficha = fichas[fichas.length - 1];
-  container.innerHTML = ficha.exercicios.map(e => `
-    <div class="exercicio-card">
-      <div class="ex-nome">${e.nome}</div>
-      <div class="ex-detalhe">${e.series} séries × ${e.reps} reps</div>
-      <div class="ex-tecnica">Técnica: ${e.tecnica ? e.tecnica.charAt(0).toUpperCase() + e.tecnica.slice(1) : 'Tradicional'}</div>
-      <div class="ex-carga">Carga: ${e.carga} kg ${e.pct ? '('+e.pct+'% 1RM)' : ''}</div>
-      <div class="ex-descanso">Descanso: ${e.descanso}s</div>
-    </div>
-  `).join('');
+  // 1. Renderizar Cronograma Semanal
+  if (cronogramaContainer) {
+    const diasSemana = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
+    const diasLabels = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+    const hojeIdx = (new Date().getDay() + 6) % 7; // Ajustar para 0=Segunda
+    
+    cronogramaContainer.innerHTML = diasSemana.map((dia, idx) => {
+      const treina = (ficha.diasTreino || []).includes(dia);
+      const div = (ficha.mapeamentoDias || {})[dia] || '0';
+      const isHoje = idx === hojeIdx;
+      
+      return `
+        <div class="cron-dia ${treina ? 'treino' : 'descanso'} ${isHoje ? 'hoje' : ''}">
+          <div class="dia-nome">${diasLabels[idx]}</div>
+          <div class="dia-divisao">${treina && div !== '0' ? div : (treina ? '?' : 'OFF')}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 2. Renderizar Abas de Divisões (A, B, C...)
+  if (tabsContainer) {
+    const divisoesPresentes = [...new Set(ficha.exercicios.map(e => e.divisao || 'A'))].sort();
+    
+    // Se a divisão ativa não estiver presente (ex: mudou o treino), resetar para a primeira
+    if (!divisoesPresentes.includes(divisaoAtiva)) {
+      divisaoAtiva = divisoesPresentes[0] || 'A';
+    }
+
+    tabsContainer.innerHTML = divisoesPresentes.map(div => `
+      <button class="tab-div ${div === divisaoAtiva ? 'active' : ''}" onclick="mudarDivisao('${div}')">
+        Treino ${div}
+      </button>
+    `).join('');
+  }
+
+  // 3. Renderizar Exercícios da Divisão Ativa
+  const exerciciosFiltrados = ficha.exercicios.filter(e => (e.divisao || 'A') === divisaoAtiva);
+  
+  if (exerciciosFiltrados.length === 0) {
+    container.innerHTML = `<p class="empty-msg">Nenhum exercício na Divisão ${divisaoAtiva}.</p>`;
+  } else {
+    container.innerHTML = exerciciosFiltrados.map(e => {
+      // Cores por agrupamento (mesma lógica do admin)
+      const grupoNormalizado = e.grupo ? e.grupo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : 'geral';
+      const bgClass = `bg-${grupoNormalizado}`;
+      
+      return `
+        <div class="exercicio-card">
+          <div class="ex-header">
+            <span class="badge-grupo ${bgClass}">${e.grupo || 'Geral'}</span>
+            <div class="ex-nome">${e.nome}</div>
+          </div>
+          <div class="ex-body">
+            <div class="ex-info-grid">
+              <div class="ex-info-item"><strong>Séries:</strong> ${e.series}</div>
+              <div class="ex-info-item"><strong>Reps:</strong> ${e.reps}</div>
+              <div class="ex-info-item"><strong>Carga:</strong> ${e.carga} kg</div>
+              <div class="ex-info-item"><strong>Descanso:</strong> ${e.descanso}s</div>
+              ${e.cadencia ? `<div class="ex-info-item"><strong>Cadência:</strong> ${e.cadencia}</div>` : ''}
+              <div class="ex-info-item"><strong>Técnica:</strong> ${e.tecnica ? e.tecnica.charAt(0).toUpperCase() + e.tecnica.slice(1) : 'Tradicional'}</div>
+            </div>
+            ${e.obs ? `<div class="ex-obs"><strong>Obs:</strong> ${e.obs}</div>` : ''}
+            ${e.video ? `
+              <div class="ex-video">
+                <a href="${e.video}" target="_blank" class="btn-video">🎥 Ver Execução</a>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+}
+
+function mudarDivisao(div) {
+  divisaoAtiva = div;
+  carregarTreino();
 }
 
 function carregarAvaliacao() {
@@ -368,20 +469,69 @@ function carregarHistoricoPagamentos() {
 
 // ===== PDF DOWNLOADS =====
 function baixarTreinoPDF() {
-  const container = document.getElementById('ficha-treino-content');
-  if (!container.innerHTML || container.innerHTML.includes('Nenhum treino')) {
+  const a = alunoLogado;
+  const todasFichas = JSON.parse(localStorage.getItem('fichas') || '[]');
+  const ficha = todasFichas.find(f => String(f.alunoId) === String(a.id));
+  
+  if (!ficha || !ficha.exercicios || ficha.exercicios.length === 0) {
     toast('Sem treino para baixar', 'error');
     return;
   }
   
   const win = window.open('', '_blank');
+  
+  // Organizar exercícios por divisão para o PDF
+  const divisoes = [...new Set(ficha.exercicios.map(e => e.divisao || 'A'))].sort();
+  
+  let contentHtml = divisoes.map(div => {
+    const exs = ficha.exercicios.filter(e => (e.divisao || 'A') === div);
+    return `
+      <div style="margin-top: 20px;">
+        <h2 style="background: #2563eb; color: white; padding: 10px; border-radius: 5px;">TREINO ${div}</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+          <thead>
+            <tr style="background: #f1f5f9;">
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Exercício</th>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Séries x Reps</th>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Carga</th>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Descanso</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${exs.map(e => `
+              <tr>
+                <td style="border: 1px solid #ddd; padding: 8px;">
+                  <strong>${e.nome}</strong><br>
+                  <small style="color: #666;">${e.grupo} ${e.tecnica && e.tecnica !== 'tradicional' ? '· ' + e.tecnica : ''}</small>
+                </td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${e.series} x ${e.reps}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${e.carga} kg</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${e.descanso}s</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }).join('');
+
   win.document.write(`
-    <html><head><title>TREINOFITASM - Treino</title>
-    <style>body{font-family:sans-serif;padding:2rem;} .card{border:1px solid #ddd;padding:10px;margin-bottom:10px;}</style>
+    <html><head><title>TREINOFITASM - Ficha de Treino</title>
+    <style>
+      body{font-family: sans-serif; padding: 20px; color: #333;}
+      .header{text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 20px;}
+      h1{margin: 0; color: #2563eb;}
+      table{font-size: 14px;}
+      th{font-size: 12px; text-transform: uppercase;}
+    </style>
     </head><body>
-    <h1>TREINOFITASM - Meu Treino</h1>
-    <p>Aluno: ${alunoLogado.nome}</p>
-    ${container.innerHTML.replace(/class="exercicio-card"/g, 'class="card"')}
+    <div class="header">
+      <h1>TREINOFITASM</h1>
+      <p><strong>Ficha de Treino:</strong> ${alunoLogado.nome}</p>
+      <p><strong>Data da Prescrição:</strong> ${new Date(ficha.data).toLocaleDateString('pt-BR')}</p>
+    </div>
+    ${contentHtml}
+    <p style="text-align: center; font-size: 12px; color: #666; margin-top: 30px;">TREINOFITASM - Consultoria Esportiva</p>
     </body></html>
   `);
   win.document.close();

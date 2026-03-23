@@ -6,11 +6,40 @@ const state = {
   pagamentos: JSON.parse(localStorage.getItem('pagamentos') || '[]'),
   fichas: JSON.parse(localStorage.getItem('fichas') || '[]'),
   anamneses: JSON.parse(localStorage.getItem('anamneses') || '[]'),
-  rms: JSON.parse(localStorage.getItem('rms') || '[]')
+  rms: JSON.parse(localStorage.getItem('rms') || '[]'),
+  treinosCustom: JSON.parse(localStorage.getItem('treinosCustom') || '[]')
 };
 
 // Global reference for editing
 window._editingId = null;
+
+// PWA Install Logic
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const banner = document.getElementById('pwa-banner');
+  if (banner) banner.style.display = 'flex';
+  const bannerSuccess = document.getElementById('pwa-banner-success');
+  if (bannerSuccess) bannerSuccess.style.display = 'flex';
+});
+
+const handleInstallClick = async () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      const banner = document.getElementById('pwa-banner');
+      if (banner) banner.style.display = 'none';
+      const bannerSuccess = document.getElementById('pwa-banner-success');
+      if (bannerSuccess) bannerSuccess.style.display = 'none';
+    }
+    deferredPrompt = null;
+  }
+};
+
+document.getElementById('btn-pwa-install')?.addEventListener('click', handleInstallClick);
+document.getElementById('btn-pwa-install-success')?.addEventListener('click', handleInstallClick);
 
 // Helper to save state
 function saveState() {
@@ -21,6 +50,7 @@ function saveState() {
   localStorage.setItem('fichas', JSON.stringify(state.fichas));
   localStorage.setItem('anamneses', JSON.stringify(state.anamneses));
   localStorage.setItem('rms', JSON.stringify(state.rms));
+  localStorage.setItem('treinosCustom', JSON.stringify(state.treinosCustom));
 }
 
 // ==================== NAVIGATION ====================
@@ -176,9 +206,6 @@ function salvarCadastro() {
     tipo: document.getElementById('aluno-tipo')?.value || 'pago',
     patologias,
     obs: document.getElementById('obs')?.value || '',
-    fcRepouso: document.getElementById('fcRepouso').value,
-    fcMaxTanaka: document.getElementById('fcMaxTanaka').value,
-    fcMaxFox: document.getElementById('fcMaxFox').value,
   };
 
   const idx = state.alunos.findIndex(a => a.id === id);
@@ -189,6 +216,15 @@ function salvarCadastro() {
   window._editingId = null;
   renderAlunosGrid();
   limparCadastro();
+  
+  // Mostrar modal de sucesso com opção de instalar app
+  document.getElementById('modal-sucesso-cadastro').style.display = 'flex';
+  const bannerSuccess = document.getElementById('pwa-banner-success');
+  if (bannerSuccess && deferredPrompt) bannerSuccess.style.display = 'flex';
+}
+
+function fecharModalSucesso() {
+  document.getElementById('modal-sucesso-cadastro').style.display = 'none';
 }
 
 function renderAlunosGrid() {
@@ -283,8 +319,6 @@ function editarAluno(id) {
   document.getElementById('objetivo').value = a.objetivo;
   if (document.getElementById('aluno-tipo')) document.getElementById('aluno-tipo').value = a.tipo || 'pago';
   if (document.getElementById('obs')) document.getElementById('obs').value = a.obs;
-  document.getElementById('fcRepouso').value = a.fcRepouso;
-  calcularFC();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -300,7 +334,7 @@ function limparCadastro() {
 
 // ==================== POPULATE SELECTS ====================
 function populateAlunoSelects() {
-  const selIds = ['alunoAntro','alunoVO2','alunoPresc','alunoAnamnese','alunoRM','alunoAerobio','alunoEvolucao', 'alunoPagamento'];
+  const selIds = ['alunoAntro','alunoVO2','alunoPresc','alunoAnamnese','alunoRM','alunoAerobio','alunoEvolucao', 'alunoPagamento', 'alunoTreinoPronto'];
   selIds.forEach(selId => {
     const sel = document.getElementById(selId);
     if (!sel) return;
@@ -343,8 +377,8 @@ function salvarPagamento() {
   state.pagamentos.push(pagamento);
   saveState();
   showToast('Pagamento registrado com sucesso!', 'success');
-  renderPagamentos();
   limparPagamento();
+  renderPagamentos();
 }
 
 function renderPagamentos() {
@@ -671,15 +705,30 @@ function limparAntro() {
 function salvarAntro() {
   const selId = document.getElementById('alunoAntro').value;
   if (!selId) { showToast('Selecione um aluno', 'error'); return; }
+  
+  const perimetros = {};
+  document.querySelectorAll('#tab-circunferencias input:not([readonly])').forEach(el => {
+    if (el.id.startsWith('c-')) perimetros[el.id.replace('c-', '')] = el.value;
+  });
+
+  const dobras = {};
+  document.querySelectorAll('#tab-dobras input:not([readonly])').forEach(el => {
+    if (el.id.startsWith('d-')) dobras[el.id.replace('d-', '')] = el.value;
+  });
+
   const avaliacao = {
     id: Date.now(),
     alunoId: selId,
-    data: document.getElementById('dataAntro').value,
-    percGordura: document.getElementById('percGorduraSiri').value,
-    massaMagra: document.getElementById('massaMagra').value,
-    massaGorda: document.getElementById('massaGorda').value,
+    data: document.getElementById('dataAntro').value || new Date().toISOString().slice(0, 10),
+    peso: state.alunos.find(a => String(a.id) === String(selId))?.peso || '',
+    percGordura: (document.getElementById('percGorduraSiri').value || '').replace('%', ''),
+    massaMagra: (document.getElementById('massaMagra').value || '').replace(' kg', ''),
+    massaGorda: (document.getElementById('massaGorda').value || '').replace(' kg', ''),
+    imc: (document.getElementById('imc')?.value || ''),
     protocolo: document.getElementById('protocoloAntro').value,
     rcq: document.getElementById('rcq').value,
+    perimetros,
+    dobras
   };
   state.avaliacoes.push(avaliacao);
   saveState();

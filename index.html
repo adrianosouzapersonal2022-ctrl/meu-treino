@@ -11,20 +11,20 @@
   <!-- CONTÊINER 1: PORTAL DE ACESSO (SÓ APARECE SE NÃO ESTIVER LOGADO) -->
   <div id="portal-container" style="display: block;">
     <!-- TELA DE ENTRADA DO PORTAL (LANDING) -->
-    <div id="portal-landing" class="screen-overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);">
+    <div id="portal-landing" class="screen-overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle at center, #1e3a8a 0%, #0f172a 100%);">
       <div class="login-hero" style="text-align: center; color: white; margin-bottom: 2rem;">
-        <span style="font-size: 4rem;">🏋️</span>
-        <h1 style="font-size: 2.5rem; margin-top: 1rem;">TREINOFITASM</h1>
-        <p style="opacity: 0.9;">Escolha como deseja acessar a plataforma</p>
+        <img src="logo.png" alt="Adriano de Souza Logo" style="width: 200px; margin-bottom: 1rem;" onerror="this.style.display='none'">
+        <h1 style="font-size: 2.5rem; letter-spacing: 2px;">TREINOFITASM</h1>
+        <p style="opacity: 0.9; font-weight: 300;">Plataforma de Treinamento Personalizado</p>
       </div>
       
       <div style="display: grid; gap: 1.5rem; width: 100%; max-width: 400px; padding: 0 1.5rem;">
-        <button class="btn-primary" onclick="showPortalScreen('admin')" style="height: 60px; font-size: 1.1rem; background: white; color: #1e3a8a; border: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-          🔐 Sou Administrador
+        <button class="btn-primary" onclick="showPortalScreen('admin')" style="height: 60px; font-size: 1.1rem; background: white; color: #1e3a8a; border: none; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2);">
+          🔐 Acesso Administrativo
         </button>
         
-        <button class="btn-primary" onclick="window.location.href='aluno.html'" style="height: 60px; font-size: 1.1rem; background: #10b981; color: white; border: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-          💪 Sou Aluno (Entrar)
+        <button class="btn-primary" onclick="window.location.href='aluno.html'" style="height: 60px; font-size: 1.1rem; background: #0077ff; color: white; border: none; box-shadow: 0 10px 15px -3px rgba(0,119,255,0.3);">
+          💪 Área do Aluno
         </button>
 
         <div style="text-align: center; margin-top: 1rem;">
@@ -37,10 +37,11 @@
 
     <!-- TELA DE LOGIN ADMIN -->
     <div id="admin-login-screen" class="screen-overlay" style="display: none;">
-      <div class="login-card">
+      <img src="logo.png" alt="Adriano de Souza Logo" class="login-watermark" onerror="this.style.display='none'">
+      <div class="login-card" style="position: relative; z-index: 1;">
         <div class="nav-brand" style="justify-content: center; margin-bottom: 2rem;">
-          <span class="brand-icon">&#127947;</span>
-          <span class="brand-name">TREINOFITASM ADMIN</span>
+          <img src="logo.png" alt="Logo" style="height: 60px;" onerror="this.style.display='none'">
+          <span class="brand-name" style="color: var(--text);">TREINOFITASM ADMIN</span>
         </div>
         <h2 style="text-align: center; margin-bottom: 1.5rem;">Acesso Administrativo</h2>
         <div class="form-group">
@@ -62,7 +63,7 @@
   <div id="app" style="display: none !important;">
     <header class="navbar">
       <div class="nav-brand">
-        <span class="brand-icon" aria-hidden="true">&#127947;</span>
+        <img src="logo.png" alt="Logo" class="nav-logo" onerror="this.style.display='none'">
         <span class="brand-name">TREINOFITASM</span>
       </div>
       <nav class="nav-links" aria-label="Navegação Principal">
@@ -209,37 +210,6 @@
               </div>
             </div>
 
-            <div class="form-section">
-              <h2 class="section-title">Frequência Cardíaca</h2>
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="fcRepouso">FC Repouso (bpm)</label>
-                  <input type="number" id="fcRepouso" name="fcRepouso" placeholder="60–80 bpm" onchange="calcularFC()" />
-                </div>
-                <div class="form-group">
-                  <label for="fcMaxMed">FC Máxima Medida (bpm)</label>
-                  <input type="number" id="fcMaxMed" name="fcMaxMed" placeholder="Opcional" />
-                </div>
-              </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="fcMaxTanaka">FCmáx Tanaka (208−0,7×I)</label>
-                  <input type="text" id="fcMaxTanaka" name="fcMaxTanaka" readonly />
-                </div>
-                <div class="form-group">
-                  <label for="fcMaxFox">FCmáx Fox (220−I)</label>
-                  <input type="text" id="fcMaxFox" name="fcMaxFox" readonly />
-                </div>
-                <div class="form-group">
-                  <label for="fcReserva">FC Reserva</label>
-                  <input type="text" id="fcReserva" name="fcReserva" readonly />
-                </div>
-                <div class="form-group">
-                  <label for="fcZona">Zona Alvo 60–80% Karvonen</label>
-                  <input type="text" id="fcZona" name="fcZona" readonly />
-                </div>
-              </div>
-            </div>
             <div class="btn-row">
               <button type="button" class="btn-secondary" onclick="limparCadastro()">Limpar</button>
               <button type="button" class="btn-primary" onclick="salvarCadastro()">Salvar Cadastro</button>
@@ -259,6 +229,15 @@
           <p>Lista completa de alunos ativos e cadastrados no programa</p>
         </div>
         <div class="container">
+          <!-- BANNER APP -->
+          <div class="pwa-badge" id="pwa-banner">
+            <div class="pwa-badge-text">
+              <h4>TreinoFitASM no seu Celular</h4>
+              <p>Instale o aplicativo para acesso rápido (Android & iOS)</p>
+            </div>
+            <button class="btn-install" id="btn-pwa-install">Instalar App</button>
+          </div>
+
           <div class="form-section">
             <div class="form-row">
               <div class="form-group full">
@@ -291,6 +270,17 @@
           <p>Acompanhe o histórico financeiro e mensalidades dos alunos</p>
         </div>
         <div class="container">
+          <!-- DADOS PIX -->
+          <div class="form-section">
+            <h2 class="section-title">Dados para Pagamento via PIX</h2>
+            <div class="pix-info-card" style="background:#f0f9ff; border:1px solid #bae6fd; padding:1.5rem; border-radius:12px; text-align:center;">
+              <p style="font-size:0.9rem; color:#0369a1; margin-bottom:0.5rem;">Chave PIX (CPF):</p>
+              <div style="font-size:1.5rem; font-weight:800; color:var(--primary); letter-spacing:1px; margin-bottom:1rem;">629.004.123-15</div>
+              <p style="font-size:1rem; font-weight:700; color:var(--text);">Adriano de Souza Moraes</p>
+              <p style="font-size:0.85rem; color:#64748b;">Caixa Econômica Federal</p>
+            </div>
+          </div>
+
           <div class="form-section">
             <h2 class="section-title">Registrar Novo Pagamento</h2>
             <form id="form-pagamento" class="form-grid">
@@ -374,6 +364,7 @@
             <button class="tab-btn" onclick="showTab('tab-rm')">Teste 1RM</button>
             <button class="tab-btn" onclick="showTab('tab-vo2max')">Teste Aeróbio (VO2)</button>
             <button class="tab-btn" onclick="showTab('tab-aerobio')">Treino Aeróbio</button>
+            <button class="tab-btn" onclick="showTab('tab-treinos-prontos'); renderTreinosProntos();">Treinos Prontos</button>
           </div>
 
           <!-- Tab Content: Prescrição -->
@@ -397,13 +388,110 @@
             </div>
 
             <div id="presc-content" style="display:none;">
+              <!-- CRONOGRAMA SEMANAL -->
+              <div class="form-section">
+                <h2 class="section-title">Cronograma Semanal e Divisão de Treino</h2>
+                <div class="form-row">
+                  <div class="form-group full">
+                    <label>Dias de Treino na Semana</label>
+                    <div class="weekly-schedule-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 5px;">
+                      <div class="day-item" style="background: #f8fafc; padding: 8px; border-radius: 6px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: space-between;">
+                        <label class="check-label" style="margin-bottom: 5px; display: block;"><input type="checkbox" name="dia-treino" value="segunda" onchange="renderFichaTabela()" checked /> Segunda</label>
+                        <div style="display: flex; gap: 5px; align-items: center;">
+                          <select class="day-split" data-day="segunda" style="font-size: 0.7rem; padding: 2px; flex: 1;" onchange="renderFichaTabela()">
+                            <option value="A">Treino A</option><option value="B">Treino B</option><option value="C">Treino C</option><option value="D">Treino D</option><option value="E">Treino E</option><option value="F">Treino F</option><option value="G">Treino G</option><option value="0">Descanso</option>
+                          </select>
+                          <button onclick="focarDivisao('segunda')" style="padding: 2px 5px; font-size: 0.6rem; background: var(--primary); color: white; border: none; border-radius: 3px; cursor: pointer;">Ver</button>
+                        </div>
+                      </div>
+                      <div class="day-item" style="background: #f8fafc; padding: 8px; border-radius: 6px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: space-between;">
+                        <label class="check-label" style="margin-bottom: 5px; display: block;"><input type="checkbox" name="dia-treino" value="terça" onchange="renderFichaTabela()" /> Terça</label>
+                        <div style="display: flex; gap: 5px; align-items: center;">
+                          <select class="day-split" data-day="terça" style="font-size: 0.7rem; padding: 2px; flex: 1;" onchange="renderFichaTabela()">
+                            <option value="B">Treino B</option><option value="A">Treino A</option><option value="C">Treino C</option><option value="D">Treino D</option><option value="E">Treino E</option><option value="F">Treino F</option><option value="G">Treino G</option><option value="0">Descanso</option>
+                          </select>
+                          <button onclick="focarDivisao('terça')" style="padding: 2px 5px; font-size: 0.6rem; background: var(--primary); color: white; border: none; border-radius: 3px; cursor: pointer;">Ver</button>
+                        </div>
+                      </div>
+                      <div class="weekly-schedule-grid" style="display: contents;">
+                        <div class="day-item" style="background: #f8fafc; padding: 8px; border-radius: 6px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: space-between;">
+                          <label class="check-label" style="margin-bottom: 5px; display: block;"><input type="checkbox" name="dia-treino" value="quarta" onchange="renderFichaTabela()" /> Quarta</label>
+                          <div style="display: flex; gap: 5px; align-items: center;">
+                            <select class="day-split" data-day="quarta" style="font-size: 0.7rem; padding: 2px; flex: 1;" onchange="renderFichaTabela()">
+                              <option value="C">Treino C</option><option value="A">Treino A</option><option value="B">Treino B</option><option value="D">Treino D</option><option value="E">Treino E</option><option value="F">Treino F</option><option value="G">Treino G</option><option value="0">Descanso</option>
+                            </select>
+                            <button onclick="focarDivisao('quarta')" style="padding: 2px 5px; font-size: 0.6rem; background: var(--primary); color: white; border: none; border-radius: 3px; cursor: pointer;">Ver</button>
+                          </div>
+                        </div>
+                        <div class="day-item" style="background: #f8fafc; padding: 8px; border-radius: 6px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: space-between;">
+                          <label class="check-label" style="margin-bottom: 5px; display: block;"><input type="checkbox" name="dia-treino" value="quinta" onchange="renderFichaTabela()" /> Quinta</label>
+                          <div style="display: flex; gap: 5px; align-items: center;">
+                            <select class="day-split" data-day="quinta" style="font-size: 0.7rem; padding: 2px; flex: 1;" onchange="renderFichaTabela()">
+                              <option value="D">Treino D</option><option value="A">Treino A</option><option value="B">Treino B</option><option value="C">Treino C</option><option value="E">Treino E</option><option value="F">Treino F</option><option value="G">Treino G</option><option value="0">Descanso</option>
+                            </select>
+                            <button onclick="focarDivisao('quinta')" style="padding: 2px 5px; font-size: 0.6rem; background: var(--primary); color: white; border: none; border-radius: 3px; cursor: pointer;">Ver</button>
+                          </div>
+                        </div>
+                        <div class="day-item" style="background: #f8fafc; padding: 8px; border-radius: 6px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: space-between;">
+                          <label class="check-label" style="margin-bottom: 5px; display: block;"><input type="checkbox" name="dia-treino" value="sexta" onchange="renderFichaTabela()" /> Sexta</label>
+                          <div style="display: flex; gap: 5px; align-items: center;">
+                            <select class="day-split" data-day="sexta" style="font-size: 0.7rem; padding: 2px; flex: 1;" onchange="renderFichaTabela()">
+                              <option value="E">Treino E</option><option value="A">Treino A</option><option value="B">Treino B</option><option value="C">Treino C</option><option value="D">Treino D</option><option value="F">Treino F</option><option value="G">Treino G</option><option value="0">Descanso</option>
+                            </select>
+                            <button onclick="focarDivisao('sexta')" style="padding: 2px 5px; font-size: 0.6rem; background: var(--primary); color: white; border: none; border-radius: 3px; cursor: pointer;">Ver</button>
+                          </div>
+                        </div>
+                        <div class="day-item" style="background: #f8fafc; padding: 8px; border-radius: 6px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: space-between;">
+                          <label class="check-label" style="margin-bottom: 5px; display: block;"><input type="checkbox" name="dia-treino" value="sabado" onchange="renderFichaTabela()" /> Sábado</label>
+                          <div style="display: flex; gap: 5px; align-items: center;">
+                            <select class="day-split" data-day="sabado" style="font-size: 0.7rem; padding: 2px; flex: 1;" onchange="renderFichaTabela()">
+                              <option value="F">Treino F</option><option value="A">Treino A</option><option value="B">Treino B</option><option value="C">Treino C</option><option value="D">Treino D</option><option value="E">Treino E</option><option value="G">Treino G</option><option value="0">Descanso</option>
+                            </select>
+                            <button onclick="focarDivisao('sabado')" style="padding: 2px 5px; font-size: 0.6rem; background: var(--primary); color: white; border: none; border-radius: 3px; cursor: pointer;">Ver</button>
+                          </div>
+                        </div>
+                        <div class="day-item" style="background: #f8fafc; padding: 8px; border-radius: 6px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: space-between;">
+                          <label class="check-label" style="margin-bottom: 5px; display: block;"><input type="checkbox" name="dia-treino" value="domingo" onchange="renderFichaTabela()" /> Domingo</label>
+                          <div style="display: flex; gap: 5px; align-items: center;">
+                            <select class="day-split" data-day="domingo" style="font-size: 0.7rem; padding: 2px; flex: 1;" onchange="renderFichaTabela()">
+                              <option value="G">Treino G</option><option value="A">Treino A</option><option value="B">Treino B</option><option value="C">Treino C</option><option value="D">Treino D</option><option value="E">Treino E</option><option value="F">Treino F</option><option value="0">Descanso</option>
+                            </select>
+                            <button onclick="focarDivisao('domingo')" style="padding: 2px 5px; font-size: 0.6rem; background: var(--primary); color: white; border: none; border-radius: 3px; cursor: pointer;">Ver</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="presc-divisao">Divisão Atual (Letra)</label>
+                    <select id="presc-divisao" onchange="renderFichaTabela()">
+                      <option value="A">Treino A</option>
+                      <option value="B">Treino B</option>
+                      <option value="C">Treino C</option>
+                      <option value="D">Treino D</option>
+                      <option value="E">Treino E</option>
+                      <option value="F">Treino F</option>
+                      <option value="G">Treino G</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="align-self: flex-end;">
+                    <p style="font-size: 0.8rem; color: #666; margin-bottom: 5px;">Os exercícios adicionados abaixo serão vinculados ao <strong>Treino selecionado</strong>.</p>
+                  </div>
+                </div>
+              </div>
+
               <!-- BUSCADOR DE EXERCÍCIOS -->
               <div class="form-section">
                 <h2 class="section-title">Banco de Exercícios</h2>
                 <div class="form-row">
-                  <div class="form-group full">
+                  <div class="form-group" style="flex: 1;">
                     <label>Buscar Exercício</label>
                     <input type="text" id="presc-busca" placeholder="Digite nome, grupo ou equipamento..." oninput="filtrarExercicios()" />
+                  </div>
+                  <div class="form-group" style="align-self: flex-end;">
+                    <button class="btn-success" onclick="abrirModalNovoExercicio()">+ Novo</button>
                   </div>
                 </div>
                 <div class="form-group full" style="margin-bottom:0.5rem;">
@@ -741,6 +829,131 @@
               </div>
             </div>
           </div>
+
+          <!-- Tab Content: Treinos Prontos -->
+          <div id="tab-treinos-prontos" class="tab-content">
+            <div class="form-section">
+              <h2 class="section-title">Lançar Treino Pronto</h2>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="alunoTreinoPronto">Selecionar Aluno</label>
+                  <select id="alunoTreinoPronto">
+                    <option value="">Selecione um aluno</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="nivelTreinoPronto">Filtrar Nível</label>
+                  <select id="nivelTreinoPronto" onchange="renderTreinosProntos()">
+                    <option value="todos">Todos os Níveis</option>
+                    <option value="iniciante">Iniciante</option>
+                    <option value="intermediario">Intermediário</option>
+                    <option value="avançado">Avançado</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="metodoTreinoPronto">Protocolo de Periodização</label>
+                  <select id="metodoTreinoPronto">
+                    <option value="simples">Simples (Fixo)</option>
+                    <option value="ondulatorio">Ondulatório (Periodizado)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+    <!-- MODAL SUCESSO CADASTRO -->
+    <div id="modal-sucesso-cadastro" class="screen-overlay" style="display: none; z-index: 3000;">
+      <div class="login-card" style="max-width: 450px; text-align: center; padding: 2rem;">
+        <div style="font-size: 4rem; color: var(--success); margin-bottom: 1rem;">✅</div>
+        <h2 class="section-title">Cadastro Realizado!</h2>
+        <p style="color: var(--text-muted); margin-bottom: 2rem;">O aluno foi cadastrado com sucesso no sistema TreinoFitASM.</p>
+        
+        <div class="pwa-badge" id="pwa-banner-success" style="display: none; flex-direction: column; gap: 10px; margin-bottom: 1.5rem; text-align: center; background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534;">
+          <div class="pwa-badge-text">
+            <h4 style="color: #166534;">Instale nosso Aplicativo</h4>
+            <p style="color: #166534; font-size: 0.75rem;">Para que o aluno acesse os treinos e avaliações direto pelo celular!</p>
+          </div>
+          <button class="btn-install" id="btn-pwa-install-success" style="background: #166534; color: white; width: 100%;">Baixar App Agora</button>
+        </div>
+
+        <div class="btn-row" style="flex-direction: column; gap: 10px;">
+          <button class="btn-primary" onclick="fecharModalSucesso()" style="width: 100%;">Concluir</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL NOVO EXERCÍCIO -->
+              <div class="login-card" style="max-width: 500px;">
+                <h2 class="section-title">Cadastrar Novo Exercício</h2>
+                <div class="form-group">
+                  <label>Nome do Exercício</label>
+                  <input type="text" id="novo-exer-nome" placeholder="Ex: Rosca Martelo Unilateral" />
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Grupo Muscular</label>
+                    <select id="novo-exer-grupo">
+                      <option value="Peito">Peito</option><option value="Costas">Costas</option><option value="Pernas">Pernas</option><option value="Ombros">Ombros</option><option value="Bíceps">Bíceps</option><option value="Tríceps">Tríceps</option><option value="Abdômen">Abdômen</option><option value="Cardio">Cardio</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Equipamento</label>
+                    <input type="text" id="novo-exer-equip" placeholder="Ex: Halter" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Link do Vídeo/GIF (URL)</label>
+                  <input type="text" id="novo-exer-video" placeholder="https://..." />
+                </div>
+                <div class="btn-row" style="margin-top: 1rem;">
+                  <button class="btn-secondary" onclick="document.getElementById('modal-novo-exercicio').style.display='none'">Cancelar</button>
+                  <button class="btn-primary" onclick="salvarNovoExercicioBanco()">Cadastrar no Banco</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="modal-ver-exercicios" class="screen-overlay" style="display: none; z-index: 2000;">
+              <div class="login-card" style="max-width: 600px; width: 90%;">
+                <h2 id="modal-ver-titulo" class="section-title">Exercícios do Treino</h2>
+                <div id="modal-ver-lista" style="max-height: 400px; overflow-y: auto; margin-bottom: 1.5rem;"></div>
+                <div class="form-section" id="secao-add-extra" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px;">
+                  <h4 style="font-size: 0.8rem; margin-bottom: 0.5rem;">Adicionar mais exercício a este modelo</h4>
+                  <div style="display: flex; gap: 5px;">
+                    <select id="select-add-extra" style="flex: 1; font-size: 0.8rem;"></select>
+                    <button class="btn-primary" onclick="adicionarExercicioAoModelo()" style="padding: 5px 10px; font-size: 0.8rem;">+</button>
+                  </div>
+                </div>
+                <div class="btn-row" style="margin-top: 1rem;">
+                  <button class="btn-secondary" onclick="document.getElementById('modal-ver-exercicios').style.display='none'">Fechar</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section" style="background: #f1f5f9; border: 1px dashed var(--primary);">
+              <h2 class="section-title" style="color: var(--primary);">💾 Criar Novo Modelo de Treino</h2>
+              <p style="font-size: 0.8rem; margin-bottom: 1rem;">Monte o treino na aba "Prescrição" e salve como modelo aqui.</p>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Nome do Modelo</label>
+                  <input type="text" id="novo-modelo-nome" placeholder="Ex: ABC Hipertrofia Masculino" />
+                </div>
+                <div class="form-group">
+                  <label>Nível Sugerido</label>
+                  <select id="novo-modelo-nivel">
+                    <option value="iniciante">Iniciante</option>
+                    <option value="intermediario">Intermediário</option>
+                    <option value="avançado">Avançado</option>
+                  </select>
+                </div>
+                <div class="form-group" style="align-self: flex-end;">
+                  <button class="btn-success" onclick="salvarModeloCustomizado()" style="width: 100%;">Salvar Modelo Atual</button>
+                </div>
+              </div>
+            </div>
+            
+            <div id="grid-treinos-prontos" class="treinos-prontos-grid">
+              <!-- Cards gerados via JS -->
+            </div>
+          </div>
         </div>
       </section>
 
@@ -756,13 +969,14 @@
             <div class="form-row">
               <div class="form-group">
                 <label for="alunoAnamnese">Aluno</label>
-                <select id="alunoAnamnese" name="alunoAnamnese">
+                <select id="alunoAnamnese" name="alunoAnamnese" onchange="carregarAnamnese()">
                   <option value="">Selecione</option>
                 </select>
               </div>
               <div class="form-group">
                 <label for="dataAnamnese">Data</label>
                 <input type="date" id="dataAnamnese" name="dataAnamnese" />
+                <input type="hidden" id="idade" />
               </div>
             </div>
           </div>
@@ -869,7 +1083,7 @@
 
         <!-- HÁBITOS DE VIDA -->
         <div class="form-section">
-          <h2 class="section-title">Hábitos de Vida</h2>
+          <h2 class="section-title">Hábitos de Vida e Nutrição</h2>
           <div class="form-row">
             <div class="form-group"><label>Tabagismo</label>
               <select id="tabagismo"><option value="">Selecione</option><option value="nao">Não fumante</option><option value="ex">Ex-fumante</option><option value="sim">Fumante</option></select>
@@ -882,11 +1096,19 @@
             </div>
           </div>
           <div class="form-row">
-            <div class="form-group"><label>Nível de Estresse</label>
-              <select id="estresse"><option value="">Selecione</option><option value="baixo">Baixo</option><option value="moderado">Moderado</option><option value="alto">Alto</option><option value="muito_alto">Muito Alto</option></select>
+            <div class="form-group"><label>Já fez dieta?</label>
+              <select id="fez-dieta"><option value="">Selecione</option><option value="sim">Sim</option><option value="nao">Não</option></select>
+            </div>
+            <div class="form-group"><label>Quanto tempo fez?</label>
+              <select id="tempo-dieta"><option value="">Selecione</option><option value="1_mes">1 mês</option><option value="2_meses">2 meses</option><option value="3_ou_mais">3 meses ou mais</option></select>
             </div>
             <div class="form-group"><label>Qualidade da Alimentação</label>
               <select id="alimentacao"><option value="">Selecione</option><option value="ruim">Ruim</option><option value="regular">Regular</option><option value="boa">Boa</option><option value="otima">Ótima</option></select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Nível de Estresse</label>
+              <select id="estresse"><option value="">Selecione</option><option value="baixo">Baixo</option><option value="moderado">Moderado</option><option value="alto">Alto</option><option value="muito_alto">Muito Alto</option></select>
             </div>
             <div class="form-group"><label>Ingestão de Água (L/dia)</label>
               <input type="number" id="agua" step="0.1" placeholder="Ex: 2.0" />
@@ -897,6 +1119,39 @@
           </div>
           <div class="form-row">
             <div class="form-group full"><label>Expectativas / Motivação</label><textarea id="expectativas" rows="2" placeholder="O que o aluno espera alcançar..."></textarea></div>
+          </div>
+        </div>
+
+        <!-- FREQUÊNCIA CARDÍACA -->
+        <div class="form-section">
+          <h2 class="section-title">Frequência Cardíaca</h2>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="fcRepouso">FC Repouso (bpm)</label>
+              <input type="number" id="fcRepouso" name="fcRepouso" placeholder="60–80 bpm" onchange="calcularFC()" />
+            </div>
+            <div class="form-group">
+              <label for="fcMaxMed">FC Máxima Medida (bpm)</label>
+              <input type="number" id="fcMaxMed" name="fcMaxMed" placeholder="Opcional" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="fcMaxTanaka">FCmáx Tanaka (208−0,7×I)</label>
+              <input type="text" id="fcMaxTanaka" name="fcMaxTanaka" readonly />
+            </div>
+            <div class="form-group">
+              <label for="fcMaxFox">FCmáx Fox (220−I)</label>
+              <input type="text" id="fcMaxFox" name="fcMaxFox" readonly />
+            </div>
+            <div class="form-group">
+              <label for="fcReserva">FC Reserva</label>
+              <input type="text" id="fcReserva" name="fcReserva" readonly />
+            </div>
+            <div class="form-group">
+              <label for="fcZona">Zona Alvo 60–80% Karvonen</label>
+              <input type="text" id="fcZona" name="fcZona" readonly />
+            </div>
           </div>
         </div>
 
@@ -932,6 +1187,7 @@
 
         <div class="btn-row">
           <button type="button" class="btn-secondary" onclick="limparAnamnese()">Limpar</button>
+          <button type="button" class="btn-primary" onclick="imprimirAnamnesePDF()">Baixar PDF</button>
           <button type="button" class="btn-success" onclick="salvarAnamnese()">Salvar Anamnese</button>
         </div>
       </div>
@@ -1132,6 +1388,7 @@
         </div>
         <div class="btn-row">
           <button type="button" class="btn-secondary" onclick="limparAntro()">Limpar</button>
+          <button type="button" class="btn-primary" onclick="imprimirAvaliacaoPDF()">Baixar PDF</button>
           <button type="button" class="btn-success" onclick="salvarAntro()">Salvar Avaliação</button>
         </div>
       </div>
@@ -1147,7 +1404,10 @@
         <div class="form-section">
           <h2 class="section-title">Selecionar Aluno</h2>
           <div class="form-row">
-            <div class="form-group"><label>Aluno</label><select id="alunoEvolucao" onchange="carregarEvolucao()"><option value="">Selecione</option></select></div>
+            <div class="form-group full"><label>Aluno</label><select id="alunoEvolucao" onchange="carregarEvolucao()"><option value="">Selecione</option></select></div>
+          </div>
+          <div class="btn-row">
+            <button type="button" class="btn-primary" onclick="gerarRelatorioCompleto()">Gerar Relatório Geral de Evolução</button>
           </div>
         </div>
         <div id="evolucao-content" style="display:none;">

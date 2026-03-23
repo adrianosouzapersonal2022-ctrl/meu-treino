@@ -83,9 +83,24 @@ function carregarPresc() {
   if (fichaExistente) {
     if (document.getElementById('presc-objetivo-pro')) document.getElementById('presc-objetivo-pro').value = fichaExistente.objetivo || '';
     if (document.getElementById('presc-semana')) document.getElementById('presc-semana').value = fichaExistente.semana || '';
+    
+    // Carregar dias da semana e mapeamento de divisões
+    const dias = fichaExistente.diasTreino || [];
+    const mapping = fichaExistente.mapeamentoDias || {};
+    
+    document.querySelectorAll('input[name="dia-treino"]').forEach(cb => {
+      cb.checked = dias.includes(cb.value);
+    });
+    
+    document.querySelectorAll('.day-split').forEach(sel => {
+      const day = sel.dataset.day;
+      if (mapping[day]) sel.value = mapping[day];
+    });
   } else {
     if (document.getElementById('presc-objetivo-pro')) document.getElementById('presc-objetivo-pro').value = '';
     if (document.getElementById('presc-semana')) document.getElementById('presc-semana').value = '';
+    document.querySelectorAll('input[name="dia-treino"]').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.day-split').forEach(sel => sel.selectedIndex = 0);
   }
   
   renderListaExercicios();
@@ -110,11 +125,31 @@ function renderListaExercicios() {
     lista = lista.filter(e => gruposChecked.includes(e.grupo));
   }
   
-  container.innerHTML = lista.map(e => `
-    <div class="exer-item" onclick="selecionarExercicio('${e.id}')">
-      <div class="exer-nome">${e.nome}</div>
-      <div class="exer-meta">${e.grupo} · ${e.equip}</div>
-    </div>`).join('');
+  container.innerHTML = lista.map(e => {
+    const grupoClass = `grupo-${e.grupo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
+    const bgClass = `bg-${e.grupo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
+    const nivelClass = `nivel-${e.nivel.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
+    
+    // Placeholder para GIF (usando uma imagem padrão se não houver video)
+    const gifUrl = e.video || 'https://via.placeholder.com/300x150?text=' + encodeURIComponent(e.nome);
+
+    return `
+      <div class="exer-item ${grupoClass}" onclick="selecionarExercicio('${e.id}')">
+        <div class="nivel-badge ${nivelClass}">${e.nivel}</div>
+        <div class="exer-media">
+          <img src="${gifUrl}" alt="${e.nome}" onerror="this.src='https://via.placeholder.com/300x150?text=Exerc%C3%ADcio'">
+        </div>
+        <div class="exer-info">
+          <div class="badge-grupo ${bgClass}">${e.grupo}</div>
+          <div class="exer-nome">${e.nome}</div>
+          <div class="exer-meta">
+            <span>${e.equip}</span>
+            <span>•</span>
+            <span>${e.tipo}</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 function filtrarExercicios() {
@@ -174,6 +209,7 @@ function adicionarExercicio() {
     exId: exId,
     nome: ex.nome,
     grupo: ex.grupo,
+    divisao: document.getElementById('presc-divisao')?.value || 'A',
     series: document.getElementById('presc-series')?.value || '',
     reps: document.getElementById('presc-reps')?.value || '',
     carga: document.getElementById('presc-carga')?.value || '',
@@ -199,16 +235,97 @@ function adicionarExercicio() {
   if (document.getElementById('presc-obs-ex')) document.getElementById('presc-obs-ex').value = '';
 }
 
+function focarDivisao(dia) {
+  const sel = document.querySelector(`.day-split[data-day="${dia}"]`);
+  if (sel && sel.value !== '0') {
+    const mainSel = document.getElementById('presc-divisao');
+    if (mainSel) {
+      mainSel.value = sel.value;
+      renderFichaTabela();
+    }
+  } else {
+    showToast(`O dia ${dia} está marcado como descanso ou não possui divisão.`, 'info');
+  }
+}
+
+function abrirModalNovoExercicio() {
+  document.getElementById('modal-novo-exercicio').style.display = 'flex';
+}
+
+function salvarNovoExercicioBanco() {
+  const nome = document.getElementById('novo-exer-nome').value;
+  const grupo = document.getElementById('novo-exer-grupo').value;
+  const equip = document.getElementById('novo-exer-equip').value;
+  const video = document.getElementById('novo-exer-video').value;
+
+  if (!nome) { showToast('O nome é obrigatório!', 'error'); return; }
+
+  const novoEx = {
+    id: 'custom_' + Date.now(),
+    nome,
+    grupo,
+    equip: equip || 'Livre',
+    nivel: 'Iniciante',
+    tipo: 'Força',
+    video: video || ''
+  };
+
+  EXERCICIOS_DB.push(novoEx);
+  // Persistir exercícios customizados separadamente se necessário, mas aqui adicionamos à lista em memória
+  renderListaExercicios();
+  document.getElementById('modal-novo-exercicio').style.display = 'none';
+  showToast('Exercício cadastrado com sucesso!', 'success');
+
+  // Limpar campos
+  document.getElementById('novo-exer-nome').value = '';
+  document.getElementById('novo-exer-equip').value = '';
+  document.getElementById('novo-exer-video').value = '';
+}
+
+function moverExercicio(id, direcao) {
+  const idx = fichaExercicios.findIndex(e => e.id === id);
+  if (idx === -1) return;
+
+  const novaPos = idx + direcao;
+  if (novaPos < 0 || novaPos >= fichaExercicios.length) return;
+
+  // Trocar posições
+  [fichaExercicios[idx], fichaExercicios[novaPos]] = [fichaExercicios[novaPos], fichaExercicios[idx]];
+  
+  renderFichaTabela();
+}
+
 function renderFichaTabela() {
   const container = document.getElementById('ficha-exercicios-tabela');
   if (!container) return;
   
+  const divisaoAtual = document.getElementById('presc-divisao')?.value || 'A';
+  const exerciciosFiltrados = fichaExercicios.filter(e => (e.divisao || 'A') === divisaoAtual);
+
+  // Descobrir quais dias da semana usam esta divisão
+  const diasVinculados = [];
+  document.querySelectorAll('.day-split').forEach(sel => {
+    if (sel.value === divisaoAtual) {
+      const checkbox = document.querySelector(`input[name="dia-treino"][value="${sel.dataset.day}"]`);
+      if (checkbox?.checked) diasVinculados.push(sel.dataset.day.charAt(0).toUpperCase() + sel.dataset.day.slice(1));
+    }
+  });
+
   if (fichaExercicios.length === 0) {
     container.innerHTML = '<p class="result-placeholder">Nenhum exercício na ficha.</p>';
     return;
   }
   
   let html = `
+    <div style="background: var(--primary); color: white; padding: 12px 15px; border-radius: 8px 8px 0 0; font-weight: 700;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+        <span>TREINO ${divisaoAtual}</span>
+        <span style="font-size: 0.75rem; font-weight: 400;">${exerciciosFiltrados.length} exercícios vinculados</span>
+      </div>
+      <div style="font-size: 0.7rem; font-weight: 400; opacity: 0.9;">
+        <strong>Dias Aplicados:</strong> ${diasVinculados.length > 0 ? diasVinculados.join(', ') : 'Nenhum dia marcado para esta divisão'}
+      </div>
+    </div>
     <table class="data-table">
       <thead>
         <tr>
@@ -226,27 +343,37 @@ function renderFichaTabela() {
       <tbody>
   `;
   
-  html += fichaExercicios.map(e => `
-    <tr>
-      <td>
-        <strong>${e.nome}</strong><br>
-        <span style="font-size:0.7rem; color:#666;">${e.grupo} ${e.obs ? ' · ' + e.obs : ''}</span>
-      </td>
-      <td>${e.series}</td>
-      <td>${e.reps}</td>
-      <td>${e.carga} kg</td>
-      <td>${e.pct ? e.pct + '%' : '—'}</td>
-      <td>${e.cadencia || '—'}</td>
-      <td>${e.tecnica ? e.tecnica.charAt(0).toUpperCase() + e.tecnica.slice(1) : 'Tradicional'}</td>
-      <td>${e.descanso}s</td>
-      <td>
-        <div style="display:flex; gap:5px;">
-          ${e.video ? `<a href="${e.video}" target="_blank" class="btn-secondary" style="padding:2px 6px; font-size:0.7rem; text-decoration:none;">🎥</a>` : ''}
-          <button class="btn-del" onclick="removerExercicio(${e.id})">✕</button>
-        </div>
-      </td>
-    </tr>
-  `).join('');
+  if (exerciciosFiltrados.length === 0) {
+    html += `<tr><td colspan="9" style="text-align:center; padding: 2rem; color: #666;">Nenhum exercício adicionado ao Treino ${divisaoAtual} ainda.</td></tr>`;
+  } else {
+    html += exerciciosFiltrados.map(e => {
+      const bgClass = `bg-${e.grupo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
+      return `
+        <tr>
+          <td>
+            <div class="badge-grupo ${bgClass}">${e.grupo}</div><br>
+            <strong>${e.nome}</strong><br>
+            <span style="font-size:0.7rem; color:#666;">${e.obs ? e.obs : ''}</span>
+          </td>
+          <td>${e.series}</td>
+          <td>${e.reps}</td>
+          <td>${e.carga} kg</td>
+          <td>${e.pct ? e.pct + '%' : '—'}</td>
+          <td>${e.cadencia || '—'}</td>
+          <td>${e.tecnica ? e.tecnica.charAt(0).toUpperCase() + e.tecnica.slice(1) : 'Tradicional'}</td>
+          <td>${e.descanso}s</td>
+          <td>
+            <div style="display:flex; gap:5px;">
+              <button class="btn-secondary" onclick="moverExercicio(${e.id}, -1)" style="padding:2px 6px; font-size:0.7rem;" title="Mover para Cima">↑</button>
+              <button class="btn-secondary" onclick="moverExercicio(${e.id}, 1)" style="padding:2px 6px; font-size:0.7rem;" title="Mover para Baixo">↓</button>
+              ${e.video ? `<a href="${e.video}" target="_blank" class="btn-secondary" style="padding:2px 6px; font-size:0.7rem; text-decoration:none;">🎥</a>` : ''}
+              <button class="btn-del" onclick="removerExercicio(${e.id})">✕</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
   
   html += '</tbody></table>';
   container.innerHTML = html;
@@ -336,11 +463,19 @@ function mostrarInfoTecnica() {
 function salvarFichaCompleta() {
   if (!currentAlunoId) { showToast('Selecione um aluno primeiro', 'error'); return; }
   
+  const diasTreino = Array.from(document.querySelectorAll('input[name="dia-treino"]:checked')).map(cb => cb.value);
+  const mapeamentoDias = {};
+  document.querySelectorAll('.day-split').forEach(sel => {
+    mapeamentoDias[sel.dataset.day] = sel.value;
+  });
+
   const ficha = {
     alunoId: currentAlunoId,
     exercicios: fichaExercicios,
     objetivo: document.getElementById('presc-objetivo-pro')?.value || '',
     semana: document.getElementById('presc-semana')?.value || '',
+    diasTreino,
+    mapeamentoDias,
     data: new Date().toISOString().slice(0, 10)
   };
   
@@ -385,11 +520,13 @@ function imprimirFichaPro() {
       th,td{border:1px solid #ddd;padding:8px;text-align:left; font-size:0.85rem;}
       th{background:#1d4ed8;color:white;}
       .header{text-align:center;border-bottom:2px solid #1d4ed8;margin-bottom:1rem;}
+      .logo{max-width:150px;margin-bottom:10px;}
       .params{margin-top:2rem; font-size:0.8rem; background:#f1f5f9; padding:10px; border-radius:5px;}
       small{color:#666;}
     </style>
     </head><body>
     <div class="header">
+      <img src="logo.png" class="logo" onerror="this.style.display='none'">
       <h1>TREINOFITASM</h1>
       <p>Ficha de Treino - ${aluno ? aluno.nome : 'Aluno'}</p>
       <p>Data: ${new Date().toLocaleDateString('pt-BR')}</p>

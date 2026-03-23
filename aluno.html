@@ -141,8 +141,20 @@
         </div>
         <div id="treino-liberado">
           <div class="section-card">
+            <h3 class="card-title">📅 Cronograma Semanal</h3>
+            <div id="cronograma-semanal-aluno" class="cronograma-grid"></div>
+          </div>
+
+          <div class="section-card">
             <h3 class="card-title">💪 Minha Ficha de Treino</h3>
-            <div id="ficha-treino-content"></div>
+            
+            <!-- SELETOR DE DIVISÕES -->
+            <div class="divisoes-tabs" id="divisoes-tabs-container">
+              <!-- Botões A, B, C... gerados via JS -->
+            </div>
+
+            <div id="ficha-treino-content" style="margin-top: 1rem;"></div>
+            
             <div class="btn-row" style="margin-top:1rem;">
               <button class="btn-full btn-primary" onclick="baixarTreinoPDF()">📥 Baixar Treino PDF</button>
             </div>
