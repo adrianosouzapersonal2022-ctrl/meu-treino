@@ -126,22 +126,7 @@ function entrarNoApp() {
 
 function verificarAcesso() {
   // ACESSO TOTAL LIBERADO PARA TODOS OS ALUNOS
-  const temAcesso = true;
-  const isGratuito = true;
-
-  const sections = [
-    { lib: 'treino-liberado', block: 'treino-bloqueado' },
-    { lib: 'avaliacao-liberada', block: 'avaliacao-bloqueada' }
-  ];
-
-  sections.forEach(s => {
-    const libEl = document.getElementById(s.lib);
-    const blockEl = document.getElementById(s.block);
-    if (libEl) libEl.style.display = temAcesso ? 'block' : 'none';
-    if (blockEl) blockEl.style.display = temAcesso ? 'none' : 'block';
-  });
-
-  // Esconder botão de pagamento na bottom nav
+  // Removemos as verificações de bloqueio para garantir acesso imediato
   const bnavPagamento = document.getElementById('bnav-pagamento');
   if (bnavPagamento) {
     bnavPagamento.style.display = 'none';
@@ -185,10 +170,29 @@ function realizarCadastroOnline() {
   const alunos = JSON.parse(localStorage.getItem('alunos') || '[]');
   
   // Verificar se e-mail já existe
-  if (alunos.some(a => a.email === email)) {
-    const erro = document.getElementById('reg-erro');
-    erro.style.display = 'block';
-    erro.textContent = 'Este e-mail já está cadastrado.';
+  const alunoExistenteIdx = alunos.findIndex(a => a.email === email);
+  
+  if (alunoExistenteIdx !== -1) {
+    const alunoExistente = alunos[alunoExistenteIdx];
+    
+    // Se o aluno já existia (criado pelo professor), vamos apenas atualizar os dados e a senha
+    // Isso garante que ele mantenha o mesmo ID e, consequentemente, os mesmos treinos/testes
+    alunos[alunoExistenteIdx] = {
+      ...alunoExistente,
+      nome,
+      senha,
+      dataNasc,
+      sexo,
+      telefone,
+      objetivo,
+      idade: calcularIdade(dataNasc),
+      origem: 'online'
+      // Mantemos o ID original e o tipo (gratuito/pago) definido pelo professor
+    };
+    
+    localStorage.setItem('alunos', JSON.stringify(alunos));
+    toast('Cadastro vinculado ao registro do seu professor! Agora faça login.', 'success');
+    voltarLogin();
     return;
   }
 
@@ -203,7 +207,7 @@ function realizarCadastroOnline() {
     objetivo,
     idade: calcularIdade(dataNasc),
     origem: 'online',
-    tipo: 'pago' // Padrão para cadastro online
+    tipo: 'gratuito' // Padrão agora é gratuito conforme solicitado
   };
 
   alunos.push(novoAluno);
