@@ -289,8 +289,18 @@ function showTab(tab) {
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
   
-  document.getElementById('tab-' + tab)?.classList.add('active');
-  document.getElementById('bnav-' + tab)?.classList.add('active');
+  const targetTab = document.getElementById('tab-' + tab);
+  const targetBtn = document.getElementById('bnav-' + tab);
+  
+  if (targetTab) targetTab.classList.add('active');
+  if (targetBtn) targetBtn.classList.add('active');
+
+  // Ao mudar de aba, sempre recarregar os dados para garantir que pegamos as atualizações do professor
+  if (tab === 'inicio') carregarInicio();
+  if (tab === 'treino') carregarTreino();
+  if (tab === 'avaliacao') carregarAvaliacao();
+  if (tab === 'perfil') carregarPerfil();
+  if (tab === 'pagamento') carregarHistoricoPagamentos();
 }
 
 // ===== CARREGAR DADOS =====
@@ -350,29 +360,31 @@ function carregarInicio() {
       }
     }
 
-    // Tentar identificar o treino do dia
+    // Identificar o treino sugerido (hoje ou o primeiro disponível)
     const diasSemana = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
     const hoje = diasSemana[new Date().getDay()];
     const divHoje = (ficha.mapeamentoDias || {})[hoje] || '0';
     const treinaHoje = (ficha.diasTreino || []).includes(hoje);
 
+    // Se treina hoje, mostramos o de hoje. Se não treina hoje, mostramos que é descanso mas sugerimos o treino A ou o primeiro.
     if (treinaHoje && divHoje !== '0') {
       prox.innerHTML = `
         <div style="display:flex; align-items:center; gap:10px;">
           <div style="font-size:2rem;">🔥</div>
           <div>
             <strong>Treino de Hoje: Divisão ${divHoje}</strong><br>
-            <span style="font-size:0.8rem;">Toque em "Treino" para ver os exercícios.</span>
+            <span style="font-size:0.8rem;">Sua prescrição está pronta. Toque em "Treino" abaixo para começar!</span>
           </div>
         </div>
       `;
     } else {
+      const divSugerida = (ficha.exercicios && ficha.exercicios.length > 0) ? (ficha.exercicios[0].divisao || 'A') : 'A';
       prox.innerHTML = `
         <div style="display:flex; align-items:center; gap:10px;">
-          <div style="font-size:2rem;">🛌</div>
+          <div style="font-size:2rem;">🏋️</div>
           <div>
-            <strong>Hoje é dia de Descanso</strong><br>
-            <span style="font-size:0.8rem;">Aproveite para recuperar suas energias!</span>
+            <strong>Treino Disponível: Divisão ${divSugerida}</strong><br>
+            <span style="font-size:0.8rem;">Hoje seria descanso, mas seu treino está liberado se quiser treinar!</span>
           </div>
         </div>
       `;
@@ -510,51 +522,59 @@ function mudarDivisao(div) {
 
 function carregarAvaliacao() {
   const a = alunoLogado;
-  const avs = JSON.parse(localStorage.getItem('avaliacoes') || '[]').filter(x => String(x.alunoId) === String(a.id));
-  const anam = JSON.parse(localStorage.getItem('anamneses') || '[]').filter(x => String(x.alunoId) === String(a.id));
+  // Buscar avaliações e garantir que estão ordenadas pela data mais recente
+  const avs = JSON.parse(localStorage.getItem('avaliacoes') || '[]')
+    .filter(x => String(x.alunoId) === String(a.id))
+    .sort((a, b) => new Date(b.data) - new Date(a.data));
+    
+  const anam = JSON.parse(localStorage.getItem('anamneses') || '[]')
+    .filter(x => String(x.alunoId) === String(a.id))
+    .sort((a, b) => new Date(b.data) - new Date(a.data));
+
   const compBox = document.getElementById('aval-composicao');
+  if (!compBox) return;
 
   let html = '';
 
   if (avs.length > 0) {
-    const lastAv = avs[avs.length - 1];
+    const lastAv = avs[0]; // Pegar a mais recente devido ao sort
     html += `
       <div class="aval-grid">
-        <div class="aval-item"><div class="aval-label">% Gordura</div><div class="aval-valor">${lastAv.percGordura}</div></div>
-        <div class="aval-item"><div class="aval-label">Massa Magra</div><div class="aval-valor">${lastAv.massaMagra}</div></div>
-        <div class="aval-item"><div class="aval-label">Massa Gorda</div><div class="aval-valor">${lastAv.massaGorda}</div></div>
+        <div class="aval-item"><div class="aval-label">% Gordura</div><div class="aval-valor">${lastAv.percGordura || '—'}%</div></div>
+        <div class="aval-item"><div class="aval-label">Massa Magra</div><div class="aval-valor">${lastAv.massaMagra || '—'} kg</div></div>
+        <div class="aval-item"><div class="aval-label">Massa Gorda</div><div class="aval-valor">${lastAv.massaGorda || '—'} kg</div></div>
       </div>
     `;
 
     if (lastAv.perimetros) {
       html += `
-        <h4 style="margin-top:1rem;">Circunferências (cm)</h4>
-        <div class="circ-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:5px; font-size:0.8rem;">
-          <div>Pescoço: ${lastAv.perimetros.pescoco || '—'}</div>
-          <div>Ombro: ${lastAv.perimetros.ombro || '—'}</div>
-          <div>Peito: ${lastAv.perimetros['peito-normal'] || '—'}</div>
-          <div>Cintura: ${lastAv.perimetros.cintura || '—'}</div>
-          <div>Abdômen: ${lastAv.perimetros.abdomen || '—'}</div>
-          <div>Quadril: ${lastAv.perimetros.quadril || '—'}</div>
-          <div>Braço D: ${lastAv.perimetros['braco-dir'] || '—'}</div>
-          <div>Braço E: ${lastAv.perimetros['braco-esq'] || '—'}</div>
-          <div>Coxa D: ${lastAv.perimetros['coxa-dir'] || '—'}</div>
-          <div>Coxa E: ${lastAv.perimetros['coxa-esq'] || '—'}</div>
-          <div>Panturrilha D: ${lastAv.perimetros['panturrilha-dir'] || '—'}</div>
-          <div>Panturrilha E: ${lastAv.perimetros['panturrilha-esq'] || '—'}</div>
+        <h4 style="margin-top:1.5rem; color: var(--primary); font-weight: 800; font-size: 0.9rem;">📏 Circunferências (cm)</h4>
+        <div class="circ-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:0.85rem; background: #f8fafc; padding: 12px; border-radius: 10px; border: 1px solid #e2e8f0;">
+          <div style="display:flex; justify-content:space-between; border-bottom:1px solid #e2e8f0; padding:4px 0;"><span>Pescoço:</span> <strong>${lastAv.perimetros.pescoco || '—'}</strong></div>
+          <div style="display:flex; justify-content:space-between; border-bottom:1px solid #e2e8f0; padding:4px 0;"><span>Ombro:</span> <strong>${lastAv.perimetros.ombro || '—'}</strong></div>
+          <div style="display:flex; justify-content:space-between; border-bottom:1px solid #e2e8f0; padding:4px 0;"><span>Peito:</span> <strong>${lastAv.perimetros['peito-normal'] || '—'}</strong></div>
+          <div style="display:flex; justify-content:space-between; border-bottom:1px solid #e2e8f0; padding:4px 0;"><span>Cintura:</span> <strong>${lastAv.perimetros.cintura || '—'}</strong></div>
+          <div style="display:flex; justify-content:space-between; border-bottom:1px solid #e2e8f0; padding:4px 0;"><span>Abdômen:</span> <strong>${lastAv.perimetros.abdomen || '—'}</strong></div>
+          <div style="display:flex; justify-content:space-between; border-bottom:1px solid #e2e8f0; padding:4px 0;"><span>Quadril:</span> <strong>${lastAv.perimetros.quadril || '—'}</strong></div>
+          <div style="display:flex; justify-content:space-between; border-bottom:1px solid #e2e8f0; padding:4px 0;"><span>Braço D:</span> <strong>${lastAv.perimetros['braco-dir'] || '—'}</strong></div>
+          <div style="display:flex; justify-content:space-between; border-bottom:1px solid #e2e8f0; padding:4px 0;"><span>Braço E:</span> <strong>${lastAv.perimetros['braco-esq'] || '—'}</strong></div>
+          <div style="display:flex; justify-content:space-between; border-bottom:1px solid #e2e8f0; padding:4px 0;"><span>Coxa D:</span> <strong>${lastAv.perimetros['coxa-dir'] || '—'}</strong></div>
+          <div style="display:flex; justify-content:space-between; border-bottom:1px solid #e2e8f0; padding:4px 0;"><span>Coxa E:</span> <strong>${lastAv.perimetros['coxa-esq'] || '—'}</strong></div>
+          <div style="display:flex; justify-content:space-between; border-bottom:1px solid #e2e8f0; padding:4px 0;"><span>Panturrilha D:</span> <strong>${lastAv.perimetros['panturrilha-dir'] || '—'}</strong></div>
+          <div style="display:flex; justify-content:space-between; border-bottom:1px solid #e2e8f0; padding:4px 0;"><span>Panturrilha E:</span> <strong>${lastAv.perimetros['panturrilha-esq'] || '—'}</strong></div>
         </div>
       `;
     }
   }
 
   if (anam.length > 0) {
-    const lastAnam = anam[anam.length - 1];
+    const lastAnam = anam[0]; // Pegar a mais recente devido ao sort
     html += `
-      <h4 style="margin-top:1rem;">Marcadores de Saúde</h4>
-      <div class="health-grid" style="font-size:0.8rem;">
-        <div>Glicemia: ${lastAnam.glicemia || '—'} mg/dL</div>
-        <div>Colesterol: ${lastAnam.colesterolTotal || '—'} mg/dL</div>
-        <div>PA: ${lastAnam.paSistolica}/${lastAnam.paDiastolica} mmHg</div>
+      <h4 style="margin-top:1.5rem; color: var(--primary); font-weight: 800; font-size: 0.9rem;">🩺 Marcadores de Saúde</h4>
+      <div class="health-grid" style="font-size:0.85rem; background: #fff1f2; padding: 12px; border-radius: 10px; border: 1px solid #fecaca; display: grid; grid-template-columns: 1fr; gap: 8px;">
+        <div style="display:flex; justify-content:space-between;"><span>Glicemia:</span> <strong>${lastAnam.glicemia || '—'} mg/dL</strong></div>
+        <div style="display:flex; justify-content:space-between;"><span>Colesterol:</span> <strong>${lastAnam.colesterolTotal || '—'} mg/dL</strong></div>
+        <div style="display:flex; justify-content:space-between;"><span>Pressão Arterial:</span> <strong>${lastAnam.paSistolica || '—'}/${lastAnam.paDiastolica || '—'} mmHg</strong></div>
       </div>
     `;
   }
