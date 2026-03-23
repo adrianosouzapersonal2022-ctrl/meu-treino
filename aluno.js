@@ -5,6 +5,7 @@
 let alunoLogado = null;
 let chartAlunoComp = null;
 let divisaoAtiva = 'A'; // Divisão padrão
+let divisaoSelecionadaManualmente = false;
 
 // PWA Install Logic para o Aluno
 let deferredPromptAluno;
@@ -105,6 +106,7 @@ function fazerLogin() {
 }
 
 function entrarNoApp() {
+  divisaoSelecionadaManualmente = false; // Resetar seleção automática ao entrar
   document.getElementById('screen-login').style.display = 'none';
   if (document.getElementById('screen-cadastro-online')) document.getElementById('screen-cadastro-online').style.display = 'none';
   document.getElementById('screen-app').style.display = 'block';
@@ -361,13 +363,28 @@ function carregarInicio() {
     }
 
     // Identificar o treino sugerido (hoje ou o primeiro disponível)
-    const diasSemana = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
-    const hoje = diasSemana[new Date().getDay()];
-    const divHoje = (ficha.mapeamentoDias || {})[hoje] || '0';
-    const treinaHoje = (ficha.diasTreino || []).includes(hoje);
+    const diasSemanaFim = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
+    const hojeIdx = (new Date().getDay() + 6) % 7; // Ajustar para 0=Segunda
+    const hojeNome = diasSemanaFim[hojeIdx];
+    
+    // Obter divisões únicas disponíveis (A, B, C...)
+    const divUnicas = [...new Set(ficha.exercicios.map(e => e.divisao || 'A'))].sort();
+    const dTreino = ficha.diasTreino || [];
+    
+    // Mapear hoje
+    let divHoje = 'OFF';
+    let divIdx = 0;
+    for (const dia of diasSemanaFim) {
+      if (dTreino.includes(dia)) {
+        if (dia === hojeNome) {
+          divHoje = divUnicas[divIdx % divUnicas.length];
+          break;
+        }
+        divIdx++;
+      }
+    }
 
-    // Se treina hoje, mostramos o de hoje. Se não treina hoje, mostramos que é descanso mas sugerimos o treino A ou o primeiro.
-    if (treinaHoje && divHoje !== '0') {
+    if (divHoje !== 'OFF') {
       prox.innerHTML = `
         <div style="display:flex; align-items:center; gap:10px;">
           <div style="font-size:2rem;">🔥</div>
@@ -378,12 +395,12 @@ function carregarInicio() {
         </div>
       `;
     } else {
-      const divSugerida = (ficha.exercicios && ficha.exercicios.length > 0) ? (ficha.exercicios[0].divisao || 'A') : 'A';
+      const divSug = divUnicas[0] || 'A';
       prox.innerHTML = `
         <div style="display:flex; align-items:center; gap:10px;">
           <div style="font-size:2rem;">🏋️</div>
           <div>
-            <strong>Treino Disponível: Divisão ${divSugerida}</strong><br>
+            <strong>Treino Disponível: Divisão ${divSug}</strong><br>
             <span style="font-size:0.8rem;">Hoje seria descanso, mas seu treino está liberado se quiser treinar!</span>
           </div>
         </div>
@@ -441,21 +458,48 @@ function carregarTreino() {
     return;
   }
 
-  // 1. Renderizar Cronograma Semanal
+  // 1. Renderizar Cronograma Semanal e definir divisaoAtiva automática se não selecionada manualmente
   if (cronogramaContainer) {
     const diasSemana = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
     const diasLabels = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
     const hojeIdx = (new Date().getDay() + 6) % 7; // Ajustar para 0=Segunda
+    const hojeNome = diasSemana[hojeIdx];
+    
+    // Obter divisões únicas disponíveis (A, B, C...)
+    const divisoesUnicas = [...new Set(ficha.exercicios.map(e => e.divisao || 'A'))].sort();
+    const diasTreino = ficha.diasTreino || [];
+    
+    // Mapear cada dia de treino para uma divisão (A, B, C...) em sequência
+    const mapeamentoAuto = {};
+    let divIdx = 0;
+    diasSemana.forEach(dia => {
+      if (diasTreino.includes(dia)) {
+        mapeamentoAuto[dia] = divisoesUnicas[divIdx % divisoesUnicas.length];
+        divIdx++;
+      } else {
+        mapeamentoAuto[dia] = 'OFF';
+      }
+    });
+
+    // Se não foi selecionado manualmente, definir divisaoAtiva para o treino de HOJE (se houver)
+    if (!divisaoSelecionadaManualmente) {
+      if (diasTreino.includes(hojeNome)) {
+        divisaoAtiva = mapeamentoAuto[hojeNome];
+      } else {
+        // Se hoje for descanso, sugerir a primeira divisão disponível
+        divisaoAtiva = divisoesUnicas[0] || 'A';
+      }
+    }
     
     cronogramaContainer.innerHTML = diasSemana.map((dia, idx) => {
-      const treina = (ficha.diasTreino || []).includes(dia);
-      const div = (ficha.mapeamentoDias || {})[dia] || '0';
+      const treina = diasTreino.includes(dia);
+      const div = mapeamentoAuto[dia];
       const isHoje = idx === hojeIdx;
       
       return `
-        <div class="cron-dia ${treina ? 'treino' : 'descanso'} ${isHoje ? 'hoje' : ''}">
+        <div class="cron-dia ${treina ? 'treino' : 'descanso'} ${isHoje ? 'hoje' : ''}" onclick="mudarDivisao('${treina && div !== 'OFF' ? div : (divisoesUnicas[0] || 'A')}')" style="cursor: pointer;">
           <div class="dia-nome">${diasLabels[idx]}</div>
-          <div class="dia-divisao">${treina && div !== '0' ? div : (treina ? '?' : 'OFF')}</div>
+          <div class="dia-divisao">${div}</div>
         </div>
       `;
     }).join('');
@@ -465,7 +509,7 @@ function carregarTreino() {
   if (selectDivisao) {
     const divisoesPresentes = [...new Set(ficha.exercicios.map(e => e.divisao || 'A'))].sort();
     
-    // Se a divisão ativa não estiver presente (ex: mudou o treino), resetar para a primeira
+    // Se a divisão ativa não estiver presente, resetar para a primeira
     if (!divisoesPresentes.includes(divisaoAtiva)) {
       divisaoAtiva = divisoesPresentes[0] || 'A';
     }
@@ -517,6 +561,7 @@ function carregarTreino() {
 
 function mudarDivisao(div) {
   divisaoAtiva = div;
+  divisaoSelecionadaManualmente = true;
   carregarTreino();
 }
 
