@@ -108,14 +108,19 @@ function carregarPresc() {
 }
 
 // ===== RENDERIZAR LISTA DE EXERCÍCIOS =====
+function getExerciciosCompletos() {
+  const custom = JSON.parse(localStorage.getItem('exercicios_custom') || '[]');
+  return [...EXERCICIOS_DB, ...custom];
+}
+
 function renderListaExercicios() {
   const container = document.getElementById('presc-lista-exercicios');
   if (!container) return;
   
-  const busca = (document.getElementById('presc-busca')?.value || '').toLowerCase();
+  const busca = (document.getElementById('filtro-exer')?.value || document.getElementById('presc-busca')?.value || '').toLowerCase();
   const gruposChecked = Array.from(document.querySelectorAll('input[name="grupo-filter"]:checked')).map(cb => cb.value);
   
-  let lista = EXERCICIOS_DB; 
+  let lista = getExerciciosCompletos(); 
   
   if (busca) {
     lista = lista.filter(e => e.nome.toLowerCase().includes(busca) || e.grupo.toLowerCase().includes(busca));
@@ -128,28 +133,33 @@ function renderListaExercicios() {
   container.innerHTML = lista.map(e => {
     const grupoClass = `grupo-${e.grupo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
     const bgClass = `bg-${e.grupo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
-    const nivelClass = `nivel-${e.nivel.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
+    const nivel = e.nivel || 'Iniciante';
+    const nivelClass = `nivel-${nivel.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
     
-    // Placeholder para GIF (usando uma imagem padrão se não houver video)
-    const gifUrl = e.video || 'https://via.placeholder.com/300x150?text=' + encodeURIComponent(e.nome);
-
     return `
       <div class="exer-item ${grupoClass}" onclick="selecionarExercicio('${e.id}')">
-        <div class="nivel-badge ${nivelClass}">${e.nivel}</div>
+        <div class="nivel-badge ${nivelClass}">${nivel}</div>
         <div class="exer-media">
-          <img src="${gifUrl}" alt="${e.nome}" onerror="this.src='https://via.placeholder.com/300x150?text=Exerc%C3%ADcio'">
+          ${e.video ? `<img src="https://img.youtube.com/vi/${getYouTubeID(e.video)}/0.jpg" alt="${e.nome}" onerror="this.src='https://via.placeholder.com/300x150?text=Exerc%C3%ADcio'">` : `<div style="font-size:2rem; color:#cbd5e1;">🏋️</div>`}
         </div>
         <div class="exer-info">
           <div class="badge-grupo ${bgClass}">${e.grupo}</div>
           <div class="exer-nome">${e.nome}</div>
           <div class="exer-meta">
-            <span>${e.equip}</span>
+            <span>${e.equip || 'Livre'}</span>
             <span>•</span>
-            <span>${e.tipo}</span>
+            <span>${e.tipo || 'Força'}</span>
           </div>
         </div>
       </div>`;
   }).join('');
+}
+
+function getYouTubeID(url) {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
 }
 
 function filtrarExercicios() {
@@ -158,19 +168,20 @@ function filtrarExercicios() {
 
 // ===== SELECIONAR EXERCÍCIO =====
 function selecionarExercicio(id) {
-  const ex = EXERCICIOS_DB.find(e => e.id === id);
+  const db = getExerciciosCompletos();
+  const ex = db.find(e => String(e.id) === String(id));
   if (!ex) return;
   
   const painel = document.getElementById('painel-add-exercicio');
   if (painel) {
     document.getElementById('exer-sel-nome').textContent = ex.nome;
     document.getElementById('exer-sel-grupo').textContent = ex.grupo;
-    document.getElementById('exer-sel-equip').textContent = ex.equip;
+    document.getElementById('exer-sel-equip').textContent = ex.equip || 'Livre';
     painel.style.display = 'block';
     painel.dataset.exId = id;
     
     // Buscar 1RM do aluno para este exercício no state
-    const rmRegs = state.rms.filter(r => r.alunoId === currentAlunoId && r.exercicioId === id);
+    const rmRegs = state.rms.filter(r => String(r.alunoId) === String(currentAlunoId) && String(r.exercicioId) === String(id));
     const ref = document.getElementById('rm-referencia');
     if (rmRegs.length > 0) {
       const ultimoRM = rmRegs[rmRegs.length - 1].rm;
@@ -201,7 +212,8 @@ function adicionarExercicio() {
   const painel = document.getElementById('painel-add-exercicio');
   if (!painel) return;
   const exId = painel.dataset.exId;
-  const ex = EXERCICIOS_DB.find(e => e.id == exId);
+  const db = getExerciciosCompletos();
+  const ex = db.find(e => String(e.id) === String(exId));
   if (!ex) return;
   
   const item = {
@@ -217,14 +229,14 @@ function adicionarExercicio() {
     tecnica: document.getElementById('presc-tecnica')?.value || 'tradicional',
     descanso: document.getElementById('presc-descanso')?.value || '',
     cadencia: document.getElementById('presc-cadencia')?.value || '',
-    video: document.getElementById('presc-video')?.value || '',
+    video: document.getElementById('presc-video')?.value || ex.video || '',
     obs: document.getElementById('presc-obs-ex')?.value || ''
   };
   
   fichaExercicios.push(item);
   renderFichaTabela();
   painel.style.display = 'none';
-  showToast('Exercício adicionado!', 'success');
+  showToast('Exercício adicionado à ficha!', 'success');
   
   // Limpar campos para o próximo
   if (document.getElementById('presc-carga')) document.getElementById('presc-carga').value = '';
@@ -252,6 +264,10 @@ function abrirModalNovoExercicio() {
   document.getElementById('modal-novo-exercicio').style.display = 'flex';
 }
 
+function fecharModalNovoExercicio() {
+  document.getElementById('modal-novo-exercicio').style.display = 'none';
+}
+
 function salvarNovoExercicioBanco() {
   const nome = document.getElementById('novo-exer-nome').value;
   const grupo = document.getElementById('novo-exer-grupo').value;
@@ -260,6 +276,7 @@ function salvarNovoExercicioBanco() {
 
   if (!nome) { showToast('O nome é obrigatório!', 'error'); return; }
 
+  const custom = JSON.parse(localStorage.getItem('exercicios_custom') || '[]');
   const novoEx = {
     id: 'custom_' + Date.now(),
     nome,
@@ -270,10 +287,11 @@ function salvarNovoExercicioBanco() {
     video: video || ''
   };
 
-  EXERCICIOS_DB.push(novoEx);
-  // Persistir exercícios customizados separadamente se necessário, mas aqui adicionamos à lista em memória
+  custom.push(novoEx);
+  localStorage.setItem('exercicios_custom', JSON.stringify(custom));
+  
   renderListaExercicios();
-  document.getElementById('modal-novo-exercicio').style.display = 'none';
+  fecharModalNovoExercicio();
   showToast('Exercício cadastrado com sucesso!', 'success');
 
   // Limpar campos
@@ -493,58 +511,89 @@ function imprimirFichaPro() {
     return;
   }
   
-  const aluno = state.alunos.find(a => a.id === currentAlunoId);
+  const aluno = state.alunos.find(a => String(a.id) === String(currentAlunoId));
   const win = window.open('', '_blank');
   
-  let rows = fichaExercicios.map(e => `
-    <tr>
-      <td>
-        <strong>${e.nome}</strong><br>
-        <small>${e.grupo}${e.obs ? ' · ' + e.obs : ''}</small>
-      </td>
-      <td>${e.series}</td>
-      <td>${e.reps}</td>
-      <td>${e.carga} kg</td>
-      <td>${e.pct ? e.pct + '%' : '—'}</td>
-      <td>${e.cadencia || '—'}</td>
-      <td>${e.tecnica ? e.tecnica.charAt(0).toUpperCase() + e.tecnica.slice(1) : 'Tradicional'}</td>
-      <td>${e.descanso}s</td>
-    </tr>
-  `).join('');
+  // Organizar exercícios por divisão (A, B, C...)
+  const divisoes = [...new Set(fichaExercicios.map(e => e.divisao || 'A'))].sort();
+  
+  let contentHtml = divisoes.map(div => {
+    const exs = fichaExercicios.filter(e => (e.divisao || 'A') === div);
+    
+    // Buscar dias vinculados a esta divisão
+    const diasVinculados = [];
+    document.querySelectorAll('.day-split').forEach(sel => {
+      if (sel.value === div) {
+        const checkbox = document.querySelector(`input[name="dia-treino"][value="${sel.dataset.day}"]`);
+        if (checkbox?.checked) diasVinculados.push(sel.dataset.day.charAt(0).toUpperCase() + sel.dataset.day.slice(1));
+      }
+    });
+
+    return `
+      <div style="margin-bottom: 30px; page-break-inside: avoid;">
+        <div style="background: #1d4ed8; color: white; padding: 12px 15px; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center;">
+          <h2 style="margin: 0; font-size: 1.2rem;">TREINO ${div}</h2>
+          <span style="font-size: 0.8rem;">${diasVinculados.join(', ')}</span>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 0;">
+          <thead>
+            <tr style="background: #f1f5f9;">
+              <th style="border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 0.8rem;">Exercício</th>
+              <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-size: 0.8rem;">Séries</th>
+              <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-size: 0.8rem;">Reps</th>
+              <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-size: 0.8rem;">Carga</th>
+              <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-size: 0.8rem;">Descanso</th>
+              <th style="border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 0.8rem;">Técnica/Obs</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${exs.map(e => `
+              <tr>
+                <td style="border: 1px solid #ddd; padding: 10px;">
+                  <strong style="color: #1d4ed8;">${e.nome}</strong><br>
+                  <small style="color: #666;">${e.grupo}</small>
+                </td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${e.series}</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${e.reps}</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${e.carga} kg</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${e.descanso}s</td>
+                <td style="border: 1px solid #ddd; padding: 10px; font-size: 0.75rem;">
+                  ${e.tecnica !== 'tradicional' ? `<strong>${e.tecnica.toUpperCase()}</strong><br>` : ''}
+                  ${e.obs || ''}
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }).join('');
 
   win.document.write(`
     <html><head><title>TREINOFITASM - Ficha de Treino</title>
     <style>
-      body{font-family:sans-serif;padding:2rem;}
-      table{width:100%;border-collapse:collapse;margin-top:1rem;}
-      th,td{border:1px solid #ddd;padding:8px;text-align:left; font-size:0.85rem;}
-      th{background:#1d4ed8;color:white;}
-      .header{text-align:center;border-bottom:2px solid #1d4ed8;margin-bottom:1rem;}
-      .logo{max-width:150px;margin-bottom:10px;}
-      .params{margin-top:2rem; font-size:0.8rem; background:#f1f5f9; padding:10px; border-radius:5px;}
-      small{color:#666;}
+      body{font-family:sans-serif;padding:2rem; color: #1e293b;}
+      .header{text-align:center;border-bottom:3px solid #1d4ed8;margin-bottom:2rem; padding-bottom: 1rem;}
+      .logo{max-width:180px;margin-bottom:10px;}
+      h1{margin: 0; color: #1d4ed8; font-size: 1.8rem;}
+      .footer{text-align:center; margin-top:3rem; font-size:0.8rem; color:#64748b; border-top: 1px solid #e2e8f0; padding-top: 1rem;}
     </style>
     </head><body>
     <div class="header">
       <img src="logo.png" class="logo" onerror="this.style.display='none'">
       <h1>TREINOFITASM</h1>
-      <p>Ficha de Treino - ${aluno ? aluno.nome : 'Aluno'}</p>
-      <p>Data: ${new Date().toLocaleDateString('pt-BR')}</p>
+      <p><strong>Ficha de Treino:</strong> ${aluno ? aluno.nome : 'Aluno'}</p>
+      <p>Data da Prescrição: ${new Date().toLocaleDateString('pt-BR')}</p>
     </div>
-    <table>
-      <thead>
-        <tr><th>Exercício</th><th>Séries</th><th>Reps</th><th>Carga</th><th>% 1RM</th><th>Cadência</th><th>Técnica</th><th>Descanso</th></tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
-    <div class="params">
-      <h4>Parâmetros de Intensidade:</h4>
-      <p>Força: 85-100% | Hipertrofia: 70-85% | Resistência: < 60%</p>
-      <p><em>* Cargas calculadas com base no seu teste de 1RM.</em></p>
+    
+    ${contentHtml}
+
+    <div class="footer">
+      <p>TREINOFITASM - Adriano de Souza - Consultoria Esportiva</p>
+      <p>Gere saúde, transforme vidas.</p>
     </div>
-    <p style="text-align:center; margin-top:2rem; font-size:0.8rem; color:#666;">TREINOFITASM - Treinamento Personalizado</p>
     </body></html>
   `);
   win.document.close();
-  win.print();
+  setTimeout(() => win.print(), 500);
 }

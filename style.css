@@ -121,6 +121,25 @@ body {
 }
 
 /* PWA INSTALL BANNER */
+.measure-point {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--primary);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 0 rgba(0, 119, 255, 0.4);
+  animation: pulse-point 2s infinite;
+  display: none;
+}
+.measure-point.active { display: block; }
+
+@keyframes pulse-point {
+  0% { transform: translate(-50%, -50%) scale(0.95); box-shadow: 0 0 0 0 rgba(0, 119, 255, 0.7); }
+  70% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 0 10px rgba(0, 119, 255, 0); }
+  100% { transform: translate(-50%, -50%) scale(0.95); box-shadow: 0 0 0 0 rgba(0, 119, 255, 0); }
+}
+
 .pwa-badge {
   background: var(--primary);
   color: white;
@@ -145,6 +164,33 @@ body {
 }
 
 /* AUTH OVERLAY */
+.screen-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  background: radial-gradient(circle at center, #1e3a8a 0%, #0f172a 100%);
+}
+.login-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  padding: 2.5rem;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 400px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+.login-card h2, .login-card label, .login-card .brand-name {
+  color: #ffffff !important;
+}
+.login-card input {
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+}
+
 #app { display: none !important; }
 #app.auth-ready { display: block !important; }
 .page { 

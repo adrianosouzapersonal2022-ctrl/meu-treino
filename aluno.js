@@ -6,6 +6,27 @@ let alunoLogado = null;
 let chartAlunoComp = null;
 let divisaoAtiva = 'A'; // Divisão padrão
 
+// PWA Install Logic para o Aluno
+let deferredPromptAluno;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPromptAluno = e;
+  const banner = document.getElementById('pwa-banner-aluno');
+  if (banner) banner.style.display = 'block';
+});
+
+document.getElementById('btn-pwa-install-aluno')?.addEventListener('click', async () => {
+  if (deferredPromptAluno) {
+    deferredPromptAluno.prompt();
+    const { outcome } = await deferredPromptAluno.userChoice;
+    if (outcome === 'accepted') {
+      const banner = document.getElementById('pwa-banner-aluno');
+      if (banner) banner.style.display = 'none';
+    }
+    deferredPromptAluno = null;
+  }
+});
+
 // ===== TOAST =====
 function toast(msg, type = '') {
   const t = document.getElementById('toast-aluno');
@@ -174,6 +195,15 @@ function showTab(tab) {
 // ===== CARREGAR DADOS =====
 function carregarInicio() {
   const a = alunoLogado;
+  
+  // Recarregar dados do aluno do localStorage para garantir que pegamos mudanças de gratuidade
+  const todosAlunos = JSON.parse(localStorage.getItem('alunos') || '[]');
+  const alunoAtualizado = todosAlunos.find(x => String(x.id) === String(a.id));
+  if (alunoAtualizado) {
+    alunoLogado = alunoAtualizado;
+    verificarAcesso(); // Re-validar acesso com dados novos
+  }
+
   const avs = JSON.parse(localStorage.getItem('avaliacoes') || '[]').filter(x => String(x.alunoId) === String(a.id));
   const lastAv = avs[avs.length - 1];
 

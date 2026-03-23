@@ -41,20 +41,20 @@
       <div class="login-card" style="position: relative; z-index: 1;">
         <div class="nav-brand" style="justify-content: center; margin-bottom: 2rem;">
           <img src="logo.png" alt="Logo" style="height: 60px;" onerror="this.style.display='none'">
-          <span class="brand-name" style="color: var(--text);">TREINOFITASM ADMIN</span>
+          <span class="brand-name" style="color: #ffffff;">TREINOFITASM ADMIN</span>
         </div>
-        <h2 style="text-align: center; margin-bottom: 1.5rem;">Acesso Administrativo</h2>
+        <h2 style="text-align: center; margin-bottom: 1.5rem; color: #ffffff;">Acesso Administrativo</h2>
         <div class="form-group">
-          <label>Usuário</label>
-          <input type="text" id="admin-user" placeholder="Seu usuário" />
+          <label style="color: #ffffff;">Usuário</label>
+          <input type="text" id="admin-user" placeholder="Seu usuário" style="background: rgba(255,255,255,0.9); border: none;" />
         </div>
         <div class="form-group">
-          <label>Senha</label>
-          <input type="password" id="admin-pass" placeholder="Sua senha" />
+          <label style="color: #ffffff;">Senha</label>
+          <input type="password" id="admin-pass" placeholder="Sua senha" style="background: rgba(255,255,255,0.9); border: none;" />
         </div>
-        <div id="admin-login-error" style="color: #dc2626; font-size: 0.85rem; margin-top: 0.5rem; display: none; text-align: center;">Usuário ou senha incorretos.</div>
-        <button class="btn-primary" onclick="loginAdmin()" style="width: 100%; margin-top: 1.5rem; height: 45px;">Entrar no Painel</button>
-        <button class="btn-secondary" onclick="showPortalScreen('landing')" style="width: 100%; margin-top: 0.5rem; background: none; color: #64748b; border: 1px solid #e2e8f0;">Voltar</button>
+        <div id="admin-login-error" style="color: #ff4d4d; font-size: 0.85rem; margin-top: 0.5rem; display: none; text-align: center; font-weight: bold;">Usuário ou senha incorretos.</div>
+        <button class="btn-primary" onclick="loginAdmin()" style="width: 100%; margin-top: 1.5rem; height: 45px; background: #ffffff; color: #1e3a8a; border: none; font-weight: 800;">Entrar no Painel</button>
+        <button class="btn-secondary" onclick="showPortalScreen('landing')" style="width: 100%; margin-top: 0.5rem; background: none; color: #ffffff; border: 1px solid rgba(255,255,255,0.3);">Voltar</button>
       </div>
     </div>
   </div>
@@ -1213,9 +1213,28 @@
           <button class="tab-btn" onclick="showTab('tab-resultados-antro')">Resultados</button>
         </div>
         <div id="tab-circunferencias" class="tab-content active">
-          <div class="form-section">
-            <h2 class="section-title">Circunferências (cm)</h2>
-            <!-- Linha 1: Ombro / Peito Normal / Peito Inspirado -->
+          <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+            <!-- Guia Visual do Corpo Humano -->
+            <div style="flex: 1; min-width: 300px; background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; align-items: center;">
+              <h3 style="font-size: 0.9rem; color: var(--primary); margin-bottom: 1rem; text-transform: uppercase;">Guia de Localização das Medidas</h3>
+              <div id="human-body-guide" style="position: relative; width: 220px; height: 450px; background: url('https://cdn-icons-png.flaticon.com/512/861/861062.png') no-repeat center; background-size: contain; opacity: 0.8;">
+                <!-- Pontos de Medida (Animação) -->
+                <div class="measure-point" data-target="c-ombro" style="top: 15%; left: 50%;"></div>
+                <div class="measure-point" data-target="c-peito-normal" style="top: 22%; left: 50%;"></div>
+                <div class="measure-point" data-target="c-cintura" style="top: 35%; left: 50%;"></div>
+                <div class="measure-point" data-target="c-abdomen" style="top: 40%; left: 50%;"></div>
+                <div class="measure-point" data-target="c-quadril" style="top: 48%; left: 50%;"></div>
+                <div class="measure-point" data-target="c-braco-dir" style="top: 25%; left: 25%;"></div>
+                <div class="measure-point" data-target="c-perna-dir" style="top: 65%; left: 35%;"></div>
+                <div class="measure-point" data-target="c-panturrilha-dir" style="top: 85%; left: 35%;"></div>
+              </div>
+              <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 1rem; text-align: center;">Passe o mouse nos campos de medida para ver o local no corpo.</p>
+            </div>
+
+            <div style="flex: 2; min-width: 300px;">
+              <div class="form-section">
+                <h2 class="section-title">Circunferências (cm)</h2>
+                <!-- Linha 1: Ombro / Peito Normal / Peito Inspirado -->
             <div class="form-row">
               <div class="form-group">
                 <label>1. Ombro</label>
@@ -1499,42 +1518,5 @@
   <script src="app.js"></script>
   <script src="extras.js"></script>
   <script src="prescricao_pro.js"></script>
-  <script>
-    function showPortalScreen(screen) {
-      const landing = document.getElementById('portal-landing');
-      const login = document.getElementById('admin-login-screen');
-      const portalContainer = document.getElementById('portal-container');
-      
-      if (screen === 'admin') {
-        landing.style.display = 'none';
-        login.style.display = 'flex';
-      } else if (screen === 'landing') {
-        landing.style.display = 'flex';
-        login.style.display = 'none';
-      }
-    }
-
-    // Renderizar tabelas de referência ao carregar
-    document.addEventListener('DOMContentLoaded', () => {
-      // Tabela de técnicas
-      const tb = document.getElementById('tabela-tecnicas-corpo');
-      if (tb) tb.innerHTML = TECNICAS_DB.map(t =>
-        `<tr><td><strong>${t.nome}</strong></td><td>${t.categoria}</td><td style="font-size:0.78rem">${t.intensidade}</td><td>${t.series}</td><td>${t.descanso}</td><td>${t.nivel}</td></tr>`
-      ).join('');
-      // Tabela de protocolos
-      const tp = document.getElementById('tabela-protocolos-corpo');
-      if (tp) tp.innerHTML = PROTOCOLOS_DB.map(p => `
-        <div style="margin-bottom:1rem;padding:1rem;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">
-          <strong style="color:#1d4ed8">${p.nome}</strong> – <span style="font-size:0.85rem">${p.descricao}</span>
-          <div class="table-wrapper" style="margin-top:0.5rem;">
-            <table class="data-table" style="font-size:0.78rem;">
-              <thead><tr><th>Período</th><th>Objetivo</th><th>Séries</th><th>Reps</th><th>Intensidade</th></tr></thead>
-              <tbody>${p.fase.map(f=>`<tr><td>${f.sem}</td><td>${f.obj}</td><td>${f.series}</td><td>${f.reps}</td><td>${f.int}</td></tr>`).join('')}</tbody>
-            </table>
-          </div>
-          <p style="font-size:0.72rem;color:#64748b;margin-top:4px;">Ref: ${p.ref}</p>
-        </div>`).join('');
-    });
-  </script>
 </body>
 </html>

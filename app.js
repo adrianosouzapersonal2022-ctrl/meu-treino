@@ -76,6 +76,20 @@ const showPage = (name) => {
   if (name === 'meus-alunos') renderListaGeralAlunos();
   if (name === 'pagamentos') renderPagamentos();
   if (name === 'evolucao') carregarEvolucao();
+
+  if (name === 'antropometria') {
+    document.querySelectorAll('#tab-circunferencias input').forEach(input => {
+      input.addEventListener('focus', () => {
+        const id = input.id;
+        document.querySelectorAll('.measure-point').forEach(p => {
+          p.classList.toggle('active', p.dataset.target === id);
+        });
+      });
+      input.addEventListener('blur', () => {
+        document.querySelectorAll('.measure-point').forEach(p => p.classList.remove('active'));
+      });
+    });
+  }
 };
 
 const showTab = (id) => {
@@ -428,9 +442,9 @@ function carregarDadosAluno(tipo) {
   const selId = tipo === 'antro' ? 'alunoAntro' : tipo === 'vo2' ? 'alunoVO2' : null;
   if (!selId) return;
   const sel = document.getElementById(selId);
-  const id = parseInt(sel.value);
+  const id = sel.value;
   if (!id) return;
-  const aluno = state.alunos.find(a => a.id === id);
+  const aluno = state.alunos.find(a => String(a.id) === String(id));
   if (!aluno) return;
   if (tipo === 'antro') {
     const hoje = new Date().toISOString().slice(0, 10);
@@ -888,6 +902,43 @@ function logoutAdmin() {
   localStorage.removeItem('isAdmin');
   location.reload();
 }
+
+// Renderizar tabelas de referência ao carregar
+document.addEventListener('DOMContentLoaded', () => {
+  // Tabela de técnicas
+  const tb = document.getElementById('tabela-tecnicas-corpo');
+  if (tb) tb.innerHTML = TECNICAS_DB.map(t =>
+    `<tr><td><strong>${t.nome}</strong></td><td>${t.categoria}</td><td style="font-size:0.78rem">${t.intensidade}</td><td>${t.series}</td><td>${t.descanso}</td><td>${t.nivel}</td></tr>`
+  ).join('');
+  
+  // Tabela de protocolos
+  const tp = document.getElementById('tabela-protocolos-corpo');
+  if (tp) tp.innerHTML = PROTOCOLOS_DB.map(p => `
+    <div style="margin-bottom:1rem;padding:1rem;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">
+      <strong style="color:#1d4ed8">${p.nome}</strong> – <span style="font-size:0.85rem">${p.descricao}</span>
+      <div class="table-wrapper" style="margin-top:0.5rem;">
+        <table class="data-table" style="font-size:0.78rem;">
+          <thead><tr><th>Período</th><th>Objetivo</th><th>Séries</th><th>Reps</th><th>Intensidade</th></tr></thead>
+          <tbody>${p.fase.map(f=>`<tr><td>${f.sem}</td><td>${f.obj}</td><td>${f.series}</td><td>${f.reps}</td><td>${f.int}</td></tr>`).join('')}</tbody>
+        </table>
+      </div>
+      <p style="font-size:0.72rem;color:#64748b;margin-top:4px;">Ref: ${p.ref}</p>
+    </div>`).join('');
+    
+  // Verificar se já está logado
+  if (localStorage.getItem('isAdmin') === 'true') {
+    const portalContainer = document.getElementById('portal-container');
+    const app = document.getElementById('app');
+    if (portalContainer) portalContainer.style.display = 'none';
+    if (app) {
+      app.style.setProperty('display', 'block', 'important');
+      app.classList.add('auth-ready');
+    }
+    renderAlunosGrid();
+    if (typeof initPresc === 'function') initPresc();
+    showPage('cadastro');
+  }
+});
 
 function checkAdminAuth() {
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
