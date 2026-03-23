@@ -270,17 +270,22 @@ function fecharModalNovoExercicio() {
 
 function salvarNovoExercicioBanco() {
   const nome = document.getElementById('novo-exer-nome').value;
-  const grupo = document.getElementById('novo-exer-grupo').value;
+  const gruposChecked = Array.from(document.querySelectorAll('input[name="novo-grupo"]:checked')).map(cb => cb.value);
   const equip = document.getElementById('novo-exer-equip').value;
   const video = document.getElementById('novo-exer-video').value;
 
   if (!nome) { showToast('O nome é obrigatório!', 'error'); return; }
+  if (gruposChecked.length === 0) { showToast('Selecione ao menos um grupo muscular!', 'error'); return; }
+
+  // Usar o primeiro grupo como principal para compatibilidade, ou todos se preferir
+  const grupoPrincipal = gruposChecked[0];
 
   const custom = JSON.parse(localStorage.getItem('exercicios_custom') || '[]');
   const novoEx = {
     id: 'custom_' + Date.now(),
     nome,
-    grupo,
+    grupo: grupoPrincipal, // Mantendo compatibilidade com o resto do app
+    grupos: gruposChecked, // Guardando todos caso queira usar depois
     equip: equip || 'Livre',
     nivel: 'Iniciante',
     tipo: 'Força',
@@ -292,12 +297,13 @@ function salvarNovoExercicioBanco() {
   
   renderListaExercicios();
   fecharModalNovoExercicio();
-  showToast('Exercício cadastrado com sucesso!', 'success');
+  showToast('Exercício gravado com sucesso!', 'success');
 
   // Limpar campos
   document.getElementById('novo-exer-nome').value = '';
   document.getElementById('novo-exer-equip').value = '';
   document.getElementById('novo-exer-video').value = '';
+  document.querySelectorAll('input[name="novo-grupo"]').forEach(cb => cb.checked = false);
 }
 
 function moverExercicio(id, direcao) {

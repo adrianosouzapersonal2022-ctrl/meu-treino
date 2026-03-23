@@ -77,8 +77,9 @@ const showPage = (name) => {
   if (name === 'pagamentos') renderPagamentos();
   if (name === 'evolucao') carregarEvolucao();
 
-  if (name === 'antropometria') {
-    document.querySelectorAll('#tab-circunferencias input').forEach(input => {
+  if (name === 'antropometria' || name === 'anamnese') {
+    const selector = name === 'antropometria' ? '#page-antropometria input' : '#page-anamnese input, #page-anamnese textarea';
+    document.querySelectorAll(selector).forEach(input => {
       input.addEventListener('focus', () => {
         const id = input.id;
         document.querySelectorAll('.measure-point').forEach(p => {

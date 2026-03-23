@@ -84,22 +84,25 @@ function entrarNoApp() {
 
 function verificarAcesso() {
   const pagamentos = JSON.parse(localStorage.getItem('pagamentos') || '[]');
-  const alunoPags = pagamentos.filter(p => p.alunoId == alunoLogado.id && p.status === 'pago');
+  const alunoPags = pagamentos.filter(p => String(p.alunoId) === String(alunoLogado.id) && p.status === 'pago');
   
   // Se for aluno gratuito (definido pelo admin) ou tiver pagamento pago
   const temAcesso = alunoLogado.tipo === 'gratuito' || alunoPags.length > 0;
 
-  if (temAcesso) {
-    document.getElementById('treino-liberado').style.display = 'block';
-    document.getElementById('treino-bloqueado').style.display = 'none';
-    document.getElementById('avaliacao-liberada').style.display = 'block';
-    document.getElementById('avaliacao-bloqueada').style.display = 'none';
-  } else {
-    document.getElementById('treino-liberado').style.display = 'none';
-    document.getElementById('treino-bloqueado').style.display = 'block';
-    document.getElementById('avaliacao-liberada').style.display = 'none';
-    document.getElementById('avaliacao-bloqueada').style.display = 'block';
-  }
+  const sections = [
+    { lib: 'treino-liberado', block: 'treino-bloqueado' },
+    { lib: 'avaliacao-liberada', block: 'avaliacao-bloqueada' }
+  ];
+
+  sections.forEach(s => {
+    const libEl = document.getElementById(s.lib);
+    const blockEl = document.getElementById(s.block);
+    if (libEl) libEl.style.display = temAcesso ? 'block' : 'none';
+    if (blockEl) blockEl.style.display = temAcesso ? 'none' : 'block';
+  });
+
+  // Garantir que a aba de perfil/cadastro e pagamentos também reflitam o status se necessário
+  // (No momento essas abas não possuem overlays de bloqueio total, mas o histórico de pagamentos já trata o 'gratuito')
 }
 
 // ===== CADASTRO ONLINE =====
