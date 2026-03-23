@@ -125,12 +125,9 @@ function entrarNoApp() {
 }
 
 function verificarAcesso() {
-  const pagamentos = JSON.parse(localStorage.getItem('pagamentos') || '[]');
-  const alunoPags = pagamentos.filter(p => String(p.alunoId) === String(alunoLogado.id) && p.status === 'pago');
-  
-  // Se for aluno gratuito (definido pelo admin) ou tiver pagamento pago
-  const temAcesso = alunoLogado.tipo === 'gratuito' || alunoPags.length > 0;
-  const isGratuito = alunoLogado.tipo === 'gratuito';
+  // ACESSO TOTAL LIBERADO PARA TODOS OS ALUNOS
+  const temAcesso = true;
+  const isGratuito = true;
 
   const sections = [
     { lib: 'treino-liberado', block: 'treino-bloqueado' },
@@ -144,10 +141,10 @@ function verificarAcesso() {
     if (blockEl) blockEl.style.display = temAcesso ? 'none' : 'block';
   });
 
-  // Esconder botão de pagamento na bottom nav se for gratuito
+  // Esconder botão de pagamento na bottom nav
   const bnavPagamento = document.getElementById('bnav-pagamento');
   if (bnavPagamento) {
-    bnavPagamento.style.display = isGratuito ? 'none' : 'flex';
+    bnavPagamento.style.display = 'none';
   }
 }
 
@@ -245,6 +242,13 @@ function showTab(tab) {
 function carregarInicio() {
   const a = alunoLogado;
   
+  // Garantir que a mensagem de instalação apareça como prioridade
+  const pwaBanner = document.getElementById('pwa-banner-aluno');
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  if (pwaBanner && !isStandalone) {
+    pwaBanner.style.display = 'block';
+  }
+
   // Recarregar dados do aluno do localStorage para garantir que pegamos mudanças de gratuidade
   const todosAlunos = JSON.parse(localStorage.getItem('alunos') || '[]');
   const alunoAtualizado = todosAlunos.find(x => String(x.id) === String(a.id));
