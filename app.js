@@ -10,6 +10,9 @@ const state = {
   treinosCustom: JSON.parse(localStorage.getItem('treinosCustom') || '[]')
 };
 
+let alunoLogado = null;
+let chartAntroEvolucao = null; // Global reference for Antro Evolution chart
+
 // Global reference for editing
 window._editingId = null;
 
@@ -77,8 +80,8 @@ const showPage = (name) => {
   if (name === 'pagamentos') renderPagamentos();
   if (name === 'evolucao') carregarEvolucao();
 
-  if (name === 'antropometria' || name === 'anamnese') {
-    const selector = name === 'antropometria' ? '#page-antropometria input' : '#page-anamnese input, #page-anamnese textarea';
+  if (name === 'antropometria') {
+    const selector = '#page-antropometria input';
     document.querySelectorAll(selector).forEach(input => {
       input.addEventListener('focus', () => {
         const id = input.id;
@@ -98,18 +101,18 @@ const showTab = (id) => {
   if (!target) return;
 
   const parent = target.closest('.page, .container');
-  parent.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  parent.querySelectorAll('.tab-btn').forEach(b => {
-    b.classList.remove('active');
-    b.setAttribute('aria-selected', 'false');
-  });
+  if (!parent) return;
 
+  parent.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   target.classList.add('active');
-  
+
+  // Atualizar botões
   const tabBtns = parent.querySelectorAll('.tab-btn');
   tabBtns.forEach(btn => {
-    const onclick = btn.getAttribute('onclick');
-    if (onclick && onclick.includes(`'${id}'`)) {
+    btn.classList.remove('active');
+    btn.setAttribute('aria-selected', 'false');
+    const onclickAttr = btn.getAttribute('onclick') || '';
+    if (onclickAttr.includes(`'${id}'`) || onclickAttr.includes(`"${id}"`)) {
       btn.classList.add('active');
       btn.setAttribute('aria-selected', 'true');
     }
@@ -274,10 +277,10 @@ function renderListaGeralAlunos() {
   }
 
   tbody.innerHTML = listaFiltrada.map(a => {
-    const ultimaAv = state.avaliacoes.filter(av => av.alunoId == a.id).pop();
+    const ultimaAv = state.avaliacoes.filter(av => String(av.alunoId) === String(a.id)).pop();
     const dataAv = ultimaAv ? new Date(ultimaAv.data).toLocaleDateString('pt-BR') : '—';
     
-    const pagamentos = state.pagamentos.filter(p => p.alunoId == a.id);
+    const pagamentos = state.pagamentos.filter(p => String(p.alunoId) === String(a.id));
     const ultimoPag = pagamentos.sort((x, y) => new Date(y.dataPag) - new Date(x.dataPag))[0];
     
     let statusPag = ultimoPag ? ultimoPag.status : 'pendente';
@@ -381,7 +384,7 @@ function salvarPagamento() {
 
   const pagamento = {
     id: Date.now(),
-    alunoId: parseInt(alunoId),
+    alunoId: String(alunoId),
     valor: parseFloat(valor),
     dataPag,
     dataVenc,
@@ -408,7 +411,7 @@ function renderPagamentos() {
   const sorted = [...state.pagamentos].sort((a, b) => new Date(b.dataPag) - new Date(a.dataPag));
 
   tbody.innerHTML = sorted.map(p => {
-    const aluno = state.alunos.find(a => a.id === p.alunoId);
+    const aluno = state.alunos.find(a => String(a.id) === String(p.alunoId));
     const statusClass = `badge-${p.status}`;
     return `
       <tr>
@@ -439,6 +442,127 @@ function limparPagamento() {
   if (form) form.reset();
 }
 
+function toggleGuiaVisual(sexo) {
+  const guideM = document.getElementById('guide-container-m');
+  const guideF = document.getElementById('guide-container-f');
+  if (guideM && guideF) {
+    guideM.style.display = sexo === 'M' ? 'block' : 'none';
+    guideF.style.display = sexo === 'F' ? 'block' : 'none';
+  }
+}
+
+/**
+ * Atualiza o valor de uma medida sobre a imagem do corpo
+ */
+function atualizarValorNoCorpo(campo, valor) {
+  const sel = document.getElementById('alunoAntro');
+  const id = sel.value;
+  const aluno = id ? state.alunos.find(a => String(a.id) === String(id)) : null;
+  const sexo = aluno ? aluno.sexo : 'M';
+  const prefix = sexo === 'M' ? 'val-m-' : 'val-f-';
+  const label = document.getElementById(prefix + campo);
+  
+  if (label) {
+    label.textContent = valor ? valor + (campo === 'peso' ? 'kg' : 'cm') : '';
+  }
+}
+
+/**
+ * Mostra a equação do protocolo selecionado para circunferências
+ */
+function mostrarEquacaoProtocolo() {
+  const protId = document.getElementById('protocolo-composicao-circ').value;
+  const infoBox = document.getElementById('container-equacao-circ');
+  
+  if (!protId || !window.ANTRO_PROTOCOLOS[protId]) {
+    infoBox.style.display = 'none';
+    return;
+  }
+  
+  const prot = window.ANTRO_PROTOCOLOS[protId];
+  const sel = document.getElementById('alunoAntro');
+  const id = sel.value;
+  const aluno = id ? state.alunos.find(a => String(a.id) === String(id)) : null;
+  const sexo = aluno ? aluno.sexo : 'M';
+  
+  const formula = sexo === 'M' ? (prot.formula_m || prot.formula) : (prot.formula_f || prot.formula);
+  
+  infoBox.innerHTML = `
+    <strong>${prot.nome}</strong><br>
+    <small>${prot.desc}</small><br>
+    <div style="margin-top:8px; border-top: 1px dashed #ccc; padding-top: 5px;">
+      Formula: ${formula}
+    </div>
+  `;
+  infoBox.style.display = 'block';
+}
+
+/**
+ * Calcula a composição corporal baseada em circunferências
+ */
+function calcularComposicaoCorporal() {
+  const protId = document.getElementById('protocolo-composicao-circ').value;
+  if (!protId) {
+    showToast('Selecione um protocolo primeiro!', 'error');
+    return;
+  }
+
+  const sel = document.getElementById('alunoAntro');
+  const id = sel.value;
+  const aluno = id ? state.alunos.find(a => String(a.id) === String(id)) : null;
+  if (!aluno) {
+    showToast('Selecione um aluno!', 'error');
+    return;
+  }
+
+  const get = id => parseFloat(document.getElementById(id)?.value) || 0;
+  const dados = {
+    peso: get('c-peso'),
+    altura: get('c-altura'),
+    abdomen: get('c-abdomen'),
+    cintura: get('c-cintura'),
+    quadril: get('c-quadril'),
+    pescoco: get('c-pescoco') || 38, // Valor padrão se não tiver campo específico
+    ombro: get('c-ombro')
+  };
+
+  if (!dados.peso || !dados.altura) {
+    showToast('Peso e Altura são obrigatórios para este cálculo!', 'error');
+    return;
+  }
+
+  const res = window.ANTRO_PROTOCOLOS[protId].calcular(dados, aluno.sexo);
+  if (!res) {
+    showToast('Este protocolo não se aplica ao gênero do aluno.', 'error');
+    return;
+  }
+
+  // Mostrar resultado em uma caixa bonita
+  const resBox = document.getElementById('resultado-antro-box');
+  resBox.innerHTML = `
+    <h3 style="color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 8px;">Resultado: ${window.ANTRO_PROTOCOLOS[protId].nome}</h3>
+    <div class="result-grid">
+      <div class="result-card highlight">
+        <span class="rc-label">% Gordura Corporal</span>
+        <span class="rc-value">${res.bf}%</span>
+      </div>
+      <div class="result-card">
+        <span class="rc-label">Massa Gorda</span>
+        <span class="rc-value">${res.gorduraKg} <small>kg</small></span>
+      </div>
+      <div class="result-card">
+        <span class="rc-label">Massa Magra</span>
+        <span class="rc-value">${res.massaMagraKg} <small>kg</small></span>
+      </div>
+    </div>
+  `;
+  
+  // Mudar para a aba de resultados
+  showTab('tab-resultados-antro');
+  showToast('Cálculo concluído!', 'success');
+}
+
+
 function carregarDadosAluno(tipo) {
   const selId = tipo === 'antro' ? 'alunoAntro' : tipo === 'vo2' ? 'alunoVO2' : null;
   if (!selId) return;
@@ -451,6 +575,15 @@ function carregarDadosAluno(tipo) {
     const hoje = new Date().toISOString().slice(0, 10);
     const dataAntro = document.getElementById('dataAntro');
     if (dataAntro) dataAntro.value = hoje;
+    
+    // Ajustar guia visual conforme sexo do aluno
+    if (aluno.sexo) {
+      const sexoSelect = document.getElementById('antro-guia-sexo');
+      if (sexoSelect) {
+        sexoSelect.value = aluno.sexo;
+        toggleGuiaVisual(aluno.sexo);
+      }
+    }
   }
 }
 
@@ -460,8 +593,8 @@ function calcularCircunferencias() {
   const cintura  = get('c-cintura');
   const quadril  = get('c-quadril');
   const sel      = document.getElementById('alunoAntro');
-  const id       = parseInt(sel.value);
-  const aluno    = id ? state.alunos.find(a => a.id === id) : null;
+  const id       = sel.value;
+  const aluno    = id ? state.alunos.find(a => String(a.id) === String(id)) : null;
   const peso     = aluno ? parseFloat(aluno.peso)   : 0;
   const altCm    = aluno ? parseFloat(aluno.altura) : 0;
 
@@ -733,8 +866,9 @@ function salvarAntro() {
 
   const avaliacao = {
     id: Date.now(),
-    alunoId: selId,
+    alunoId: String(selId),
     data: document.getElementById('dataAntro').value || new Date().toISOString().slice(0, 10),
+    biotipo: document.getElementById('antro-biotipo').value,
     peso: state.alunos.find(a => String(a.id) === String(selId))?.peso || '',
     percGordura: (document.getElementById('percGorduraSiri').value || '').replace('%', ''),
     massaMagra: (document.getElementById('massaMagra').value || '').replace(' kg', ''),
@@ -748,6 +882,75 @@ function salvarAntro() {
   state.avaliacoes.push(avaliacao);
   saveState();
   showToast('Avaliação salva com sucesso!', 'success');
+  carregarEvolucaoAntro(); // Refresh evolution after saving
+}
+
+function carregarEvolucaoAntro() {
+  const selId = document.getElementById('alunoAntro').value;
+  if (!selId) {
+    document.getElementById('lista-evolucao-antro').innerHTML = '<tr><td colspan="5" style="text-align:center">Selecione um aluno para ver a evolução.</td></tr>';
+    return;
+  }
+
+  const avs = state.avaliacoes.filter(a => String(a.alunoId) === String(selId)).sort((a, b) => new Date(a.data) - new Date(b.data));
+  const tbody = document.getElementById('lista-evolucao-antro');
+  
+  if (avs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">Nenhuma avaliação encontrada para este aluno.</td></tr>';
+    if (chartAntroEvolucao) chartAntroEvolucao.destroy();
+    return;
+  }
+
+  tbody.innerHTML = avs.map(a => `
+    <tr>
+      <td>${new Date(a.data).toLocaleDateString('pt-BR')}</td>
+      <td>${a.peso || '—'}</td>
+      <td>${a.percGordura ? a.percGordura + '%' : '—'}</td>
+      <td>${a.massaMagra ? a.massaMagra + ' kg' : '—'}</td>
+      <td>${a.imc || '—'}</td>
+    </tr>
+  `).join('');
+
+  // Render Chart
+  const ctx = document.getElementById('chart-antro-evolucao')?.getContext('2d');
+  if (!ctx) return;
+  
+  if (chartAntroEvolucao) chartAntroEvolucao.destroy();
+  
+  chartAntroEvolucao = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: avs.map(a => new Date(a.data).toLocaleDateString('pt-BR')),
+      datasets: [
+        {
+          label: '% Gordura',
+          data: avs.map(a => parseFloat(a.percGordura) || 0),
+          borderColor: '#2563eb',
+          backgroundColor: 'rgba(37, 99, 235, 0.1)',
+          tension: 0.3,
+          fill: true
+        },
+        {
+          label: 'Peso (kg)',
+          data: avs.map(a => parseFloat(a.peso) || 0),
+          borderColor: '#ef4444',
+          tension: 0.3,
+          yAxisID: 'y1'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: { title: { display: true, text: '% Gordura' } },
+        y1: { 
+          position: 'right', 
+          title: { display: true, text: 'Peso (kg)' },
+          grid: { drawOnChartArea: false }
+        }
+      }
+    }
+  });
 }
 
 // ==================== VO2MAX ====================

@@ -12,7 +12,30 @@ window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPromptAluno = e;
   const banner = document.getElementById('pwa-banner-aluno');
-  if (banner) banner.style.display = 'block';
+  if (banner) {
+    banner.style.display = 'block';
+    // Se o botão de instalar sumiu (porque já instalou ou algo assim), garantir que o texto do banner ajude
+    document.getElementById('btn-pwa-install-aluno').style.display = 'block';
+    document.getElementById('ios-install-hint').style.display = 'none';
+  }
+});
+
+// Lógica especial para iOS (onde o beforeinstallprompt não existe)
+window.addEventListener('load', () => {
+  const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  
+  if (isIos && !isStandalone) {
+    const banner = document.getElementById('pwa-banner-aluno');
+    const installBtn = document.getElementById('btn-pwa-install-aluno');
+    const iosHint = document.getElementById('ios-install-hint');
+    
+    if (banner) {
+      banner.style.display = 'block';
+      if (installBtn) installBtn.style.display = 'none';
+      if (iosHint) iosHint.style.display = 'block';
+    }
+  }
 });
 
 document.getElementById('btn-pwa-install-aluno')?.addEventListener('click', async () => {
@@ -49,7 +72,7 @@ function fazerLogin() {
   }
   
   const alunos = JSON.parse(localStorage.getItem('alunos') || '[]');
-  const aluno = alunos.find(a => (a.email && a.email.toLowerCase() === email) && (a.senha === senha));
+  const aluno = alunos.find(a => (a.email && a.email.toLowerCase() === email) && (String(a.senha) === String(senha)));
   
   if (!aluno) {
     error.style.display = 'block';
@@ -404,16 +427,22 @@ function carregarAvaliacao() {
       </div>
     `;
 
-    if (lastAv.circunferencias) {
+    if (lastAv.perimetros) {
       html += `
         <h4 style="margin-top:1rem;">Circunferências (cm)</h4>
         <div class="circ-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:5px; font-size:0.8rem;">
-          <div>Pescoço: ${lastAv.circunferencias.pescoco || '—'}</div>
-          <div>Cintura: ${lastAv.circunferencias.cintura || '—'}</div>
-          <div>Abdômen: ${lastAv.circunferencias.abdomen || '—'}</div>
-          <div>Quadril: ${lastAv.circunferencias.quadril || '—'}</div>
-          <div>Braço D: ${lastAv.circunferencias.bracoD || '—'}</div>
-          <div>Braço E: ${lastAv.circunferencias.bracoE || '—'}</div>
+          <div>Pescoço: ${lastAv.perimetros.pescoco || '—'}</div>
+          <div>Ombro: ${lastAv.perimetros.ombro || '—'}</div>
+          <div>Peito: ${lastAv.perimetros['peito-normal'] || '—'}</div>
+          <div>Cintura: ${lastAv.perimetros.cintura || '—'}</div>
+          <div>Abdômen: ${lastAv.perimetros.abdomen || '—'}</div>
+          <div>Quadril: ${lastAv.perimetros.quadril || '—'}</div>
+          <div>Braço D: ${lastAv.perimetros['braco-dir'] || '—'}</div>
+          <div>Braço E: ${lastAv.perimetros['braco-esq'] || '—'}</div>
+          <div>Coxa D: ${lastAv.perimetros['coxa-dir'] || '—'}</div>
+          <div>Coxa E: ${lastAv.perimetros['coxa-esq'] || '—'}</div>
+          <div>Panturrilha D: ${lastAv.perimetros['panturrilha-dir'] || '—'}</div>
+          <div>Panturrilha E: ${lastAv.perimetros['panturrilha-esq'] || '—'}</div>
         </div>
       `;
     }

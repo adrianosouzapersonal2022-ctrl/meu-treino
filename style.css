@@ -82,10 +82,10 @@ body {
 .grupo-peito { border-left: 5px solid #ef4444 !important; }
 .grupo-costas { border-left: 5px solid #3b82f6 !important; }
 .grupo-ombros { border-left: 5px solid #f59e0b !important; }
-.grupo-bíceps { border-left: 5px solid #8b5cf6 !important; }
-.grupo-tríceps { border-left: 5px solid #ec4899 !important; }
+.grupo-biceps { border-left: 5px solid #8b5cf6 !important; }
+.grupo-triceps { border-left: 5px solid #ec4899 !important; }
 .grupo-pernas { border-left: 5px solid #10b981 !important; }
-.grupo-abdômen { border-left: 5px solid #64748b !important; }
+.grupo-abdomen { border-left: 5px solid #64748b !important; }
 .grupo-cardio { border-left: 5px solid #f97316 !important; }
 
 .badge-grupo {
@@ -101,10 +101,10 @@ body {
 .bg-peito { background-color: #ef4444; }
 .bg-costas { background-color: #3b82f6; }
 .bg-ombros { background-color: #f59e0b; }
-.bg-bíceps { background-color: #8b5cf6; }
-.bg-tríceps { background-color: #ec4899; }
+.bg-biceps { background-color: #8b5cf6; }
+.bg-triceps { background-color: #ec4899; }
 .bg-pernas { background-color: #10b981; }
-.bg-abdômen { background-color: #64748b; }
+.bg-abdomen { background-color: #64748b; }
 .bg-cardio { background-color: #f97316; }
 
 /* WATERMARK LOGO */
@@ -120,24 +120,29 @@ body {
   z-index: 0;
 }
 
-/* PWA INSTALL BANNER */
+/* GUIA VISUAL CORPO */
+.body-guide-container {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
 .measure-point {
   position: absolute;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   background: var(--primary);
+  border: 2px solid white;
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  box-shadow: 0 0 0 0 rgba(0, 119, 255, 0.4);
+  box-shadow: 0 0 10px rgba(0, 119, 255, 0.5);
   animation: pulse-point 2s infinite;
   display: none;
+  z-index: 10;
 }
 .measure-point.active { display: block; }
 
 @keyframes pulse-point {
-  0% { transform: translate(-50%, -50%) scale(0.95); box-shadow: 0 0 0 0 rgba(0, 119, 255, 0.7); }
-  70% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 0 10px rgba(0, 119, 255, 0); }
-  100% { transform: translate(-50%, -50%) scale(0.95); box-shadow: 0 0 0 0 rgba(0, 119, 255, 0); }
+  0% { transform: translate(-50%, -50%) scale(0.9); box-shadow: 0 0 0 0 rgba(0, 119, 255, 0.7); }
+  70% { transform: translate(-50%, -50%) scale(1.2); box-shadow: 0 0 0 12px rgba(0, 119, 255, 0); }
+  100% { transform: translate(-50%, -50%) scale(0.9); box-shadow: 0 0 0 0 rgba(0, 119, 255, 0); }
 }
 
 .pwa-badge {
@@ -831,3 +836,49 @@ textarea { resize: vertical; }
   .container { padding: 1rem; }
   .page-header h1 { font-size: 1.3rem; }
 }
+
+/* GUIA INTERATIVO DE MEDIDAS */
+.body-value-label {
+  position: absolute;
+  background: rgba(0, 119, 255, 0.9);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  z-index: 20;
+  display: none; /* Só aparece quando tem valor */
+}
+.body-value-label:not(:empty) {
+  display: block;
+  animation: fadeInLabel 0.3s ease-out;
+}
+
+@keyframes fadeInLabel {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.body-guide-wrapper {
+  background: radial-gradient(circle, #f8fafc 0%, #e2e8f0 100%);
+  border-radius: 15px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.formula-box {
+  background: #fffbeb;
+  border: 1px solid #fef3c7;
+  color: #92400e;
+  font-family: 'Courier New', Courier, monospace;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+

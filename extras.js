@@ -110,7 +110,7 @@ function salvarAnamnese() {
 
   const anamnese = {
     id: Date.now(),
-    alunoId: parseInt(selId),
+    alunoId: String(selId),
     data: document.getElementById('dataAnamnese')?.value || new Date().toISOString().slice(0, 10),
     glicemia: document.getElementById('glicemia')?.value || '',
     triglicerideos: document.getElementById('triglicerideos')?.value || '',
@@ -270,7 +270,7 @@ function salvarRM() {
   
   const registro = {
     id: Date.now(),
-    alunoId: parseInt(selId),
+    alunoId: String(selId),
     data: new Date().toISOString().slice(0, 10),
     rm: window._ultimoRM.rm,
     carga: window._ultimoRM.carga,
@@ -411,15 +411,38 @@ function imprimirAerobioPDF() {
 }
 
 // ==================== EVOLUÇÃO ====================
-let chartComp = null, chartVO2 = null;
+let chartComp = null;
+let chartVO2 = null;
+let chartRM = null;
 
 function carregarEvolucao() {
   const selId = document.getElementById('alunoEvolucao').value;
-  if (!selId) return;
   const content = document.getElementById('evolucao-content');
+  const empty = document.getElementById('evolucao-empty');
+  
+  if (!selId) {
+    if (content) content.style.display = 'none';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  
   if (content) content.style.display = 'block';
+  if (empty) empty.style.display = 'none';
+
   const avs = state.avaliacoes.filter(a => String(a.alunoId) === String(selId));
   const tsts = state.testes.filter(t => String(t.alunoId) === String(selId));
+  
+  // Povoar select de RM na evolução
+  const rmSelect = document.getElementById('rm-exercicio-graf');
+  if (rmSelect) {
+    const exerIdsComRM = [...new Set(state.rms.filter(r => String(r.alunoId) === String(selId)).map(r => r.exercicioId))];
+    rmSelect.innerHTML = '<option value="">Selecione um Exercício</option>' + 
+      exerIdsComRM.map(id => {
+        const ex = EXERCICIOS_DB.find(e => e.id === id) || {nome: id};
+        return `<option value="${id}">${ex.nome}</option>`;
+      }).join('');
+  }
+
   renderGraficoComposicao(avs);
   renderGraficoVO2(tsts);
   renderHistorico(selId);
@@ -840,7 +863,7 @@ function aplicarTreinoPronto(treinoId) {
 
   if (!confirm(`Deseja aplicar o treino "${t.nome}" (${protocoloPeriodizacao.toUpperCase()}) ao aluno?`)) return;
 
-  currentAlunoId = parseInt(alunoId);
+  currentAlunoId = String(alunoId);
   fichaExercicios = [];
 
   t.exercicios.forEach(exId => {
@@ -881,27 +904,26 @@ function aplicarTreinoPronto(treinoId) {
   });
 
   const ficha = {
-    alunoId: currentAlunoId,
+    alunoId: String(currentAlunoId), // Garantir que o ID seja string
     exercicios: fichaExercicios,
     objetivo: t.objetivo || 'hipertrofia',
     semana: `Protocolo ${protocoloPeriodizacao.charAt(0).toUpperCase() + protocoloPeriodizacao.slice(1)}`,
     data: new Date().toISOString().slice(0, 10)
   };
 
-  const idx = state.fichas.findIndex(f => f.alunoId === currentAlunoId);
+  const idx = state.fichas.findIndex(f => String(f.alunoId) === String(currentAlunoId));
   if (idx >= 0) state.fichas[idx] = ficha;
   else state.fichas.push(ficha);
   
   saveState();
-  showToast('Ficha de treino salva com sucesso!', 'success');
+  showToast('Ficha de treino aplicada e salva com sucesso!', 'success');
   
   const selectPresc = document.getElementById('alunoPresc');
   if (selectPresc) {
-    selectPresc.value = alunoId;
+    selectPresc.value = String(alunoId);
     carregarPresc();
   }
 
-  showToast(`Treino "${t.nome}" aplicado!`, 'success');
   showPage('treino');
   showTab('tab-prescricao');
 }

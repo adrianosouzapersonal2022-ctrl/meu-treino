@@ -72,12 +72,12 @@ function carregarPresc() {
     return;
   }
   
-  currentAlunoId = parseInt(selId);
+  currentAlunoId = selId; // Manter como string para consistência
   document.getElementById('presc-content').style.display = 'block';
   document.getElementById('presc-empty').style.display = 'none';
   
   // Carregar ficha atual do aluno se existir no state
-  const fichaExistente = state.fichas.find(f => f.alunoId === currentAlunoId);
+  const fichaExistente = state.fichas.find(f => String(f.alunoId) === String(currentAlunoId));
   fichaExercicios = fichaExistente ? [...fichaExistente.exercicios] : [];
   
   if (fichaExistente) {
@@ -117,7 +117,7 @@ function renderListaExercicios() {
   const container = document.getElementById('presc-lista-exercicios');
   if (!container) return;
   
-  const busca = (document.getElementById('filtro-exer')?.value || document.getElementById('presc-busca')?.value || '').toLowerCase();
+  const busca = (document.getElementById('presc-busca')?.value || '').toLowerCase();
   const gruposChecked = Array.from(document.querySelectorAll('input[name="grupo-filter"]:checked')).map(cb => cb.value);
   
   let lista = getExerciciosCompletos(); 
@@ -412,7 +412,7 @@ function carregarComparativoPresc() {
   const container = document.getElementById('comparativo-fichas');
   if (!container || !currentAlunoId) return;
 
-  const historico = state.fichas.filter(f => f.alunoId === currentAlunoId);
+  const historico = state.fichas.filter(f => String(f.alunoId) === String(currentAlunoId));
   if (historico.length === 0) {
     container.innerHTML = '<p class="result-placeholder">Nenhuma ficha anterior encontrada.</p>';
     return;
@@ -432,7 +432,7 @@ function carregarComparativoPresc() {
 }
 
 function carregarFichaHistorico(alunoId, data) {
-  const ficha = state.fichas.find(f => f.alunoId === alunoId && f.data === data);
+  const ficha = state.fichas.find(f => String(f.alunoId) === String(alunoId) && f.data === data);
   if (ficha) {
     fichaExercicios = [...ficha.exercicios];
     renderFichaTabela();
@@ -494,7 +494,7 @@ function salvarFichaCompleta() {
   });
 
   const ficha = {
-    alunoId: currentAlunoId,
+    alunoId: String(currentAlunoId),
     exercicios: fichaExercicios,
     objetivo: document.getElementById('presc-objetivo-pro')?.value || '',
     semana: document.getElementById('presc-semana')?.value || '',
@@ -503,7 +503,7 @@ function salvarFichaCompleta() {
     data: new Date().toISOString().slice(0, 10)
   };
   
-  const idx = state.fichas.findIndex(f => f.alunoId === currentAlunoId);
+  const idx = state.fichas.findIndex(f => String(f.alunoId) === String(currentAlunoId));
   if (idx >= 0) state.fichas[idx] = ficha;
   else state.fichas.push(ficha);
   
