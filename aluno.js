@@ -114,14 +114,65 @@ function entrarNoApp() {
   document.getElementById('av-inicial').textContent = nome.charAt(0).toUpperCase();
   document.getElementById('header-sub').textContent = 'Seu treino está pronto!';
   
+  // Mensagem de Acesso Liberado
+  toast('✅ Acesso liberado com sucesso! Verifique seu treino.', 'success');
+  
   // Verificar Acesso (Pagamento) e esconder aba se for gratuito
   verificarAcesso();
+
+  // ABA PRINCIPAL AGORA É TREINO
+  showTab('treino');
 
   carregarInicio();
   carregarTreino();
   carregarAvaliacao();
   carregarPerfil();
   carregarHistoricoPagamentos();
+}
+
+function abrirModalEsqueciSenha() {
+  document.getElementById('modal-esqueci-senha').style.display = 'flex';
+}
+
+function fecharModalEsqueciSenha() {
+  document.getElementById('modal-esqueci-senha').style.display = 'none';
+  document.getElementById('reset-email').value = '';
+  document.getElementById('reset-senha-nova').value = '';
+  document.getElementById('reset-erro').style.display = 'none';
+}
+
+function processarRecuperarSenha() {
+  const email = document.getElementById('reset-email').value.trim().toLowerCase();
+  const novaSenha = document.getElementById('reset-senha-nova').value;
+  const erro = document.getElementById('reset-erro');
+
+  if (!email || !novaSenha) {
+    erro.textContent = 'Informe e-mail e a nova senha.';
+    erro.style.display = 'block';
+    return;
+  }
+
+  if (novaSenha.length < 6) {
+    erro.textContent = 'A nova senha deve ter pelo menos 6 caracteres.';
+    erro.style.display = 'block';
+    return;
+  }
+
+  const alunos = JSON.parse(localStorage.getItem('alunos') || '[]');
+  const idx = alunos.findIndex(a => a.email && a.email.toLowerCase() === email);
+
+  if (idx === -1) {
+    erro.textContent = 'E-mail não encontrado no sistema.';
+    erro.style.display = 'block';
+    return;
+  }
+
+  // Atualizar senha
+  alunos[idx].senha = novaSenha;
+  localStorage.setItem('alunos', JSON.stringify(alunos));
+
+  toast('✅ Senha alterada com sucesso! Faça login.', 'success');
+  fecharModalEsqueciSenha();
 }
 
 function verificarAcesso() {
@@ -368,12 +419,12 @@ function carregarTreino() {
   const todasFichas = JSON.parse(localStorage.getItem('fichas') || '[]');
   const ficha = todasFichas.find(f => String(f.alunoId) === String(a.id));
   const container = document.getElementById('ficha-treino-content');
-  const tabsContainer = document.getElementById('divisoes-tabs-container');
+  const selectDivisao = document.getElementById('select-divisao-treino');
   const cronogramaContainer = document.getElementById('cronograma-semanal-aluno');
   
   if (!ficha || !ficha.exercicios || ficha.exercicios.length === 0) {
     container.innerHTML = '<p class="empty-msg">Nenhum treino prescrito ainda.</p>';
-    if (tabsContainer) tabsContainer.innerHTML = '';
+    if (selectDivisao) selectDivisao.innerHTML = '<option value="">Sem Treino</option>';
     if (cronogramaContainer) cronogramaContainer.innerHTML = '<p class="empty-msg">Aguarde a definição dos dias de treino.</p>';
     return;
   }
@@ -398,8 +449,8 @@ function carregarTreino() {
     }).join('');
   }
 
-  // 2. Renderizar Abas de Divisões (A, B, C...)
-  if (tabsContainer) {
+  // 2. Renderizar Dropdown de Divisões (A, B, C...)
+  if (selectDivisao) {
     const divisoesPresentes = [...new Set(ficha.exercicios.map(e => e.divisao || 'A'))].sort();
     
     // Se a divisão ativa não estiver presente (ex: mudou o treino), resetar para a primeira
@@ -407,10 +458,8 @@ function carregarTreino() {
       divisaoAtiva = divisoesPresentes[0] || 'A';
     }
 
-    tabsContainer.innerHTML = divisoesPresentes.map(div => `
-      <button class="tab-div ${div === divisaoAtiva ? 'active' : ''}" onclick="mudarDivisao('${div}')">
-        Treino ${div}
-      </button>
+    selectDivisao.innerHTML = divisoesPresentes.map(div => `
+      <option value="${div}" ${div === divisaoAtiva ? 'selected' : ''}>TREINO ${div}</option>
     `).join('');
   }
 
@@ -511,7 +560,13 @@ function carregarAvaliacao() {
   }
 
   if (!html) {
-    compBox.innerHTML = '<p class="empty-msg">Nenhuma avaliação registrada.</p>';
+    compBox.innerHTML = `
+      <div style="text-align:center; padding: 2rem; color: var(--muted);">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">📏</div>
+        <p>Nenhuma avaliação ou teste físico registrado ainda.</p>
+        <p style="font-size: 0.8rem; margin-top: 0.5rem;">Fale com seu professor para lançar seus resultados.</p>
+      </div>
+    `;
   } else {
     compBox.innerHTML = html;
     renderGraficoEvolucao(avs);

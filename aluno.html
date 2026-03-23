@@ -26,7 +26,12 @@
       <div class="field"><label>Senha</label><input type="password" id="login-senha" placeholder="Sua senha"/></div>
       <div id="login-erro" class="login-erro" style="display:none;"></div>
       <button class="btn-full" onclick="fazerLogin()">Entrar</button>
-      <div class="login-links" style="text-align:center; margin-top:1rem;">
+      
+      <div style="text-align:center; margin-top:1rem;">
+        <button onclick="abrirModalEsqueciSenha()" style="background:none; border:none; color:#2563eb; text-decoration:underline; cursor:pointer; font-size:0.9rem;">Esqueceu sua senha?</button>
+      </div>
+
+      <div class="login-links" style="text-align:center; margin-top:1rem; border-top: 1px solid #eee; padding-top: 1rem;">
         <a href="#" onclick="showOnlineRegistration()" style="color: #2563eb; text-decoration: none; font-size: 0.9rem;">Não tem cadastro? Clique aqui</a>
       </div>
       <p class="login-hint">Seu acesso é liberado pelo seu professor.</p>
@@ -36,6 +41,7 @@
   <!-- TELA DE CADASTRO ONLINE -->
   <div id="screen-cadastro-online" class="screen" style="display:none; padding: 1rem;">
     <div class="login-hero" style="padding: 1rem 0;">
+      <div class="login-icon">📝</div>
       <h1>Cadastro TREINOFITASM</h1>
       <p>Preencha seus dados para começar no programa</p>
     </div>
@@ -50,14 +56,39 @@
       <div class="field"><label>WhatsApp/Telefone *</label><input type="text" id="reg-telefone" placeholder="(00) 00000-0000"/></div>
       <div class="field"><label>Objetivo Principal *</label>
         <select id="reg-objetivo">
-          <option value="hipertrofia">Hipertrofia</option>
+          <option value="hipertrofia">Hipertrofia Muscular</option>
           <option value="emagrecimento">Emagrecimento</option>
+          <option value="forca">Força Máxima</option>
           <option value="saude">Saúde/Bem-estar</option>
         </select>
       </div>
       <div id="reg-erro" class="login-erro" style="display:none;"></div>
       <button class="btn-full" onclick="realizarCadastroOnline()">Finalizar Cadastro</button>
       <button class="btn-full" onclick="voltarLogin()" style="background:#64748b; margin-top:0.5rem;">Voltar ao Login</button>
+    </div>
+  </div>
+
+  <!-- MODAL ESQUECI SENHA -->
+  <div id="modal-esqueci-senha" class="screen-overlay" style="display:none; z-index: 5000; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); position: fixed; top: 0; left: 0; width: 100%; height: 100%; align-items: center; justify-content: center;">
+    <div class="login-card" style="max-width: 400px; width: 90%; margin: auto;">
+      <h2 style="color: #2563eb; margin-bottom: 1rem;">🔐 Recuperar Senha</h2>
+      <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 1.5rem;">Para alterar sua senha, informe seu e-mail cadastrado e a nova senha que deseja utilizar.</p>
+      
+      <div class="field">
+        <label>E-mail Cadastrado</label>
+        <input type="email" id="reset-email" placeholder="seu@email.com"/>
+      </div>
+      <div class="field">
+        <label>Nova Senha (Mín. 6 caracteres)</label>
+        <input type="password" id="reset-senha-nova" placeholder="Mínimo 6 caracteres"/>
+      </div>
+      
+      <div id="reset-erro" class="login-erro" style="display:none; margin-bottom: 1rem;"></div>
+      
+      <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 1.5rem;">
+        <button class="btn-full" style="background: #2563eb; color: white;" onclick="processarRecuperarSenha()">Alterar Senha Agora</button>
+        <button class="btn-full" onclick="fecharModalEsqueciSenha()" style="background:#64748b;">Cancelar</button>
+      </div>
     </div>
   </div>
 
@@ -165,16 +196,18 @@
           </div>
 
           <div class="section-card">
-            <h3 class="card-title">💪 Minha Ficha de Treino</h3>
-            
-            <!-- SELETOR DE DIVISÕES -->
-            <div class="divisoes-tabs" id="divisoes-tabs-container">
-              <!-- Botões A, B, C... gerados via JS -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <h3 class="card-title" style="margin: 0;">💪 Minha Ficha de Treino</h3>
+              <div class="divisao-selector-wrapper">
+                <select id="select-divisao-treino" onchange="mudarDivisao(this.value)" style="padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--primary); font-weight: 800; font-size: 0.9rem; outline: none; box-shadow: var(--shadow);">
+                  <!-- Opções geradas via JS -->
+                </select>
+              </div>
             </div>
-
-            <div id="ficha-treino-content" style="margin-top: 1rem;"></div>
             
-            <div class="btn-row" style="margin-top:1rem;">
+            <div id="ficha-treino-content"></div>
+            
+            <div class="btn-row" style="margin-top:1.5rem;">
               <button class="btn-full btn-primary" onclick="baixarTreinoPDF()">📥 Baixar Treino PDF</button>
             </div>
           </div>
