@@ -1,14 +1,78 @@
 // ==================== STATE ====================
-const state = {
-  alunos: JSON.parse(localStorage.getItem('alunos') || '[]'),
-  avaliacoes: JSON.parse(localStorage.getItem('avaliacoes') || '[]'),
-  testes: JSON.parse(localStorage.getItem('testes') || '[]'),
-  pagamentos: JSON.parse(localStorage.getItem('pagamentos') || '[]'),
-  fichas: JSON.parse(localStorage.getItem('fichas') || '[]'),
-  anamneses: JSON.parse(localStorage.getItem('anamneses') || '[]'),
-  rms: JSON.parse(localStorage.getItem('rms') || '[]'),
-  treinosCustom: JSON.parse(localStorage.getItem('treinosCustom') || '[]')
+const getSafeJSON = (key, defaultVal = '[]') => {
+  try {
+    const val = localStorage.getItem(key);
+    return val ? JSON.parse(val) : JSON.parse(defaultVal);
+  } catch (e) {
+    console.error(`Error parsing localStorage key "${key}":`, e);
+    return JSON.parse(defaultVal);
+  }
 };
+
+const state = {
+  alunos: getSafeJSON('alunos'),
+  avaliacoes: getSafeJSON('avaliacoes'),
+  testes: getSafeJSON('testes'),
+  pagamentos: getSafeJSON('pagamentos'),
+  fichas: getSafeJSON('fichas'),
+  anamneses: getSafeJSON('anamneses'),
+  rms: getSafeJSON('rms'),
+  treinosCustom: getSafeJSON('treinosCustom')
+};
+
+// ==================== ADMIN LOGIN & NAVIGATION ====================
+function showPortalScreen(screen) {
+  const landing = document.getElementById('portal-landing');
+  const login = document.getElementById('admin-login-screen');
+  
+  if (screen === 'admin') {
+    landing.style.display = 'none';
+    login.style.display = 'flex';
+  } else {
+    landing.style.display = 'flex';
+    login.style.display = 'none';
+  }
+}
+
+function loginAdmin() {
+  const user = document.getElementById('admin-user').value;
+  const pass = document.getElementById('admin-pass').value;
+  const error = document.getElementById('admin-login-error');
+
+  // Login simples fixo para o administrador
+  if (user === 'adrianoquake' && pass === 'adri080979') {
+    localStorage.setItem('isAdmin', 'true');
+    
+    // Transição de página: Ocultar Portal e mostrar Dashboard
+    const portalContainer = document.getElementById('portal-container');
+    const app = document.getElementById('app');
+    
+    if (portalContainer) portalContainer.style.display = 'none';
+    if (app) {
+      app.style.setProperty('display', 'block', 'important');
+      app.classList.add('auth-ready');
+    }
+    
+    error.style.display = 'none';
+    
+    // Inicializar dados após login
+    try {
+      renderAlunosGrid();
+      if (typeof initPresc === 'function') initPresc();
+    } catch (e) {
+      console.error("Erro ao inicializar dashboard:", e);
+    }
+    
+    showPage('cadastro');
+  } else {
+    error.style.display = 'block';
+  }
+}
+
+function logoutAdmin() {
+  localStorage.removeItem('isAdmin');
+  location.reload();
+}
 
 let alunoLogado = null;
 let chartAntroEvolucao = null; // Global reference for Antro Evolution chart
@@ -75,10 +139,19 @@ const showPage = (name) => {
     btns[idx].setAttribute('aria-current', 'page');
   }
 
+  // Sincronizar aluno selecionado entre páginas
+  const selCadastro = document.getElementById('alunoVO2') || document.getElementById('alunoAntro');
+  if (selCadastro && selCadastro.value) {
+    window._ultimoAlunoId = selCadastro.value;
+  }
+
   if (name !== 'cadastro') populateAlunoSelects();
   if (name === 'meus-alunos') renderListaGeralAlunos();
   if (name === 'pagamentos') renderPagamentos();
-  if (name === 'evolucao') carregarEvolucao();
+  if (name === 'evolucao') {
+    initEvolucao();
+    carregarEvolucao();
+  }
 
   if (name === 'antropometria') {
     const selector = '#page-antropometria input';
@@ -100,32 +173,57 @@ const showTab = (id) => {
   const target = document.getElementById(id);
   if (!target) return;
 
-  const parent = target.closest('.page, .container');
-  if (!parent) return;
+  // Encontrar o container de abas mais próximo (não o container da página inteira)
+  const tabsContainer = target.parentElement;
+  if (!tabsContainer) return;
 
-  parent.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  target.classList.add('active');
-
-  // Atualizar botões
-  const tabBtns = parent.querySelectorAll('.tab-btn');
-  tabBtns.forEach(btn => {
-    btn.classList.remove('active');
-    btn.setAttribute('aria-selected', 'false');
-    const onclickAttr = btn.getAttribute('onclick') || '';
-    if (onclickAttr.includes(`'${id}'`) || onclickAttr.includes(`"${id}"`)) {
-      btn.classList.add('active');
-      btn.setAttribute('aria-selected', 'true');
+  // Esconder apenas os irmãos que são conteúdos de aba
+  Array.from(tabsContainer.children).forEach(sibling => {
+    if (sibling.classList.contains('tab-content')) {
+      sibling.classList.remove('active');
     }
   });
+  
+  target.classList.add('active');
+
+  // Atualizar botões de aba no cabeçalho de abas correspondente
+  // Procuramos o elemento .tabs que está antes do container de conteúdos
+  let navContainer = tabsContainer.querySelector('.tabs');
+  if (!navContainer) {
+    // Se não estiver dentro, procuramos o anterior ao tabsContainer
+    navContainer = tabsContainer.previousElementSibling;
+    while (navContainer && !navContainer.classList.contains('tabs')) {
+      navContainer = navContainer.previousElementSibling;
+    }
+  }
+
+  if (navContainer) {
+    const tabBtns = navContainer.querySelectorAll('.tab-btn');
+    tabBtns.forEach(btn => {
+      btn.classList.remove('active');
+      btn.setAttribute('aria-selected', 'false');
+      const onclickAttr = btn.getAttribute('onclick') || '';
+      if (onclickAttr.includes(`'${id}'`) || onclickAttr.includes(`"${id}"`)) {
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
+      }
+    });
+  }
 };
 
 // ==================== TOAST ====================
 function showToast(msg, type = '') {
   const t = document.getElementById('toast');
   if (!t) return;
-  t.textContent = msg;
+  
+  // Adicionar ícone baseado no tipo
+  let icon = '';
+  if (type === 'success') icon = '✅ ';
+  if (type === 'error') icon = '❌ ';
+  
+  t.textContent = icon + msg;
   t.className = 'toast show ' + type;
-  setTimeout(() => t.classList.remove('show'), 3000);
+  setTimeout(() => t.classList.remove('show'), 4000);
 }
 
 // ==================== MASKS ====================
@@ -156,21 +254,32 @@ function calcularIdade() {
   calcularFC();
 }
 
+function getClassificacaoIMC(imc) {
+  if (imc < 18.5) return 'Abaixo do peso';
+  if (imc < 25) return 'Peso normal';
+  if (imc < 30) return 'Sobrepeso (Pré-obesidade)';
+  if (imc < 35) return 'Obesidade Grau I';
+  if (imc < 40) return 'Obesidade Grau II';
+  return 'Obesidade Grau III (Mórbida)';
+}
+
 function calcularIMC() {
   const peso = parseFloat(document.getElementById('peso').value);
   const alt = parseFloat(document.getElementById('altura').value);
-  if (!peso || !alt) return;
+  const imcField = document.getElementById('imc');
+  const classField = document.getElementById('classImc');
+
+  if (!peso || !alt || alt <= 0) {
+    if (imcField) imcField.value = '';
+    if (classField) classField.value = '';
+    return;
+  }
+
   const h = alt / 100;
   const imc = peso / (h * h);
-  document.getElementById('imc').value = imc.toFixed(2);
-  let cls = '';
-  if (imc < 18.5) cls = 'Abaixo do peso';
-  else if (imc < 25) cls = 'Peso normal';
-  else if (imc < 30) cls = 'Sobrepeso';
-  else if (imc < 35) cls = 'Obesidade Grau I';
-  else if (imc < 40) cls = 'Obesidade Grau II';
-  else cls = 'Obesidade Grau III';
-  document.getElementById('classImc').value = cls;
+  
+  if (imcField) imcField.value = imc.toFixed(2);
+  if (classField) classField.value = getClassificacaoIMC(imc);
 }
 
 function calcularFC() {
@@ -224,18 +333,38 @@ function salvarCadastro() {
     tipo: document.getElementById('aluno-tipo')?.value || 'pago',
     patologias,
     obs: document.getElementById('obs')?.value || '',
+    // Preservar dados vinculados
+    anamnese: alunoExistente ? alunoExistente.anamnese : null,
+    ultimaAnamnese: alunoExistente ? alunoExistente.ultimaAnamnese : null
   };
 
+  const isUpdate = !!window._editingId;
   const idx = state.alunos.findIndex(a => a.id === id);
   if (idx >= 0) state.alunos[idx] = aluno; else state.alunos.push(aluno);
   
   saveState();
-  showToast('Cadastro salvo com sucesso!', 'success');
+  
+  // Atualizar textos do modal de sucesso dinamicamente
+  const modalTitulo = document.querySelector('#modal-sucesso-cadastro h2');
+  const modalTexto = document.querySelector('#modal-sucesso-cadastro p');
+  
+  if (modalTitulo) modalTitulo.textContent = isUpdate ? 'Atualização Realizada!' : 'Cadastro Realizado!';
+  if (modalTexto) modalTexto.textContent = isUpdate ? 'Os dados do aluno foram atualizados com sucesso.' : 'O aluno foi cadastrado com sucesso no sistema TreinoFitASM.';
+
+  // Caixa de diálogo para atualizações cadastrais
+  if (isUpdate) {
+    alert(`✅ Cadastro de ${nome} atualizado com sucesso!`);
+  } else {
+    alert(`✅ Aluno ${nome} cadastrado com sucesso!`);
+  }
+
+  showToast(isUpdate ? 'Alterações salvas com sucesso!' : 'Cadastro realizado com sucesso!', 'success');
+  
   window._editingId = null;
   renderAlunosGrid();
   limparCadastro();
   
-  // Mostrar modal de sucesso com opção de instalar app
+  // Mostrar modal de sucesso
   document.getElementById('modal-sucesso-cadastro').style.display = 'flex';
   const bannerSuccess = document.getElementById('pwa-banner-success');
   if (bannerSuccess && deferredPrompt) bannerSuccess.style.display = 'flex';
@@ -278,16 +407,19 @@ function renderListaGeralAlunos() {
 
   tbody.innerHTML = listaFiltrada.map(a => {
     const ultimaAv = state.avaliacoes.filter(av => String(av.alunoId) === String(a.id)).pop();
-    const dataAv = ultimaAv ? new Date(ultimaAv.data).toLocaleDateString('pt-BR') : '—';
+    const dataAv = ultimaAv ? new Date(ultimaAv.data + 'T00:00:00').toLocaleDateString('pt-BR') : '—';
     
     const pagamentos = state.pagamentos.filter(p => String(p.alunoId) === String(a.id));
     const ultimoPag = pagamentos.sort((x, y) => new Date(y.dataPag) - new Date(x.dataPag))[0];
     
     let statusPag = ultimoPag ? ultimoPag.status : 'pendente';
-    // Se o tipo do aluno for gratuito, o status de pagamento deve ser GRATUITO (liberado)
     if (a.tipo === 'gratuito') statusPag = 'gratuito';
     
     const statusClass = `badge-${statusPag}`;
+
+    // Status de Anamnese
+    const temAnamnese = a.anamnese || state.anamneses.some(an => String(an.alunoId) === String(a.id));
+    const anamneseLabel = temAnamnese ? `<span style="color:var(--success); font-weight:bold;">✅ Sim</span>` : `<span style="color:var(--danger); font-weight:bold;">❌ Não</span>`;
 
     return `
       <tr>
@@ -296,7 +428,7 @@ function renderListaGeralAlunos() {
           ${a.origem === 'online' ? '<br><span style="font-size:0.65rem; color:#2563eb; background:#dbeafe; padding:2px 4px; border-radius:4px;">CADASTRO ONLINE</span>' : ''}
         </td>
         <td>${a.idade} anos / ${a.sexo}</td>
-        <td style="text-transform: capitalize;">${a.objetivo || '—'}</td>
+        <td style="text-align:center;">${anamneseLabel}</td>
         <td>${dataAv}</td>
         <td><span class="badge ${statusClass}">${statusPag === 'gratuito' ? 'GRATUITO' : statusPag.toUpperCase()}</span></td>
         <td>
@@ -902,7 +1034,17 @@ function renderResultadosAntro() {
   const sel = document.getElementById('alunoAntro');
   const id = sel.value;
   const aluno = id ? state.alunos.find(a => String(a.id) === String(id)) : null;
-  const pesoAtual = aluno ? aluno.peso : (document.getElementById('c-peso')?.value || '—');
+  const pesoAtual = parseFloat(document.getElementById('c-peso')?.value) || (aluno ? parseFloat(aluno.peso) : 0);
+  const altCm = parseFloat(document.getElementById('c-altura')?.value) || (aluno ? parseFloat(aluno.altura) : 0);
+  
+  let imcStr = '—';
+  let imcCls = '—';
+  if (pesoAtual && altCm > 0) {
+    const h = altCm / 100;
+    const imcVal = pesoAtual / (h * h);
+    imcStr = imcVal.toFixed(2);
+    imcCls = getClassificacaoIMC(imcVal);
+  }
 
   box.innerHTML = `
     <h2 class="section-title">Resultados da Avaliação</h2>
@@ -912,8 +1054,13 @@ function renderResultadosAntro() {
         <div class="rc-value">${siri}</div>
       </div>
       <div class="result-card highlight">
-        <div class="rc-label">Classificação</div>
+        <div class="rc-label">Classificação Gordura</div>
         <div class="rc-value" style="font-size:1.2rem">${cls}</div>
+      </div>
+      <div class="result-card highlight" style="background: #f0f9ff; border-color: #bae6fd;">
+        <div class="rc-label" style="color: #0369a1;">IMC Atual</div>
+        <div class="rc-value" style="color: #0284c7;">${imcStr}</div>
+        <div style="font-size: 0.75rem; font-weight: bold; color: #0369a1; margin-top: 4px;">${imcCls}</div>
       </div>
       <div class="result-card">
         <div class="rc-label">Peso Atual</div>
@@ -959,17 +1106,25 @@ function salvarAntro() {
     if (el.id.startsWith('d-')) dobras[el.id.replace('d-', '')] = el.value;
   });
 
+  const p = document.getElementById('c-peso')?.value || state.alunos.find(a => String(a.id) === String(selId))?.peso || 0;
+  const h = document.getElementById('c-altura')?.value || state.alunos.find(a => String(a.id) === String(selId))?.altura || 0;
+  let imcCalc = '';
+  if (p && h > 0) {
+    const hm = h / 100;
+    imcCalc = (p / (hm * hm)).toFixed(2);
+  }
+
   const avaliacao = {
     id: Date.now(),
     alunoId: String(selId),
     data: document.getElementById('dataAntro').value || new Date().toISOString().slice(0, 10),
     biotipo: document.getElementById('antro-biotipo').value,
-    peso: document.getElementById('c-peso')?.value || state.alunos.find(a => String(a.id) === String(selId))?.peso || '',
-    altura: document.getElementById('c-altura')?.value || '',
+    peso: p,
+    altura: h,
     percGordura: (document.getElementById('percGorduraSiri').value || '').replace('%', ''),
     massaMagra: (document.getElementById('massaMagra').value || '').replace(' kg', ''),
     massaGorda: (document.getElementById('massaGorda').value || '').replace(' kg', ''),
-    imc: (document.getElementById('imc')?.value || ''),
+    imc: imcCalc,
     pesoIdeal: (document.getElementById('pesoIdeal').value || '').replace(' kg', ''),
     percGorduraIdeal: document.getElementById('percGorduraIdeal').value,
     classificacao: document.getElementById('classGordura').value,
@@ -984,72 +1139,238 @@ function salvarAntro() {
   carregarEvolucaoAntro(); // Refresh evolution after saving
 }
 
-function carregarEvolucaoAntro() {
+function carregarComparativoAntro() {
   const selId = document.getElementById('alunoAntro').value;
+  const selAnt = document.getElementById('comp-av-anterior');
+  const selAtu = document.getElementById('comp-av-atual');
+  const container = document.getElementById('container-tabela-comparativa');
+
   if (!selId) {
-    document.getElementById('lista-evolucao-antro').innerHTML = '<tr><td colspan="5" style="text-align:center">Selecione um aluno para ver a evolução.</td></tr>';
+    container.innerHTML = '<p style="text-align:center; padding:2rem; color:#64748b;">Selecione um aluno para comparar as avaliações.</p>';
     return;
   }
 
-  const avs = state.avaliacoes.filter(a => String(a.alunoId) === String(selId)).sort((a, b) => new Date(a.data) - new Date(b.data));
-  const tbody = document.getElementById('lista-evolucao-antro');
+  // Obter todas as avaliações do aluno e dobras/circunferências
+  const avs = state.avaliacoes.filter(a => String(a.alunoId) === String(selId)).sort((a, b) => new Date(b.data) - new Date(a.data));
   
-  if (avs.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">Nenhuma avaliação encontrada para este aluno.</td></tr>';
-    if (chartAntroEvolucao) chartAntroEvolucao.destroy();
+  if (avs.length < 2) {
+    container.innerHTML = '<p style="text-align:center; padding:2rem; color:#64748b;">Este aluno precisa de pelo menos duas avaliações para realizar o comparativo.</p>';
     return;
   }
 
-  tbody.innerHTML = avs.map(a => `
-    <tr>
-      <td>${new Date(a.data).toLocaleDateString('pt-BR')}</td>
-      <td>${a.peso || '—'}</td>
-      <td>${a.percGordura ? a.percGordura + '%' : '—'}</td>
-      <td>${a.massaMagra ? a.massaMagra + ' kg' : '—'}</td>
-      <td>${a.imc || '—'}</td>
-    </tr>
-  `).join('');
+  // Preencher os selects
+  const options = avs.map(a => `<option value="${a.id}">${new Date(a.data).toLocaleDateString('pt-BR')} - ${a.peso}kg (${a.percGordura}%)</option>`).join('');
+  selAnt.innerHTML = options;
+  selAtu.innerHTML = options;
 
-  // Render Chart
-  const ctx = document.getElementById('chart-antro-evolucao')?.getContext('2d');
-  if (!ctx) return;
+  // Selecionar por padrão a última (atual) e a penúltima (anterior)
+  selAnt.selectedIndex = 1;
+  selAtu.selectedIndex = 0;
+
+  renderTabelaComparativa();
+}
+
+function renderTabelaComparativa() {
+  const idAnt = document.getElementById('comp-av-anterior').value;
+  const idAtu = document.getElementById('comp-av-atual').value;
+  const container = document.getElementById('container-tabela-comparativa');
+
+  const avAnt = state.avaliacoes.find(a => String(a.id) === String(idAnt));
+  const avAtu = state.avaliacoes.find(a => String(a.id) === String(idAtu));
+
+  if (!avAnt || !avAtu) return;
+
+  const diff = (v1, v2, reverse = false) => {
+    const val1 = parseFloat(v1) || 0;
+    const val2 = parseFloat(v2) || 0;
+    const d = (val2 - val1).toFixed(2);
+    
+    // Para gordura/peso, diminuir é bom (verde). Para massa magra, aumentar é bom (verde).
+    let color = '#64748b';
+    if (d > 0) color = reverse ? '#10b981' : '#ef4444';
+    else if (d < 0) color = reverse ? '#ef4444' : '#10b981';
+    
+    const signal = d > 0 ? '+' : '';
+    return `<span style="color:${color}; font-weight:bold;">${signal}${d}</span>`;
+  };
+
+  const rows = [
+    { label: 'Peso (kg)', v1: avAnt.peso, v2: avAtu.peso },
+    { label: '% Gordura', v1: avAnt.percGordura, v2: avAtu.percGordura },
+    { label: 'Massa Magra (kg)', v1: avAnt.massaMagra, v2: avAtu.massaMagra, rev: true },
+    { label: 'Massa Gorda (kg)', v1: avAnt.massaGorda, v2: avAtu.massaGorda },
+    { label: 'IMC', v1: avAnt.imc, v2: avAtu.imc },
+    { type: 'header', label: 'Circunferências (cm)' },
+    { label: 'Pescoço', v1: avAnt.perimetros?.pescoco, v2: avAtu.perimetros?.pescoco, rev: true },
+    { label: 'Ombro', v1: avAnt.perimetros?.ombro, v2: avAtu.perimetros?.ombro, rev: true },
+    { label: 'Peito', v1: avAnt.perimetros?.['peito-normal'], v2: avAtu.perimetros?.['peito-normal'], rev: true },
+    { label: 'Cintura', v1: avAnt.perimetros?.cintura, v2: avAtu.perimetros?.cintura },
+    { label: 'Abdômen', v1: avAnt.perimetros?.abdomen, v2: avAtu.perimetros?.abdomen },
+    { label: 'Quadril', v1: avAnt.perimetros?.quadril, v2: avAtu.perimetros?.quadril },
+    { label: 'Braço D', v1: avAnt.perimetros?.['braco-dir'], v2: avAtu.perimetros?.['braco-dir'], rev: true },
+    { label: 'Braço E', v1: avAnt.perimetros?.['braco-esq'], v2: avAtu.perimetros?.['braco-esq'], rev: true },
+    { label: 'Coxa D', v1: avAnt.perimetros?.['coxa-dir'], v2: avAtu.perimetros?.['coxa-dir'], rev: true },
+    { label: 'Coxa E', v1: avAnt.perimetros?.['coxa-esq'], v2: avAtu.perimetros?.['coxa-esq'], rev: true },
+    { label: 'Panturrilha D', v1: avAnt.perimetros?.['panturrilha-dir'], v2: avAtu.perimetros?.['panturrilha-dir'], rev: true },
+    { label: 'Panturrilha E', v1: avAnt.perimetros?.['panturrilha-esq'], v2: avAtu.perimetros?.['panturrilha-esq'], rev: true },
+    { type: 'header', label: 'Dobras Cutâneas (mm)' },
+    { label: 'Subescapular', v1: avAnt.dobras?.subescapular, v2: avAtu.dobras?.subescapular },
+    { label: 'Tríceps', v1: avAnt.dobras?.triceps, v2: avAtu.dobras?.triceps },
+    { label: 'Bíceps', v1: avAnt.dobras?.biceps, v2: avAtu.dobras?.biceps },
+    { label: 'Peitoral', v1: avAnt.dobras?.peitoral, v2: avAtu.dobras?.peitoral },
+    { label: 'Axilar Média', v1: avAnt.dobras?.axilar, v2: avAtu.dobras?.axilar },
+    { label: 'Suprailíaca', v1: avAnt.dobras?.suprailiaca, v2: avAtu.dobras?.suprailiaca },
+    { label: 'Abdominal', v1: avAnt.dobras?.abdominal, v2: avAtu.dobras?.abdominal },
+    { label: 'Coxa', v1: avAnt.dobras?.coxa, v2: avAtu.dobras?.coxa },
+    { label: 'Perna Medial', v1: avAnt.dobras?.perna, v2: avAtu.dobras?.perna },
+  ];
+
+  container.innerHTML = `
+    <table class="data-table" style="width:100%; text-align:center; border-collapse: collapse;">
+      <thead style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
+        <tr>
+          <th style="text-align:left; padding:12px;">Parâmetro</th>
+          <th style="padding:12px;">Anterior (${new Date(avAnt.data + 'T00:00:00').toLocaleDateString('pt-BR')})</th>
+          <th style="padding:12px;">Atual (${new Date(avAtu.data + 'T00:00:00').toLocaleDateString('pt-BR')})</th>
+          <th style="padding:12px;">Diferença</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(r => {
+          if (r.type === 'header') {
+            return `<tr style="background:#f1f5f9;"><td colspan="4" style="text-align:left; font-weight:bold; padding:12px; color:#4f46e5; border-bottom:1px solid #e2e8f0;">${r.label}</td></tr>`;
+          }
+          const v1 = r.v1 || '—';
+          const v2 = r.v2 || '—';
+          return `
+            <tr style="border-bottom:1px solid #f1f5f9;">
+              <td style="text-align:left; padding:12px; font-weight:500;">${r.label}</td>
+              <td style="color:#64748b; padding:12px;">${v1}</td>
+              <td style="font-weight:bold; padding:12px;">${v2}</td>
+              <td style="padding:12px;">${v1 !== '—' && v2 !== '—' ? diff(v1, v2, r.rev) : '—'}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function carregarComparativoAntro() {
+  const selId = document.getElementById('alunoAntro').value;
+  const selAnt = document.getElementById('comp-av-anterior');
+  const selAtu = document.getElementById('comp-av-atual');
+  const container = document.getElementById('container-tabela-comparativa');
+
+  if (!selId) {
+    container.innerHTML = '<p style="text-align:center; padding:2rem; color:#64748b;">Selecione um aluno para comparar as avaliações.</p>';
+    return;
+  }
+
+  // Obter todas as avaliações do aluno e dobras/circunferências
+  const avs = state.avaliacoes.filter(a => String(a.alunoId) === String(selId)).sort((a, b) => new Date(b.data) - new Date(a.data));
   
-  if (chartAntroEvolucao) chartAntroEvolucao.destroy();
-  
-  chartAntroEvolucao = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: avs.map(a => new Date(a.data).toLocaleDateString('pt-BR')),
-      datasets: [
-        {
-          label: '% Gordura',
-          data: avs.map(a => parseFloat(a.percGordura) || 0),
-          borderColor: '#2563eb',
-          backgroundColor: 'rgba(37, 99, 235, 0.1)',
-          tension: 0.3,
-          fill: true
-        },
-        {
-          label: 'Peso (kg)',
-          data: avs.map(a => parseFloat(a.peso) || 0),
-          borderColor: '#ef4444',
-          tension: 0.3,
-          yAxisID: 'y1'
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        y: { title: { display: true, text: '% Gordura' } },
-        y1: { 
-          position: 'right', 
-          title: { display: true, text: 'Peso (kg)' },
-          grid: { drawOnChartArea: false }
-        }
-      }
-    }
-  });
+  if (avs.length < 2) {
+    container.innerHTML = '<p style="text-align:center; padding:2rem; color:#64748b;">Este aluno precisa de pelo menos duas avaliações para realizar o comparativo.</p>';
+    return;
+  }
+
+  // Preencher os selects
+  const options = avs.map(a => `<option value="${a.id}">${new Date(a.data).toLocaleDateString('pt-BR')} - ${a.peso}kg (${a.percGordura}%)</option>`).join('');
+  selAnt.innerHTML = options;
+  selAtu.innerHTML = options;
+
+  // Selecionar por padrão a última (atual) e a penúltima (anterior)
+  selAnt.selectedIndex = 1;
+  selAtu.selectedIndex = 0;
+
+  renderTabelaComparativa();
+}
+
+function renderTabelaComparativa() {
+  const idAnt = document.getElementById('comp-av-anterior').value;
+  const idAtu = document.getElementById('comp-av-atual').value;
+  const container = document.getElementById('container-tabela-comparativa');
+
+  const avAnt = state.avaliacoes.find(a => String(a.id) === String(idAnt));
+  const avAtu = state.avaliacoes.find(a => String(a.id) === String(idAtu));
+
+  if (!avAnt || !avAtu) return;
+
+  const diff = (v1, v2, reverse = false) => {
+    const val1 = parseFloat(v1) || 0;
+    const val2 = parseFloat(v2) || 0;
+    const d = (val2 - val1).toFixed(2);
+    
+    // Para gordura/peso, diminuir é bom (verde). Para massa magra, aumentar é bom (verde).
+    let color = '#64748b';
+    if (d > 0) color = reverse ? '#10b981' : '#ef4444';
+    else if (d < 0) color = reverse ? '#ef4444' : '#10b981';
+    
+    const signal = d > 0 ? '+' : '';
+    return `<span style="color:${color}; font-weight:bold;">${signal}${d}</span>`;
+  };
+
+  const rows = [
+    { label: 'Peso (kg)', v1: avAnt.peso, v2: avAtu.peso },
+    { label: '% Gordura', v1: avAnt.percGordura, v2: avAtu.percGordura },
+    { label: 'Massa Magra (kg)', v1: avAnt.massaMagra, v2: avAtu.massaMagra, rev: true },
+    { label: 'Massa Gorda (kg)', v1: avAnt.massaGorda, v2: avAtu.massaGorda },
+    { label: 'IMC', v1: avAnt.imc, v2: avAtu.imc },
+    { type: 'header', label: 'Circunferências (cm)' },
+    { label: 'Pescoço', v1: avAnt.perimetros?.pescoco, v2: avAtu.perimetros?.pescoco, rev: true },
+    { label: 'Ombro', v1: avAnt.perimetros?.ombro, v2: avAtu.perimetros?.ombro, rev: true },
+    { label: 'Peito', v1: avAnt.perimetros?.['peito-normal'], v2: avAtu.perimetros?.['peito-normal'], rev: true },
+    { label: 'Cintura', v1: avAnt.perimetros?.cintura, v2: avAtu.perimetros?.cintura },
+    { label: 'Abdômen', v1: avAnt.perimetros?.abdomen, v2: avAtu.perimetros?.abdomen },
+    { label: 'Quadril', v1: avAnt.perimetros?.quadril, v2: avAtu.perimetros?.quadril },
+    { label: 'Braço D', v1: avAnt.perimetros?.['braco-dir'], v2: avAtu.perimetros?.['braco-dir'], rev: true },
+    { label: 'Braço E', v1: avAnt.perimetros?.['braco-esq'], v2: avAtu.perimetros?.['braco-esq'], rev: true },
+    { label: 'Coxa D', v1: avAnt.perimetros?.['coxa-dir'], v2: avAtu.perimetros?.['coxa-dir'], rev: true },
+    { label: 'Coxa E', v1: avAnt.perimetros?.['coxa-esq'], v2: avAtu.perimetros?.['coxa-esq'], rev: true },
+    { label: 'Panturrilha D', v1: avAnt.perimetros?.['panturrilha-dir'], v2: avAtu.perimetros?.['panturrilha-dir'], rev: true },
+    { label: 'Panturrilha E', v1: avAnt.perimetros?.['panturrilha-esq'], v2: avAtu.perimetros?.['panturrilha-esq'], rev: true },
+    { type: 'header', label: 'Dobras Cutâneas (mm)' },
+    { label: 'Subescapular', v1: avAnt.dobras?.subescapular, v2: avAtu.dobras?.subescapular },
+    { label: 'Tríceps', v1: avAnt.dobras?.triceps, v2: avAtu.dobras?.triceps },
+    { label: 'Bíceps', v1: avAnt.dobras?.biceps, v2: avAtu.dobras?.biceps },
+    { label: 'Peitoral', v1: avAnt.dobras?.peitoral, v2: avAtu.dobras?.peitoral },
+    { label: 'Axilar Média', v1: avAnt.dobras?.axilar, v2: avAtu.dobras?.axilar },
+    { label: 'Suprailíaca', v1: avAnt.dobras?.suprailiaca, v2: avAtu.dobras?.suprailiaca },
+    { label: 'Abdominal', v1: avAnt.dobras?.abdominal, v2: avAtu.dobras?.abdominal },
+    { label: 'Coxa', v1: avAnt.dobras?.coxa, v2: avAtu.dobras?.coxa },
+    { label: 'Perna Medial', v1: avAnt.dobras?.perna, v2: avAtu.dobras?.perna },
+  ];
+
+  container.innerHTML = `
+    <table class="data-table" style="width:100%; text-align:center; border-collapse: collapse;">
+      <thead style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
+        <tr>
+          <th style="text-align:left; padding:12px;">Parâmetro</th>
+          <th style="padding:12px;">Anterior (${new Date(avAnt.data).toLocaleDateString('pt-BR')})</th>
+          <th style="padding:12px;">Atual (${new Date(avAtu.data).toLocaleDateString('pt-BR')})</th>
+          <th style="padding:12px;">Diferença</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(r => {
+          if (r.type === 'header') {
+            return `<tr style="background:#f1f5f9;"><td colspan="4" style="text-align:left; font-weight:bold; padding:12px; color:#4f46e5; border-bottom:1px solid #e2e8f0;">${r.label}</td></tr>`;
+          }
+          const v1 = r.v1 || '—';
+          const v2 = r.v2 || '—';
+          return `
+            <tr style="border-bottom:1px solid #f1f5f9;">
+              <td style="text-align:left; padding:12px; font-weight:500;">${r.label}</td>
+              <td style="color:#64748b; padding:12px;">${v1}</td>
+              <td style="font-weight:bold; padding:12px;">${v2}</td>
+              <td style="padding:12px;">${v1 !== '—' && v2 !== '—' ? diff(v1, v2, r.rev) : '—'}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
 }
 
 // ==================== VO2MAX ====================
@@ -1156,56 +1477,6 @@ function salvarVO2() {
   showToast('Teste salvo com sucesso!', 'success');
 }
 
-// ==================== ADMIN LOGIN ====================
-function showPortalScreen(screen) {
-  const landing = document.getElementById('portal-landing');
-  const login = document.getElementById('admin-login-screen');
-  
-  if (screen === 'admin') {
-    landing.style.display = 'none';
-    login.style.display = 'flex';
-  } else {
-    landing.style.display = 'flex';
-    login.style.display = 'none';
-  }
-}
-
-function loginAdmin() {
-  const user = document.getElementById('admin-user').value;
-  const pass = document.getElementById('admin-pass').value;
-  const error = document.getElementById('admin-login-error');
-
-  // Login simples fixo para o administrador
-  if (user === 'adrianoquake' && pass === 'adri080979') {
-    localStorage.setItem('isAdmin', 'true');
-    
-    // Transição de página: Ocultar Portal e mostrar Dashboard
-    const portalContainer = document.getElementById('portal-container');
-    const app = document.getElementById('app');
-    
-    if (portalContainer) portalContainer.style.display = 'none';
-    if (app) {
-      app.style.setProperty('display', 'block', 'important');
-      app.classList.add('auth-ready');
-    }
-    
-    error.style.display = 'none';
-    
-    // Inicializar dados após login
-    renderAlunosGrid();
-    if (typeof initPresc === 'function') initPresc();
-    
-    showPage('cadastro');
-  } else {
-    error.style.display = 'block';
-  }
-}
-
-function logoutAdmin() {
-  localStorage.removeItem('isAdmin');
-  location.reload();
-}
-
 // Renderizar tabelas de referência ao carregar
 document.addEventListener('DOMContentLoaded', () => {
   // Tabela de técnicas
@@ -1263,8 +1534,183 @@ function checkAdminAuth() {
   }
 }
 
-// ==================== INIT ====================
+function carregarEvolucao() {
+  const container = document.getElementById('lista-evolucao-geral');
+  const selId = document.getElementById('alunoAntro')?.value;
+  
+  if (!container || !selId) return;
+
+  const avs = state.avaliacoes.filter(a => String(a.alunoId) === String(selId)).sort((a, b) => new Date(b.data + 'T00:00:00') - new Date(a.data + 'T00:00:00'));
+
+  if (avs.length === 0) {
+    container.innerHTML = '<tr><td colspan="6" style="text-align:center">Nenhuma avaliação encontrada.</td></tr>';
+  } else {
+    container.innerHTML = avs.map(a => `
+      <tr>
+        <td>${new Date(a.data + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
+        <td>${a.peso} kg</td>
+        <td>${a.percGordura}%</td>
+        <td>${a.massaMagra} kg</td>
+        <td>${a.imc}</td>
+        <td style="text-align:center;">
+          <button class="btn-primary" style="padding:6px 12px; font-size:0.75rem; border-radius:6px; background:#4f46e5;" onclick="showTab('tab-comparativo-antro'); verComparativoDireto('${a.alunoId}', '${a.id}')">📊 Comparar</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // Inicializar gráficos
+  renderGraficoEvolucaoComposicao(selId);
+  renderGraficoEvolucaoVO2(selId);
+  popularSelectRM(selId);
+}
+
+function renderGraficoEvolucaoComposicao(alunoId) {
+  const ctx = document.getElementById('chart-composicao');
+  if (!ctx) return;
+
+  const avs = state.avaliacoes
+    .filter(a => String(a.alunoId) === String(alunoId))
+    .sort((a, b) => new Date(a.data) - new Date(b.data));
+
+  if (window._chartComposicao) window._chartComposicao.destroy();
+
+  window._chartComposicao = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: avs.map(a => new Date(a.data + 'T00:00:00').toLocaleDateString('pt-BR')),
+      datasets: [
+        {
+          label: 'Gordura %',
+          data: avs.map(a => a.percGordura),
+          borderColor: '#ef4444',
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          tension: 0.3,
+          fill: true
+        },
+        {
+          label: 'Massa Magra (kg)',
+          data: avs.map(a => a.massaMagra),
+          borderColor: '#22c55e',
+          backgroundColor: 'rgba(34, 197, 94, 0.1)',
+          tension: 0.3,
+          fill: true
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top' }
+      }
+    }
+  });
+}
+
+function renderGraficoEvolucaoVO2(alunoId) {
+  const ctx = document.getElementById('chart-vo2');
+  if (!ctx) return;
+
+  const testes = state.testes
+    .filter(t => String(t.alunoId) === String(alunoId))
+    .sort((a, b) => new Date(a.data) - new Date(b.data));
+
+  if (window._chartVO2) window._chartVO2.destroy();
+
+  window._chartVO2 = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: testes.map(t => new Date(t.data + 'T00:00:00').toLocaleDateString('pt-BR')),
+      datasets: [{
+        label: 'VO2máx (mL/kg/min)',
+        data: testes.map(t => t.vo2),
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        tension: 0.3,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+}
+
+function popularSelectRM(alunoId) {
+  const sel = document.getElementById('rm-exercicio-graf');
+  if (!sel) return;
+
+  const rms = state.rms.filter(r => String(r.alunoId) === String(alunoId));
+  const exUnicos = [...new Set(rms.map(r => r.exercicio))];
+
+  sel.innerHTML = '<option value="">Selecione um Exercício</option>' + 
+    exUnicos.map(ex => `<option value="${ex}">${ex}</option>`).join('');
+}
+
+function carregarGraficoRM() {
+  const ctx = document.getElementById('chart-rm');
+  const ex = document.getElementById('rm-exercicio-graf').value;
+  const alunoId = document.getElementById('alunoEvolucao').value;
+  
+  if (!ctx || !ex || !alunoId) return;
+
+  const dados = state.rms
+    .filter(r => String(r.alunoId) === String(alunoId) && r.exercicio === ex)
+    .sort((a, b) => new Date(a.data) - new Date(b.data));
+
+  if (window._chartRM) window._chartRM.destroy();
+
+  window._chartRM = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dados.map(d => new Date(d.data + 'T00:00:00').toLocaleDateString('pt-BR')),
+      datasets: [{
+        label: `1RM - ${ex}`,
+        data: dados.map(d => d.rm),
+        borderColor: '#f59e0b',
+        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+        tension: 0.3,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+}
+
+function verComparativoDireto(alunoId, avId) {
+  // Mudar para a aba de antropometria e abrir o comparativo
+  showPage('antropometria');
+  document.getElementById('alunoAntro').value = alunoId;
+  showTab('tab-comparativo-antro');
+  
+  // Aguardar um pouco para os selects serem preenchidos e carregar os dados
+  setTimeout(() => {
+    carregarComparativoAntro();
+    document.getElementById('comp-av-atual').value = avId;
+    renderTabelaComparativa();
+  }, 150);
+}
+
+function initEvolucao() {
+  // Função mantida por compatibilidade, mas a lógica agora é disparada via aba Antropometria
+  carregarEvolucao();
+}
+
+// Iniciar a página de evolução quando carregada
 document.addEventListener('DOMContentLoaded', () => {
+  // Garantir que os eventos de clique do admin funcionem com Enter
+  const adminPass = document.getElementById('admin-pass');
+  if (adminPass) {
+    adminPass.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') loginAdmin();
+    });
+  }
+
   // Pré-cadastro da Jessica Bruna solicitado pelo usuário
   const alunosExistentes = JSON.parse(localStorage.getItem('alunos') || '[]');
   if (!alunosExistentes.some(a => a.nome.toLowerCase() === 'jessicabruna' || a.email === 'jessica@email.com')) {

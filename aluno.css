@@ -28,26 +28,54 @@ html, body {
   overflow-x: hidden;
 }
 
+/* ===== ANIMATIONS ===== */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+}
+
 /* ===== SCREENS ===== */
-.screen { display: none; min-height: 100vh; }
+.screen { display: none; min-height: 100vh; animation: slideDown 0.4s ease-out; }
 .screen.active { display: block; }
 
 /* ===== LOGIN ===== */
 .login-hero {
-  background: linear-gradient(160deg, #1d4ed8 0%, #0ea5e9 100%);
+  background: linear-gradient(160deg, #1e293b 0%, #0f172a 100%);
   color: white;
   text-align: center;
-  padding: 3.5rem 2rem 2.5rem;
+  padding: 4rem 2rem 3rem;
+  position: relative;
+  overflow: hidden;
 }
-.login-icon { font-size: 3.5rem; margin-bottom: 0.5rem; }
-.login-hero h1 { font-size: 1.8rem; font-weight: 800; }
-.login-hero p { opacity: 0.85; margin-top: 0.3rem; }
+.login-hero::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.1) 0%, transparent 70%);
+  z-index: 1;
+}
+.login-icon { font-size: 4rem; margin-bottom: 0.5rem; position: relative; z-index: 2; text-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+.login-hero h1 { font-size: 2rem; font-weight: 900; letter-spacing: -1px; position: relative; z-index: 2; }
+.login-hero p { opacity: 0.7; margin-top: 0.5rem; font-weight: 300; position: relative; z-index: 2; }
 .login-card {
-  background: var(--surface);
-  margin: -1.5rem 1.5rem 0;
-  border-radius: var(--radius);
-  padding: 1.5rem;
-  box-shadow: var(--shadow);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  margin: -2rem 1.5rem 0;
+  border-radius: 24px;
+  padding: 2rem;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+  border: 1px solid rgba(255,255,255,0.3);
+  position: relative;
+  z-index: 10;
 }
 .login-card h2 { font-size: 1.2rem; margin-bottom: 1.2rem; color: var(--primary); }
 .login-erro { background: #fee2e2; color: #991b1b; padding: 10px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 1rem; }
@@ -86,6 +114,19 @@ html, body {
   margin-top: 0.5rem;
 }
 .btn-full:active { transform: scale(0.97); }
+
+#btn-pwa-install-aluno {
+  animation: pulse 2s infinite;
+  background: linear-gradient(90deg, #2563eb, #3b82f6, #2563eb);
+  background-size: 200% 100%;
+  animation: pulse 2s infinite, shimmer 3s linear infinite;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
 .btn-full.btn-success { background: var(--success); }
 .btn-full.btn-pix { background: #00b894; }
 .btn-full.btn-cartao { background: #8b5cf6; }
@@ -130,11 +171,13 @@ html, body {
 .section-card {
   background: var(--surface);
   border-radius: var(--radius);
-  padding: 1.2rem;
-  margin-bottom: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 1.2rem;
   box-shadow: var(--shadow);
   border: 1px solid var(--border);
+  transition: transform 0.2s, box-shadow 0.2s;
 }
+.section-card:active { transform: scale(0.99); }
 .card-title { font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-bottom: 1rem; }
 
 /* ===== RESUMO ===== */
@@ -398,6 +441,11 @@ input[type=range] { width: 100%; accent-color: var(--primary); }
   border: 1px solid var(--border);
   background: var(--bg);
   transition: all 0.2s;
+  cursor: pointer;
+}
+.cron-dia:hover {
+  border-color: var(--primary);
+  background: #f0f7ff;
 }
 .cron-dia.treino {
   background: #eff6ff;
@@ -412,6 +460,16 @@ input[type=range] { width: 100%; accent-color: var(--primary); }
   border: 2px solid var(--primary);
   box-shadow: 0 0 8px rgba(37,99,235,0.2);
   transform: translateY(-2px);
+}
+.cron-dia.ativa {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+}
+.cron-dia.ativa .dia-nome, .cron-dia.ativa .dia-divisao {
+  color: white !important;
 }
 .dia-nome {
   font-size: 0.65rem;

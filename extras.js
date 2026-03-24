@@ -97,7 +97,25 @@ function carregarAnamnese() {
 
 function salvarAnamnese() {
   const selId = document.getElementById('alunoAnamnese')?.value;
-  if (!selId) { showToast('Selecione um aluno', 'error'); return; }
+  const btn = document.getElementById('btnSalvarAnamnese');
+  
+  // Validação: Se não houver aluno selecionado ou o ID for vazio
+  if (!selId || selId === "" || selId === "Selecione") {
+    if (btn) {
+      const originalText = btn.textContent;
+      btn.textContent = "⚠️ SELECIONE UM ALUNO!";
+      btn.classList.add('btn-error');
+      setTimeout(() => {
+        btn.textContent = originalText;
+        btn.classList.remove('btn-error');
+      }, 3000);
+    }
+    showToast('❌ Selecione um aluno na base antes de salvar a anamnese.', 'error');
+    return;
+  }
+  
+  // Mudar texto do botão para indicar processamento
+  if (btn) btn.textContent = "⏳ Salvando...";
   
   const parqRespostas = {};
   for (let i = 1; i <= 7; i++) {
@@ -106,7 +124,9 @@ function salvarAnamnese() {
   }
 
   const doencas = [];
-  document.querySelectorAll('input[name="patAnamnese"]:checked').forEach(cb => doencas.push(cb.value));
+  document.querySelectorAll('input[name="patAnamnese"]:checked').forEach(cb => {
+    if (cb.value !== 'nenhuma') doencas.push(cb.value);
+  });
 
   const anamnese = {
     id: Date.now(),
@@ -144,12 +164,57 @@ function salvarAnamnese() {
     dataAssinatura: document.getElementById('dataAssinatura')?.value || ''
   };
 
+  // 1. Sincronizar anamneses
+  state.anamneses = JSON.parse(localStorage.getItem('anamneses') || '[]');
   const idx = state.anamneses.findIndex(a => String(a.alunoId) === String(selId));
-  if (idx >= 0) state.anamneses[idx] = anamnese;
-  else state.anamneses.push(anamnese);
+  if (idx >= 0) {
+    anamnese.id = state.anamneses[idx].id || anamnese.id;
+    state.anamneses[idx] = anamnese;
+  } else {
+    state.anamneses.push(anamnese);
+  }
   
-  saveState();
-  showToast('Anamnese salva com sucesso!', 'success');
+  // 2. Sincronizar diretamente no Cadastro do Aluno (conforme solicitado pelo usuário)
+  state.alunos = JSON.parse(localStorage.getItem('alunos') || '[]');
+  const alunoIdx = state.alunos.findIndex(a => String(a.id) === String(selId));
+  if (alunoIdx >= 0) {
+    // Vincular a anamnese diretamente ao objeto do aluno para facilitar a verificação
+    state.alunos[alunoIdx].anamnese = anamnese;
+    state.alunos[alunoIdx].ultimaAnamnese = anamnese.data;
+  }
+
+  // Persistência Total
+  try {
+    saveState();
+    
+    // Verificação de sucesso
+    const check = JSON.parse(localStorage.getItem('anamneses') || '[]');
+    const salvoComSucesso = check.some(a => String(a.alunoId) === String(selId));
+    
+    if (salvoComSucesso) {
+      if (btn) {
+        btn.textContent = "Salvar Anamnese";
+        btn.classList.add('btn-success');
+        btn.style.background = "";
+      }
+      
+      // Caixa de diálogo de confirmação conforme solicitado pelo usuário
+      alert('✅ Anamnese salva com sucesso!\nAs informações foram atualizadas no cadastro do aluno.');
+      
+      showToast('✅ Anamnese atualizada e salva no cadastro do aluno!', 'success');
+      
+      // Se estiver na lista de alunos, atualizar a visualização
+      if (typeof renderListaGeralAlunos === 'function') renderListaGeralAlunos();
+    } else {
+      throw new Error("Erro na gravação");
+    }
+  } catch (err) {
+    console.error("Erro ao salvar:", err);
+    if (btn) btn.textContent = "Salvar Anamnese";
+    showToast('❌ Erro ao salvar informações.', 'error');
+  }
+  
+  if (typeof carregarAnamnese === 'function') carregarAnamnese();
 }
 
 function imprimirAnamnesePDF() {

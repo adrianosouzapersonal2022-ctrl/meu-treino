@@ -460,20 +460,22 @@ textarea { resize: vertical; }
 
 .result-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
   margin: 1.5rem 0;
 }
 .result-card {
   background: #f8fafc;
   border-radius: 12px;
-  padding: 1.25rem;
+  padding: 1rem;
   text-align: center;
   border: 1px solid var(--border);
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  min-width: 0;
+  overflow: hidden;
 }
 .result-card:hover {
   background: white;
@@ -482,24 +484,28 @@ textarea { resize: vertical; }
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
 .result-card .rc-label { 
-  font-size: 0.7rem; 
+  font-size: 0.6rem; 
   font-weight: 700; 
   color: var(--secondary); 
   text-transform: uppercase; 
   letter-spacing: 0.5px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .result-card .rc-value { 
-  font-size: 1.75rem; 
+  font-size: 1.4rem; 
   font-weight: 800; 
   color: var(--text); 
   margin: 0;
-  line-height: 1.2;
+  line-height: 1.1;
+  word-break: break-word;
 }
 .result-card .rc-unit { 
-  font-size: 0.75rem; 
+  font-size: 0.7rem; 
   color: var(--text-muted); 
-  margin-top: 4px;
+  margin-top: 2px;
   font-weight: 500;
 }
 .result-card.highlight { 
@@ -508,7 +514,7 @@ textarea { resize: vertical; }
 }
 .result-card.highlight .rc-value { 
   color: var(--primary-dark); 
-  font-size: 2.2rem; 
+  font-size: 1.6rem; 
 }
 
 /* CLASSIFICATION BADGE */

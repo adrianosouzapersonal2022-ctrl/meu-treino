@@ -50,7 +50,7 @@
         </div>
         <div class="form-group">
           <label style="color: #ffffff;">Senha</label>
-          <input type="password" id="admin-pass" placeholder="Sua senha" style="background: rgba(255,255,255,0.9); border: none;" />
+          <input type="password" id="admin-pass" placeholder="Sua senha" style="background: rgba(255,255,255,0.9); border: none;" onkeydown="if(event.key==='Enter') loginAdmin()" />
         </div>
         <div id="admin-login-error" style="color: #ff4d4d; font-size: 0.85rem; margin-top: 0.5rem; display: none; text-align: center; font-weight: bold;">Usuário ou senha incorretos.</div>
         <button class="btn-primary" onclick="loginAdmin()" style="width: 100%; margin-top: 1.5rem; height: 45px; background: #ffffff; color: #1e3a8a; border: none; font-weight: 800;">Entrar no Painel</button>
@@ -72,7 +72,6 @@
         <button class="nav-btn" onclick="showPage('anamnese')">Anamnese</button>
         <button class="nav-btn" onclick="showPage('antropometria')">Antropometria</button>
         <button class="nav-btn admin-only" onclick="showPage('treino')">Treino & Testes</button>
-        <button class="nav-btn admin-only" onclick="showPage('evolucao')">Evolução</button>
         <button class="nav-btn" onclick="showPage('pagamentos')">Pagamentos</button>
         <button class="nav-btn" onclick="logoutAdmin()" style="background: #ef4444; color: white; border-radius: 4px; padding: 5px 10px; margin-left: 10px;">Sair</button>
       </nav>
@@ -203,8 +202,8 @@
                 <div class="form-group full">
                   <label for="aluno-tipo">Tipo de Acesso</label>
                   <select id="aluno-tipo">
-                    <option value="gratuito" selected>Aluno Gratuito (Acesso sempre liberado)</option>
-                    <option value="pago">Aluno Pago (Bloqueia acesso sem pagamento)</option>
+                    <option value="pago" selected>Aluno Pago (Bloqueia acesso sem pagamento)</option>
+                    <option value="gratuito">Aluno Gratuito (Acesso sempre liberado)</option>
                   </select>
                 </div>
               </div>
@@ -241,7 +240,7 @@
                   <tr>
                     <th>Nome</th>
                     <th>Idade/Sexo</th>
-                    <th>Objetivo</th>
+                    <th>Anamnese</th>
                     <th>Última Avaliação</th>
                     <th>Status Pagamento</th>
                     <th>Ações</th>
@@ -1130,7 +1129,7 @@
         <div class="btn-row">
           <button type="button" class="btn-secondary" onclick="limparAnamnese()">Limpar</button>
           <button type="button" class="btn-primary" onclick="imprimirAnamnesePDF()">Baixar PDF</button>
-          <button type="button" class="btn-success" onclick="salvarAnamnese()">Salvar Anamnese</button>
+          <button type="button" id="btnSalvarAnamnese" class="btn-success" onclick="salvarAnamnese()">Salvar Anamnese</button>
         </div>
       </div>
     </div>
@@ -1171,7 +1170,8 @@
           <button class="tab-btn active" onclick="showTab('tab-circunferencias')">Circunferências</button>
           <button class="tab-btn" onclick="showTab('tab-dobras')">Dobras Cutâneas</button>
           <button class="tab-btn" onclick="showTab('tab-resultados-antro')">Resultados</button>
-          <button class="tab-btn" onclick="showTab('tab-evolucao-antro'); carregarEvolucaoAntro();">Evolução</button>
+          <button class="tab-btn" onclick="showTab('tab-evolucao-antro'); carregarEvolucao();">Evolução Geral</button>
+          <button class="tab-btn" onclick="showTab('tab-comparativo-antro'); carregarComparativoAntro();" style="background: #4f46e5; color: white;">📊 Comparativo Mês a Mês</button>
         </div>
         <div id="tab-circunferencias" class="tab-content active">
           <div class="form-section">
@@ -1439,25 +1439,88 @@
       </div> <!-- /tab-resultados-antro -->
 
       <div id="tab-evolucao-antro" class="tab-content">
-        <div class="form-section">
-          <h2 class="section-title">Evolução Antropométrica</h2>
-          <div class="chart-container"><canvas id="chart-antro-evolucao"></canvas></div>
-          <div class="table-wrapper" style="margin-top: 1rem;">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Data</th>
-                  <th>Peso (kg)</th>
-                  <th>% Gordura</th>
-                  <th>Massa Magra (kg)</th>
-                  <th>IMC</th>
-                </tr>
-              </thead>
-              <tbody id="lista-evolucao-antro"></tbody>
-            </table>
+        <div id="evolucao-content-integrated">
+          <div class="tabs sub-tabs" style="margin-top: 1rem; background: #f8fafc; padding: 10px; border-radius: 12px; display: flex; gap: 10px; overflow-x: auto;">
+            <button class="tab-btn active" onclick="showTab('sub-tab-graf-composicao')">Composição</button>
+            <button class="tab-btn" onclick="showTab('sub-tab-graf-vo2')">VO2máx</button>
+            <button class="tab-btn" onclick="showTab('sub-tab-graf-rm')">1RM (Força)</button>
+            <button class="tab-btn" onclick="showTab('sub-tab-historico')">Histórico Completo</button>
+          </div>
+
+          <div id="sub-tab-graf-composicao" class="tab-content active">
+            <div class="form-section">
+              <h2 class="section-title">Evolução da Composição Corporal</h2>
+              <div class="chart-container" style="height: 300px;"><canvas id="chart-composicao"></canvas></div>
+            </div>
+          </div>
+
+          <div id="sub-tab-graf-vo2" class="tab-content">
+            <div class="form-section">
+              <h2 class="section-title">Evolução do VO2máx</h2>
+              <div class="chart-container" style="height: 300px;"><canvas id="chart-vo2"></canvas></div>
+            </div>
+          </div>
+
+          <div id="sub-tab-graf-rm" class="tab-content">
+            <div class="form-section">
+              <h2 class="section-title">Evolução do 1RM</h2>
+              <div class="form-row">
+                <div class="form-group"><label>Exercício</label>
+                  <select id="rm-exercicio-graf" onchange="carregarGraficoRM()">
+                    <option value="">Selecione</option>
+                  </select>
+                </div>
+              </div>
+              <div class="chart-container" style="height: 300px;"><canvas id="chart-rm"></canvas></div>
+            </div>
+          </div>
+
+          <div id="sub-tab-historico" class="tab-content">
+            <div class="form-section">
+              <h2 class="section-title">Histórico de Avaliações</h2>
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Peso</th>
+                      <th>Gordura %</th>
+                      <th>Massa Magra</th>
+                      <th>IMC</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="lista-evolucao-geral">
+                    <!-- Preenchido via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       </div> <!-- /tab-evolucao-antro -->
+
+      <div id="tab-comparativo-antro" class="tab-content">
+        <div class="form-section" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem;">
+          <h2 class="section-title" style="color: #4f46e5;">📊 Comparativo de Evolução Detalhado</h2>
+          <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1.5rem;">Compare os resultados de duas avaliações diferentes do aluno selecionado.</p>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 1.5rem;">
+            <div class="form-group">
+              <label style="font-weight: bold; color: #4f46e5;">Avaliação Anterior (Base)</label>
+              <select id="comp-av-anterior" onchange="renderTabelaComparativa()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1;"></select>
+            </div>
+            <div class="form-group">
+              <label style="font-weight: bold; color: #10b981;">Avaliação Atual (Comparação)</label>
+              <select id="comp-av-atual" onchange="renderTabelaComparativa()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1;"></select>
+            </div>
+          </div>
+
+          <div id="container-tabela-comparativa" class="table-wrapper" style="margin-top: 1rem;">
+            <!-- Tabela comparativa gerada via JS -->
+          </div>
+        </div>
+      </div> <!-- /tab-comparativo-antro -->
 
     <div class="form-section" style="margin-top: 2rem; border-top: 2px solid var(--primary); padding-top: 1.5rem; background: #f0f9ff;">
       <h2 class="section-title">Gerar Relatório Customizado (PDF)</h2>
@@ -1492,68 +1555,6 @@
 </section> <!-- /page-antropometria -->
 
     <!-- ===================== EVOLUÇÃO ===================== -->
-    <div id="page-evolucao" class="page">
-      <div class="page-header">
-        <h1>Histórico e Evolução</h1>
-        <p>Acompanhamento do progresso do aluno ao longo do tempo</p>
-      </div>
-      <div class="container">
-        <div class="form-section">
-          <h2 class="section-title">Selecionar Aluno</h2>
-          <div class="form-row">
-            <div class="form-group full"><label>Aluno</label><select id="alunoEvolucao" onchange="carregarEvolucao()"><option value="">Selecione</option></select></div>
-          </div>
-          <div class="btn-row">
-            <button type="button" class="btn-primary" onclick="gerarRelatorioCompleto()">Gerar Relatório Geral de Evolução</button>
-          </div>
-        </div>
-        <div id="evolucao-content" style="display:none;">
-          <div class="tabs">
-            <button class="tab-btn active" onclick="showTab('tab-graf-composicao')">Composição Corporal</button>
-            <button class="tab-btn" onclick="showTab('tab-graf-vo2')">VO2máx</button>
-            <button class="tab-btn" onclick="showTab('tab-graf-rm')">1RM</button>
-            <button class="tab-btn" onclick="showTab('tab-historico')">Histórico Completo</button>
-          </div>
-          <div id="tab-graf-composicao" class="tab-content active">
-            <div class="form-section">
-              <h2 class="section-title">Evolução da Composição Corporal</h2>
-              <div class="chart-container"><canvas id="chart-composicao"></canvas></div>
-            </div>
-          </div>
-          <div id="tab-graf-vo2" class="tab-content">
-            <div class="form-section">
-              <h2 class="section-title">Evolução do VO2máx</h2>
-              <div class="chart-container"><canvas id="chart-vo2"></canvas></div>
-            </div>
-          </div>
-          <div id="tab-graf-rm" class="tab-content">
-            <div class="form-section">
-              <h2 class="section-title">Evolução do 1RM</h2>
-              <div class="form-row">
-                <div class="form-group"><label>Exercício</label>
-                  <select id="rm-exercicio-graf" onchange="carregarGraficoRM()">
-                    <option value="">Selecione</option>
-                  </select>
-                </div>
-              </div>
-              <div class="chart-container"><canvas id="chart-rm"></canvas></div>
-            </div>
-          </div>
-          <div id="tab-historico" class="tab-content">
-            <div class="form-section">
-              <h2 class="section-title">Histórico de Avaliações</h2>
-              <div id="historico-lista"></div>
-            </div>
-          </div>
-        </div>
-        <div id="evolucao-empty" class="result-placeholder-box"><p>Selecione um aluno para visualizar a evolução.</p></div>
-      </div>
-    </div>
-
-    </div>
-
-  </div><!-- #app -->
-
   <!-- MODALS GLOBAIS (FORA DO CONTAINER APP) -->
   <div id="modal-sucesso-cadastro" class="screen-overlay" style="display: none; z-index: 3000;">
     <div class="login-card" style="max-width: 450px; text-align: center; padding: 2rem; background: #f1f5f9; color: #000;">
