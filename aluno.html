@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="TREINOFITASM"/>
+  <link rel="apple-touch-icon" href="logo.png"/>
+  <meta name="theme-color" content="#2563eb"/>
+  <title>TREINOFITASM – Aluno</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="stylesheet" href="aluno.css"/>
+</head>
+<body>
+  <!-- LOGIN -->
+  <div id="screen-login" class="screen active">
+    <div class="login-hero">
+      <div class="login-icon">🏋️</div>
+      <h1>TREINOFITASM</h1>
+      <p>Seu app de treino personalizado</p>
+    </div>
+    <div class="login-card">
+      <h2>Entrar</h2>
+      <div class="field"><label>E-mail</label><input type="email" id="login-email" placeholder="Seu e-mail cadastrado"/></div>
+      <div class="field"><label>Senha</label><input type="password" id="login-senha" placeholder="Sua senha"/></div>
+      <div id="login-erro" class="login-erro" style="display:none;"></div>
+      <button class="btn-full" onclick="fazerLogin()">Entrar</button>
+      
+      <div style="text-align:center; margin-top:1rem;">
+        <button onclick="abrirModalEsqueciSenha()" style="background:none; border:none; color:#2563eb; text-decoration:underline; cursor:pointer; font-size:0.9rem;">Esqueceu sua senha?</button>
+      </div>
+
+      <div class="login-links" style="text-align:center; margin-top:1rem; border-top: 1px solid #eee; padding-top: 1rem;">
+        <a href="#" onclick="showOnlineRegistration()" style="color: #2563eb; text-decoration: none; font-size: 0.9rem;">Não tem cadastro? Clique aqui</a>
+      </div>
+      <p class="login-hint">Seu acesso é liberado pelo seu professor.</p>
+    </div>
+  </div>
+
+  <!-- TELA DE CADASTRO ONLINE -->
+  <div id="screen-cadastro-online" class="screen" style="display:none; padding: 1rem;">
+    <div class="login-hero" style="padding: 1rem 0;">
+      <div class="login-icon">📝</div>
+      <h1>Cadastro TREINOFITASM</h1>
+      <p>Preencha seus dados para começar no programa</p>
+    </div>
+    <div class="login-card" style="margin-top: 0;">
+      <div class="field"><label>Nome Completo *</label><input type="text" id="reg-nome" placeholder="Seu nome completo"/></div>
+      <div class="field"><label>E-mail (será seu login) *</label><input type="email" id="reg-email" placeholder="seu@email.com"/></div>
+      <div class="field"><label>Crie uma Senha *</label><input type="password" id="reg-senha" placeholder="Mínimo 6 caracteres"/></div>
+      <div class="field"><label>Data de Nascimento *</label><input type="date" id="reg-dataNasc"/></div>
+      <div class="field"><label>Sexo *</label>
+        <select id="reg-sexo"><option value="M">Masculino</option><option value="F">Feminino</option></select>
+      </div>
+      <div class="field"><label>WhatsApp/Telefone *</label><input type="text" id="reg-telefone" placeholder="(00) 00000-0000"/></div>
+      <div class="field"><label>Objetivo Principal *</label>
+        <select id="reg-objetivo">
+          <option value="hipertrofia">Hipertrofia Muscular</option>
+          <option value="emagrecimento">Emagrecimento</option>
+          <option value="forca">Força Máxima</option>
+          <option value="saude">Saúde/Bem-estar</option>
+        </select>
+      </div>
+      <div id="reg-erro" class="login-erro" style="display:none;"></div>
+      <button class="btn-full" onclick="realizarCadastroOnline()">Finalizar Cadastro</button>
+      <button class="btn-full" onclick="voltarLogin()" style="background:#64748b; margin-top:0.5rem;">Voltar ao Login</button>
+    </div>
+  </div>
+
+  <!-- MODAL ESQUECI SENHA -->
+  <div id="modal-esqueci-senha" class="screen-overlay" style="display:none; z-index: 5000; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); position: fixed; top: 0; left: 0; width: 100%; height: 100%; align-items: center; justify-content: center;">
+    <div class="login-card" style="max-width: 400px; width: 90%; margin: auto;">
+      <h2 style="color: #2563eb; margin-bottom: 1rem;">🔐 Recuperar Senha</h2>
+      <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 1.5rem;">Para alterar sua senha, informe seu e-mail cadastrado e a nova senha que deseja utilizar.</p>
+      
+      <div class="field">
+        <label>E-mail Cadastrado</label>
+        <input type="email" id="reset-email" placeholder="seu@email.com"/>
+      </div>
+      <div class="field">
+        <label>Nova Senha (Mín. 6 caracteres)</label>
+        <input type="password" id="reset-senha-nova" placeholder="Mínimo 6 caracteres"/>
+      </div>
+      
+      <div id="reset-erro" class="login-erro" style="display:none; margin-bottom: 1rem;"></div>
+      
+      <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 1.5rem;">
+        <button class="btn-full" style="background: #2563eb; color: white;" onclick="processarRecuperarSenha()">Alterar Senha Agora</button>
+        <button class="btn-full" onclick="fecharModalEsqueciSenha()" style="background:#64748b;">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP PRINCIPAL -->
+  <div id="screen-app" class="screen" style="display:none;">
+    <!-- HEADER -->
+    <header class="app-header">
+      <div class="header-info">
+        <div class="avatar" id="av-inicial">A</div>
+        <div>
+          <div class="header-nome" id="header-nome">Aluno</div>
+          <div class="header-sub" id="header-sub">Bem-vindo!</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="fazerLogout()">Sair</button>
+    </header>
+
+    <!-- CONTEÚDO DAS ABAS -->
+    <main class="app-main">
+
+      <!-- ABA: INÍCIO / RESUMO -->
+      <div id="tab-inicio" class="tab-pane active">
+        <!-- BANNER INSTALAÇÃO APP -->
+        <div id="pwa-banner-aluno" class="section-card" style="display:none; background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); color: white; border: none; position: relative; overflow: hidden;">
+          <div style="position: absolute; top: -10px; right: -10px; font-size: 3rem; opacity: 0.1; transform: rotate(15deg);">📱</div>
+          <div style="display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 2;">
+            <div style="flex: 1; padding-right: 10px;">
+              <h3 style="color: white; font-size: 1.1rem; margin-bottom: 0.3rem; font-weight: 800;">🚀 Criar Atalho na Área de Trabalho</h3>
+              <p style="font-size: 0.85rem; opacity: 0.95; line-height: 1.3;">Para acessar o TREINOFITASM rapidamente, crie um atalho na sua tela de início agora!</p>
+              <div id="ios-install-hint" style="display:none; font-size: 0.75rem; margin-top: 8px; background: rgba(255,255,255,0.15); padding: 6px 10px; border-radius: 6px;">
+                No iOS: Toque em <span style="font-size:1.1rem; vertical-align: middle;">⎋</span> e depois em <b>"Adicionar à Tela de Início"</b>.
+              </div>
+            </div>
+            <button id="btn-pwa-install-aluno" class="btn-primary" style="background: white; color: #2563eb; padding: 10px 18px; border-radius: 10px; font-weight: 800; border: none; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.15); white-space: nowrap;">CRIAR ATALHO</button>
+          </div>
+        </div>
+
+        <!-- ANAMNESE PENDENTE ALERT -->
+        <div id="anamnese-pendente-alert" class="section-card" style="display:none; background:#fff7ed; border:1px solid #fb923c;">
+          <h3 style="color:#c2410c; font-size:1rem; margin-bottom:0.5rem;">📋 Anamnese Pendente</h3>
+          <p style="font-size:0.85rem; color:#9a3412; margin-bottom:1rem;">Preencha seus dados de saúde para que seu professor possa prescrever seu treino com segurança.</p>
+          <button class="btn-full" onclick="abrirAnamneseInicial()" style="background:#f97316;">Preencher Agora</button>
+        </div>
+
+        <!-- ALERTA DE VENCIMENTO DE TREINO (ALUNO) -->
+        <div id="alerta-treino-vencido-aluno" class="section-card" style="display:none; background: #fef2f2; border: 1px solid #fecaca;">
+          <h3 style="color: #b91c1c; font-size: 1rem; margin-bottom: 0.5rem;">📅 Atualização de Treino</h3>
+          <p id="msg-treino-vencido-aluno" style="font-size: 0.85rem; color: #991b1b; line-height: 1.4;"></p>
+        </div>
+
+        <div class="section-card">
+          <h3 class="card-title">📊 Resumo</h3>
+          <div id="resumo-grid" class="resumo-grid"></div>
+        </div>
+        <div class="section-card">
+          <h3 class="card-title">🎯 Meu Objetivo</h3>
+          <div id="resumo-objetivo" class="objetivo-badge"></div>
+        </div>
+        <div class="section-card">
+          <h3 class="card-title">📅 Meu Treino</h3>
+          <div id="proximo-treino" class="proximo-treino-box"></div>
+        </div>
+      </div>
+
+      <!-- ABA: ANAMNESE INICIAL -->
+      <div id="tab-anamnese-aluno" class="tab-pane">
+        <div class="section-card">
+          <h2 class="card-title">📋 Anamnese de Saúde</h2>
+          <p style="font-size:0.8rem; color:#64748b; margin-bottom:1.5rem;">Responda com sinceridade para sua segurança.</p>
+          
+          <div class="field">
+            <label>Você possui alguma doença diagnosticada?</label>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:0.85rem;">
+              <label><input type="checkbox" class="anam-doenca" value="diabetes"> Diabetes</label>
+              <label><input type="checkbox" class="anam-doenca" value="hipertensao"> Hipertensão</label>
+              <label><input type="checkbox" class="anam-doenca" value="cardiopatia"> Cardiopatia</label>
+              <label><input type="checkbox" class="anam-doenca" value="lesao"> Lesão Articular</label>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:1rem;">
+            <label>Toma algum medicamento controlado?</label>
+            <textarea id="anam-meds" placeholder="Nome do medicamento e para quê serve..." rows="2"></textarea>
+          </div>
+
+          <div class="field" style="margin-top:1rem;">
+            <label>Já sentiu dores no peito ao se exercitar?</label>
+            <select id="anam-dor-peito">
+              <option value="nao">Não</option>
+              <option value="sim">Sim</option>
+            </select>
+          </div>
+
+          <button class="btn-full btn-primary" style="margin-top:1.5rem;" onclick="salvarAnamneseAluno()">Salvar e Finalizar</button>
+        </div>
+      </div>
+
+      <!-- ABA: MEU TREINO -->
+      <div id="tab-treino" class="tab-pane">
+        <div id="treino-liberado">
+          <div class="section-card">
+            <h3 class="card-title">📅 Cronograma Semanal</h3>
+            <div id="cronograma-semanal-aluno" class="cronograma-grid"></div>
+          </div>
+
+          <div class="section-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <h3 class="card-title" style="margin: 0;">💪 Minha Ficha de Treino</h3>
+              <div class="divisao-selector-wrapper">
+                <select id="select-divisao-treino" onchange="mudarDivisao(this.value)" style="padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--primary); font-weight: 800; font-size: 0.9rem; outline: none; box-shadow: var(--shadow);">
+                  <!-- Opções geradas via JS -->
+                </select>
+              </div>
+            </div>
+            
+            <div id="ficha-treino-content"></div>
+            
+            <div class="btn-row" style="margin-top:1.5rem;">
+              <button class="btn-full btn-primary" onclick="baixarTreinoPDF()">📥 Baixar Treino PDF</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ABA: MINHA AVALIAÇÃO -->
+      <div id="tab-avaliacao" class="tab-pane">
+        <div id="avaliacao-liberada">
+          <div class="section-card">
+            <h3 class="card-title">📏 Composição Corporal</h3>
+            <div id="aval-composicao"></div>
+          </div>
+          <div class="section-card">
+            <h3 class="card-title">📈 Evolução</h3>
+            <canvas id="chart-aluno-composicao" style="max-height:220px;"></canvas>
+          </div>
+          <div class="btn-row" style="margin-top:1rem;">
+            <button class="btn-full btn-primary" onclick="baixarAvaliacaoPDF()">📥 Baixar Avaliação PDF</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ABA: PERFIL -->
+      <div id="tab-perfil" class="tab-pane">
+        <div class="section-card">
+          <h3 class="card-title">👤 Meus Dados</h3>
+          <div id="perfil-view"></div>
+        </div>
+      </div>
+
+      <!-- ABA: PAGAMENTO -->
+      <div id="tab-pagamento" class="tab-pane">
+        <div class="section-card">
+          <h3 class="card-title">💎 Nossos Planos</h3>
+          <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1rem;">Escolha o plano que melhor se adapta ao seu objetivo.</p>
+          
+          <div class="planos-grid" style="display: grid; gap: 1rem; margin-bottom: 1.5rem;">
+            <div class="plano-card" style="border: 1px solid #e2e8f0; padding: 1rem; border-radius: 8px; background: #fff;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong>MENSAL</strong>
+                <span style="color: #2563eb; font-weight: bold;">R$ 150,00</span>
+              </div>
+              <p style="font-size: 0.75rem; color: #64748b; margin-top: 0.5rem;">• Renovação mês a mês<br>• Prescrição completa<br>• Suporte via App</p>
+            </div>
+            
+            <div class="plano-card" style="border: 2px solid #2563eb; padding: 1rem; border-radius: 8px; background: #eff6ff; position: relative;">
+              <span style="position: absolute; top: -10px; right: 10px; background: #2563eb; color: white; font-size: 0.65rem; padding: 2px 8px; border-radius: 10px;">MAIS POPULAR</span>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong>TRIMESTRAL</strong>
+                <span style="color: #2563eb; font-weight: bold;">R$ 390,00</span>
+              </div>
+              <p style="font-size: 0.75rem; color: #64748b; margin-top: 0.5rem;">• 3 meses de acompanhamento<br>• R$ 130,00 por mês<br>• Avaliações mensais</p>
+            </div>
+
+            <div class="plano-card" style="border: 1px solid #e2e8f0; padding: 1rem; border-radius: 8px; background: #fff;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong>SEMESTRAL</strong>
+                <span style="color: #2563eb; font-weight: bold;">R$ 720,00</span>
+              </div>
+              <p style="font-size: 0.75rem; color: #64748b; margin-top: 0.5rem;">• 6 meses de acompanhamento<br>• R$ 120,00 por mês<br>• Melhor custo-benefício</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <h3 class="card-title">💳 Meus Pagamentos</h3>
+          <div id="historico-pagamentos"></div>
+        </div>
+
+        <div class="section-card">
+          <h3 class="card-title">Realizar Pagamento (PIX)</h3>
+          <div class="pix-container">
+            <div class="pix-info">
+              <p><strong>Chave PIX:</strong></p>
+              <div class="pix-chave" id="pix-chave-box">treinofitasm@contato.com.br</div>
+              <button class="btn-copy" onclick="copiarPix()">📋 Copiar Chave</button>
+              <p style="font-size: 0.75rem; color: #64748b; margin-top: 1rem; text-align: center;">Após o pagamento, envie o comprovante para o seu professor para liberação imediata.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- BOTTOM NAV -->
+    <nav class="bottom-nav">
+      <button class="bnav-btn active" id="bnav-inicio" onclick="showTab('inicio')">
+        <span class="bnav-icon">🏠</span><span class="bnav-label">Início</span>
+      </button>
+      <button class="bnav-btn" id="bnav-treino" onclick="showTab('treino')">
+        <span class="bnav-icon">💪</span><span class="bnav-label">Treino</span>
+      </button>
+      <button class="bnav-btn" id="bnav-avaliacao" onclick="showTab('avaliacao')">
+        <span class="bnav-icon">📊</span><span class="bnav-label">Avaliação</span>
+      </button>
+      <button class="bnav-btn" id="bnav-perfil" onclick="showTab('perfil')">
+        <span class="bnav-icon">👤</span><span class="bnav-label">Perfil</span>
+      </button>
+      <button class="bnav-btn" id="bnav-pagamento" onclick="showTab('pagamento')">
+        <span class="bnav-icon">💳</span><span class="bnav-label">Pagamento</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast-aluno" class="toast-aluno"></div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="aluno.js"></script>
+</body>
+</html>
