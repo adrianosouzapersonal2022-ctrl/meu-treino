@@ -83,9 +83,10 @@ function showPage(name) {
     
     // Garantir renderização imediata de componentes específicos
     if (name === 'comunidade') {
+      console.log('Entrou na aba Comunidade - Disparando renderMuralAdmin');
       setTimeout(() => {
         renderMuralAdmin();
-      }, 50);
+      }, 100);
     }
   }
 
@@ -105,6 +106,9 @@ function showPage(name) {
   if (name === 'meus-alunos') renderListaGeralAlunos();
   if (name === 'pagamentos') renderPagamentos();
   if (name === 'evolucao') carregarEvolucao();
+  if (name === 'treino') {
+    if (typeof populateRMExercises === 'function') populateRMExercises();
+  }
 }
 
 const showTab = (id) => {
@@ -1479,6 +1483,32 @@ function adminEnviarMensagemMural() {
   showToast('Mensagem enviada!', 'success');
 }
 
+/**
+ * Envia uma mensagem de teste do sistema para todos os alunos (Simulado no Mural)
+ */
+function enviarMensagemTesteSistema() {
+  const texto = "🚀 MENSAGEM DE TESTE DO SISTEMA: Olá a todos os alunos! Este é um teste das notificações e do mural da comunidade. Bons treinos! 💪🔥";
+  const muralKey = 'mural_feedbacks';
+  const mensagens = JSON.parse(localStorage.getItem(muralKey) || '[]');
+  
+  const novaMsg = {
+    id: Date.now(),
+    alunoId: 'system-test',
+    nome: 'SISTEMA TREINOFIT (TESTE)',
+    texto: texto,
+    data: new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+    isAdmin: true,
+    reacoes: ['🚀', '✅']
+  };
+
+  mensagens.push(novaMsg);
+  localStorage.setItem(muralKey, JSON.stringify(mensagens));
+  
+  renderMuralAdmin();
+  showToast('Mensagem de teste enviada para todos os alunos!', 'success');
+  console.log('Mensagem de teste do sistema enviada com sucesso.');
+}
+
 // Funções de ação do mural já definidas acima (reagirMural, etc)
 
 function removerMensagemMural(id) {
@@ -1554,18 +1584,18 @@ function restaurarDadosJessica() {
       sessoesRealizadas: 0,
       exercicios: [
         // TREINO A - Superiores (Empurrar)
-        { id: Date.now()+1, divisao: 'A', grupo: 'Peito', nome: 'Supino Reto Barra', series: '4', reps: '10-12', carga: '20', descanso: '60', tecnica: 'Tradicional' },
-        { id: Date.now()+2, divisao: 'A', grupo: 'Ombros', nome: 'Desenvolvimento Halteres', series: '3', reps: '12', carga: '8', descanso: '60', tecnica: 'Tradicional' },
-        { id: Date.now()+3, divisao: 'A', grupo: 'Tríceps', nome: 'Tríceps Pulley', series: '3', reps: '15', carga: '15', descanso: '45', tecnica: 'Drop Set' },
+        { id: Date.now()+1, divisao: 'A', grupo: 'Peito', nome: 'Supino Reto Barra', series: '4', reps: '10-12', carga: '20', carga1RM: '80', perc1RM: '75', descanso: '60', tecnica: 'Tradicional' },
+        { id: Date.now()+2, divisao: 'A', grupo: 'Ombros', nome: 'Desenvolvimento Halteres', series: '3', reps: '12', carga: '8', carga1RM: '15', perc1RM: '70', descanso: '60', tecnica: 'Tradicional' },
+        { id: Date.now()+3, divisao: 'A', grupo: 'Tríceps', nome: 'Tríceps Pulley', series: '3', reps: '15', carga: '15', carga1RM: '30', perc1RM: '65', descanso: '45', tecnica: 'Drop Set' },
         // TREINO B - Superiores (Puxar)
-        { id: Date.now()+4, divisao: 'B', grupo: 'Costas', nome: 'Puxada Frente Aberta', series: '4', reps: '10-12', carga: '35', descanso: '60', tecnica: 'Tradicional' },
-        { id: Date.now()+5, divisao: 'B', grupo: 'Costas', nome: 'Remada Baixa Triângulo', series: '3', reps: '12', carga: '30', descanso: '60', tecnica: 'Tradicional' },
-        { id: Date.now()+6, divisao: 'B', grupo: 'Bíceps', nome: 'Rosca Direta Polia', series: '3', reps: '12', carga: '10', descanso: '45', tecnica: 'Rest-Pause' },
+        { id: Date.now()+4, divisao: 'B', grupo: 'Costas', nome: 'Puxada Frente Aberta', series: '4', reps: '10-12', carga: '35', carga1RM: '60', perc1RM: '70', descanso: '60', tecnica: 'Tradicional' },
+        { id: Date.now()+5, divisao: 'B', grupo: 'Costas', nome: 'Remada Baixa Triângulo', series: '3', reps: '12', carga: '30', carga1RM: '55', perc1RM: '75', descanso: '60', tecnica: 'Tradicional' },
+        { id: Date.now()+6, divisao: 'B', grupo: 'Bíceps', nome: 'Rosca Direta Polia', series: '3', reps: '12', carga: '10', carga1RM: '25', perc1RM: '60', descanso: '45', tecnica: 'Rest-Pause' },
         // TREINO C - Inferiores
-        { id: Date.now()+7, divisao: 'C', grupo: 'Pernas', nome: 'Agachamento Livre', series: '4', reps: '10', carga: '30', descanso: '90', tecnica: 'Tradicional' },
-        { id: Date.now()+8, divisao: 'C', grupo: 'Pernas', nome: 'Leg Press 45º', series: '3', reps: '12', carga: '120', descanso: '60', tecnica: 'Tradicional' },
-        { id: Date.now()+9, divisao: 'C', grupo: 'Glúteos', nome: 'Elevação Pélvica', series: '4', reps: '12', carga: '40', descanso: '60', tecnica: 'Tradicional' },
-        { id: Date.now()+10, divisao: 'C', grupo: 'Pernas', nome: 'Cadeira Extensora', series: '3', reps: '15', carga: '25', descanso: '45', tecnica: 'Isometria 3s' }
+        { id: Date.now()+7, divisao: 'C', grupo: 'Pernas', nome: 'Agachamento Livre', series: '4', reps: '10', carga: '30', carga1RM: '60', perc1RM: '80', descanso: '90', tecnica: 'Tradicional' },
+        { id: Date.now()+8, divisao: 'C', grupo: 'Pernas', nome: 'Leg Press 45º', series: '3', reps: '12', carga: '120', carga1RM: '200', perc1RM: '70', descanso: '60', tecnica: 'Tradicional' },
+        { id: Date.now()+9, divisao: 'C', grupo: 'Glúteos', nome: 'Elevação Pélvica', series: '4', reps: '12', carga: '40', carga1RM: '80', perc1RM: '75', descanso: '60', tecnica: 'Tradicional' },
+        { id: Date.now()+10, divisao: 'C', grupo: 'Pernas', nome: 'Cadeira Extensora', series: '3', reps: '15', carga: '25', carga1RM: '50', perc1RM: '65', descanso: '45', tecnica: 'Isometria 3s' }
       ]
     };
     fichas.push(novaFicha);

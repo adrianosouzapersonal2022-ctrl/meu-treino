@@ -132,6 +132,140 @@ function getExerciciosCompletos() {
   return [...EXERCICIOS_DB, ...custom];
 }
 
+/**
+ * Retorna uma URL de GIF baseada no nome do exercício ou grupo muscular
+ * URLs atualizadas para maior estabilidade e fallback robusto
+ */
+function getGifExercicio(exer) {
+  // Se o professor inseriu um link manual que não seja do giphy (que costuma dar erro de hotlink)
+  if (exer.video && (exer.video.includes('.gif') || exer.video.includes('tenor.com')) && !exer.video.includes('giphy.com')) {
+    return exer.video;
+  }
+  
+  const nome = (exer.nome || '').toLowerCase();
+  const grupo = (exer.grupo || '').toLowerCase();
+  
+  // Mapeamento de GIFs de fontes mais estáveis (FitnessProgramer ou placeholders educativos)
+  const GIFS_GRUPO = {
+    'peito': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/BARBELL-BENCH-PRESS.gif',
+    'costas': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/LAT-PULLDOWN.gif',
+    'ombros': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/DUMBBELL-LATERAL-RAISE.gif',
+    'pernas': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/BARBELL-SQUAT.gif',
+    'coxa': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/BARBELL-SQUAT.gif',
+    'gluteos': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/HIP-THRUST.gif',
+    'gluteo': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/HIP-THRUST.gif',
+    'biceps': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/BARBELL-CURL.gif',
+    'triceps': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/PULLDOWN.gif',
+    'abdomen': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/CRUNCH.gif',
+  };
+
+  // Tenta encontrar por palavras-chave no nome
+  if (nome.includes('supino')) return 'https://fitnessprogramer.com/wp-content/uploads/2021/02/BARBELL-BENCH-PRESS.gif';
+  if (nome.includes('agachamento')) return 'https://fitnessprogramer.com/wp-content/uploads/2021/02/BARBELL-SQUAT.gif';
+  if (nome.includes('rosca')) return 'https://fitnessprogramer.com/wp-content/uploads/2021/02/BARBELL-CURL.gif';
+  if (nome.includes('puxada')) return 'https://fitnessprogramer.com/wp-content/uploads/2021/02/LAT-PULLDOWN.gif';
+  if (nome.includes('leg press')) return 'https://fitnessprogramer.com/wp-content/uploads/2021/02/LEG-PRESS.gif';
+
+  return GIFS_GRUPO[grupo] || 'https://via.placeholder.com/400x300/f1f5f9/64748b?text=Visualização+ASM';
+}
+
+/**
+ * Calcula a carga baseada no 1RM e preenche repetições sugeridas
+ */
+function calcularCarga1RM() {
+  const carga1RM = parseFloat(document.getElementById('presc-ex-1rm-max')?.value || 0);
+  const pct = parseFloat(document.getElementById('presc-ex-pct-1rm')?.value || 0);
+  const displayCarga = document.getElementById('presc-ex-carga-calculada');
+  const repsInput = document.getElementById('presc-ex-reps');
+
+  // Mapeamento de repetições sugeridas por % do 1RM
+  const REPS_SUGERIDAS = {
+    100: "1",
+    95: "2",
+    90: "3",
+    85: "5",
+    80: "6",
+    75: "8",
+    70: "10",
+    65: "12",
+    60: "15",
+    55: "20",
+    50: "25"
+  };
+
+  if (carga1RM > 0 && pct > 0) {
+    const final = Math.round(carga1RM * (pct / 100));
+    
+    if (displayCarga) {
+      displayCarga.innerHTML = `Carga Final: <strong style="color: #2563eb;">${final} kg</strong>`;
+      
+      // Preencher o campo de carga padrão automaticamente
+      const cargaInput = document.getElementById('presc-ex-carga');
+      if (cargaInput) cargaInput.value = final;
+      
+      // Preencher repetições sugeridas se o campo estiver vazio
+      if (repsInput && REPS_SUGERIDAS[pct]) {
+        repsInput.value = REPS_SUGERIDAS[pct];
+      }
+    }
+    return final;
+  } else {
+    if (displayCarga) displayCarga.innerHTML = '';
+    return 0;
+  }
+}
+
+/**
+ * Sugere o grupo muscular automaticamente ao digitar o nome do exercício
+ */
+function sugerirGrupoMuscular() {
+  const nome = document.getElementById('novo-exer-nome').value.toLowerCase();
+  const checkboxes = document.querySelectorAll('input[name="novo-grupo"]');
+  
+  const MAP_SUGESTAO = {
+    'peito': ['supino', 'crucifixo', 'voador', 'flexão', 'chest', 'pec'],
+    'costas': ['puxada', 'remada', 'barra fixa', 'serrote', 'terra', 'pulldown', 'lat'],
+    'ombros': ['desenvolvimento', 'elevação lateral', 'frontal', 'arnold', 'shoulder'],
+    'biceps': ['rosca', 'biceps', 'curl'],
+    'triceps': ['triceps', 'testa', 'pulley', 'coice'],
+    'coxa': ['agachamento', 'leg press', 'extensora', 'flexora', 'stiff', 'afundo', 'passada'],
+    'gluteo': ['gluteo', 'pélvica', 'abdução', 'kickback'],
+    'abdomen': ['abdominal', 'prancha', 'crunch', 'infra']
+  };
+
+  checkboxes.forEach(cb => cb.checked = false); // Limpa
+
+  for (let grupo in MAP_SUGESTAO) {
+    if (MAP_SUGESTAO[grupo].some(keyword => nome.includes(keyword))) {
+      const target = Array.from(checkboxes).find(cb => cb.value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(grupo));
+      if (target) {
+        target.checked = true;
+        // Atualizar visualização de GIF se houver
+        atualizarPreviaGifModal();
+      }
+    }
+  }
+}
+
+function atualizarPreviaGifModal() {
+  const nome = document.getElementById('novo-exer-nome').value;
+  const grupos = Array.from(document.querySelectorAll('input[name="novo-grupo"]:checked')).map(cb => cb.value);
+  const videoManual = document.getElementById('novo-exer-video').value;
+  const previa = document.getElementById('previa-gif-modal');
+  
+  if (!previa) return;
+
+  const exerMock = { nome, grupo: grupos[0] || '', video: videoManual };
+  const url = getGifExercicio(exerMock);
+  
+  previa.innerHTML = `
+    <div style="width: 100%; height: 180px; background: #1a1a1a; border-radius: 10px; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid #333;">
+      <img src="${url}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.src='https://via.placeholder.com/400x300/1a1a1a/ffffff?text=ASM+Fitness'">
+    </div>
+    <p style="font-size: 0.7rem; color: #94a3b8; margin-top: 5px; text-align: center;">Visualização baseada no nome e grupo muscular</p>
+  `;
+}
+
 function renderListaExercicios() {
   const container = document.getElementById('presc-lista-exercicios');
   if (!container) return;
@@ -150,51 +284,36 @@ function renderListaExercicios() {
       return nomeNorm.includes(busca) || grupoNorm.includes(busca) || equipNorm.includes(busca);
     });
   }
-  
+
   if (gruposChecked.length > 0) {
     lista = lista.filter(e => gruposChecked.includes(e.grupo));
   }
-  
+
   if (lista.length === 0) {
-    container.innerHTML = `
-      <div style="text-align: center; padding: 2rem; color: #64748b;">
-        <p>🔍 Nenhum exercício encontrado para "${buscaRaw}".</p>
-        <button class="btn-success" onclick="abrirModalNovoExercicio()" style="margin-top: 10px;">+ Cadastrar "${buscaRaw}"</button>
-      </div>
-    `;
+    container.innerHTML = '<p class="result-placeholder">Nenhum exercício encontrado.</p>';
     return;
   }
 
   container.innerHTML = lista.map(e => {
-    const grupoClass = `grupo-${e.grupo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
     const bgClass = `bg-${e.grupo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
-    const nivel = e.nivel || 'Iniciante';
-    const nivelClass = `nivel-${nivel.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
+    const gifUrl = getGifExercicio(e);
     
     return `
-      <div class="exer-item ${grupoClass}">
-        <div class="nivel-badge ${nivelClass}">${nivel}</div>
-        <div class="exer-media" onclick="selecionarExercicio('${e.id}')">
-          ${e.video ? `<img src="https://img.youtube.com/vi/${getYouTubeID(e.video)}/0.jpg" alt="${e.nome}" onerror="this.src='https://via.placeholder.com/300x150?text=Exerc%C3%ADcio'">` : `<div style="font-size:2rem; color:#cbd5e1;">🏋️</div>`}
+      <div class="exer-item" onclick="selecionarExercicio('${e.id}')">
+        <div class="exer-media">
+          <img src="${gifUrl}" alt="${e.nome}" loading="lazy" onerror="this.src='https://via.placeholder.com/400x300/f1f5f9/64748b?text=Erro+Imagem'">
+          <div class="nivel-badge nivel-${e.nivel.toLowerCase().replace('ç', 'c')}">${e.nivel}</div>
         </div>
         <div class="exer-info">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px;">
-            <div class="badge-grupo ${bgClass}">${e.grupo}</div>
-            ${String(e.id).startsWith('custom_') ? `
-              <div style="display: flex; gap: 5px;">
-                <button onclick="editarExercicioCustom('${e.id}')" style="background: #3b82f6; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;" title="Editar">✏️</button>
-                <button onclick="excluirExercicioCustom('${e.id}')" style="background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;" title="Excluir">🗑️</button>
-              </div>
-            ` : ''}
-          </div>
-          <div class="exer-nome" onclick="selecionarExercicio('${e.id}')">${e.nome}</div>
-          <div class="exer-meta" onclick="selecionarExercicio('${e.id}')">
-            <span>${e.equip || 'Livre'}</span>
-            <span>•</span>
-            <span>${e.tipo || 'Força'}</span>
+          <span class="badge-grupo ${bgClass}">${e.grupo}</span>
+          <div class="exer-nome">${e.nome}</div>
+          <div class="exer-meta">
+            <span>⚙️ ${e.equip || 'Livre'}</span>
+            <span>⚡ ${e.tipo}</span>
           </div>
         </div>
-      </div>`;
+      </div>
+    `;
   }).join('');
 }
 
@@ -262,37 +381,32 @@ function selecionarExercicio(id) {
     painel.dataset.exId = id;
     
     // Limpar campos de entrada para novo exercício
-    document.getElementById('presc-carga').value = '';
-    document.getElementById('presc-reps').value = '';
-    document.getElementById('presc-pct-rm').value = '';
-    document.getElementById('presc-cadencia').value = '';
-    document.getElementById('presc-video').value = ex.video || '';
-    document.getElementById('presc-obs-ex').value = '';
+    if (document.getElementById('presc-ex-carga')) document.getElementById('presc-ex-carga').value = '';
+    if (document.getElementById('presc-ex-reps')) document.getElementById('presc-ex-reps').value = '';
+    if (document.getElementById('presc-ex-1rm-max')) document.getElementById('presc-ex-1rm-max').value = '';
+    if (document.getElementById('presc-ex-pct-1rm')) document.getElementById('presc-ex-pct-1rm').value = '';
+    if (document.getElementById('presc-cadencia')) document.getElementById('presc-cadencia').value = '';
+    if (document.getElementById('presc-video')) document.getElementById('presc-video').value = ex.video || '';
+    if (document.getElementById('presc-obs-ex')) document.getElementById('presc-obs-ex').value = '';
+    if (document.getElementById('presc-ex-carga-calculada')) document.getElementById('presc-ex-carga-calculada').innerHTML = '';
     
     // Buscar 1RM do aluno para este exercício no state
-    const rmRegs = state.rms.filter(r => String(r.alunoId) === String(currentAlunoId) && String(r.exercicioId) === String(id));
+    const rmRegs = (state.rms || []).filter(r => String(r.alunoId) === String(currentAlunoId) && String(r.exercicioId) === String(id));
     const ref = document.getElementById('rm-referencia');
-    if (rmRegs.length > 0) {
-      const ultimoRM = rmRegs[rmRegs.length - 1].rm;
-      ref.textContent = `Último 1RM: ${ultimoRM.toFixed(1)} kg`;
-      ref.dataset.rm = ultimoRM;
-    } else {
-      ref.textContent = 'Sem 1RM registrado para este exercício.';
-      ref.dataset.rm = '';
+    if (ref) {
+      if (rmRegs.length > 0) {
+        const ultimoRM = rmRegs[rmRegs.length - 1].rm;
+        ref.textContent = `Último 1RM registrado: ${ultimoRM.toFixed(1)} kg`;
+        ref.dataset.rm = ultimoRM;
+        // Sugerir este valor como 1RM Máximo inicial
+        if (document.getElementById('presc-ex-1rm-max')) document.getElementById('presc-ex-1rm-max').value = ultimoRM;
+      } else {
+        ref.textContent = 'Sem 1RM registrado para este exercício.';
+        ref.dataset.rm = '';
+      }
     }
     
     painel.scrollIntoView({ behavior:'smooth' });
-  }
-}
-
-function calcularCargaPorRM() {
-  const pct = parseFloat(document.getElementById('presc-pct-rm').value);
-  const rmRef = document.getElementById('rm-referencia');
-  const rm = parseFloat(rmRef?.dataset.rm);
-  
-  if (pct && rm) {
-    const carga = (rm * pct / 100).toFixed(1);
-    document.getElementById('presc-carga').value = carga;
   }
 }
 
@@ -311,12 +425,13 @@ function adicionarExercicio() {
     nome: ex.nome,
     grupo: ex.grupo,
     divisao: document.getElementById('presc-divisao')?.value || 'A',
-    series: document.getElementById('presc-series')?.value || '',
-    reps: document.getElementById('presc-reps')?.value || '',
-    carga: document.getElementById('presc-carga')?.value || '',
-    pct: document.getElementById('presc-pct-rm')?.value || '',
+    series: document.getElementById('presc-ex-series')?.value || '4',
+    reps: document.getElementById('presc-ex-reps')?.value || '',
+    carga: document.getElementById('presc-ex-carga')?.value || '',
+    carga1RM: document.getElementById('presc-ex-1rm-max')?.value || '',
+    perc1RM: document.getElementById('presc-ex-pct-1rm')?.value || '',
     tecnica: document.getElementById('presc-tecnica')?.value || 'tradicional',
-    descanso: document.getElementById('presc-descanso')?.value || '',
+    descanso: document.getElementById('presc-ex-descanso')?.value || '',
     cadencia: document.getElementById('presc-cadencia')?.value || '',
     video: document.getElementById('presc-video')?.value || ex.video || '',
     obs: document.getElementById('presc-obs-ex')?.value || ''
@@ -326,14 +441,6 @@ function adicionarExercicio() {
   renderFichaTabela();
   painel.style.display = 'none';
   showToast('Exercício adicionado à ficha!', 'success');
-  
-  // Limpar campos para o próximo
-  if (document.getElementById('presc-carga')) document.getElementById('presc-carga').value = '';
-  if (document.getElementById('presc-reps')) document.getElementById('presc-reps').value = '';
-  if (document.getElementById('presc-pct-rm')) document.getElementById('presc-pct-rm').value = '';
-  if (document.getElementById('presc-cadencia')) document.getElementById('presc-cadencia').value = '';
-  if (document.getElementById('presc-video')) document.getElementById('presc-video').value = '';
-  if (document.getElementById('presc-obs-ex')) document.getElementById('presc-obs-ex').value = '';
 }
 
 function focarDivisao(dia) {
@@ -410,6 +517,9 @@ function salvarNovoExercicioBanco() {
   // Limpar busca e atualizar a lista de exercícios na tela de prescrição
   if (document.getElementById('presc-busca')) document.getElementById('presc-busca').value = '';
   renderListaExercicios();
+  
+  // Atualizar também a lista na aba de testes 1RM
+  if (typeof populateRMExercises === 'function') populateRMExercises();
   
   // Fechar modal e limpar campos
   fecharModalNovoExercicio();
@@ -583,6 +693,14 @@ function renderFichaTabela() {
   } else {
     html += exerciciosFiltrados.map(e => {
       const bgClass = `bg-${e.grupo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
+      
+      // Cálculo de carga exibida se houver 1RM
+      let cargaDisplay = `${e.carga || 0} kg`;
+      if (e.perc1RM && e.perc1RM > 0 && e.carga1RM && e.carga1RM > 0) {
+        const cargaCalc = Math.round(e.carga1RM * (e.perc1RM / 100));
+        cargaDisplay = `<strong>${cargaCalc} kg</strong><br><span style="font-size:0.6rem; color:#2563eb;">(${e.perc1RM}% de ${e.carga1RM}kg)</span>`;
+      }
+
       return `
         <tr>
           <td>
@@ -592,8 +710,8 @@ function renderFichaTabela() {
           </td>
           <td>${e.series}</td>
           <td>${e.reps}</td>
-          <td>${e.carga} kg</td>
-          <td>${e.pct ? e.pct + '%' : '—'}</td>
+          <td>${cargaDisplay}</td>
+          <td>${e.perc1RM ? e.perc1RM + '%' : '—'}</td>
           <td>${e.cadencia || '—'}</td>
           <td>${e.tecnica ? e.tecnica.charAt(0).toUpperCase() + e.tecnica.slice(1) : 'Tradicional'}</td>
           <td>${e.descanso}s</td>
@@ -637,23 +755,28 @@ function carregarDadosEdicaoExercicio(id) {
   document.getElementById('exer-sel-grupo').textContent = ex.grupo;
   document.getElementById('exer-sel-equip').textContent = ex.equip || 'Livre';
   
-  document.getElementById('presc-series').value = ex.series || '';
-  document.getElementById('presc-reps').value = ex.reps || '';
-  document.getElementById('presc-carga').value = ex.carga || '';
-  document.getElementById('presc-pct-rm').value = ex.pct || '';
+  if (document.getElementById('presc-ex-series')) document.getElementById('presc-ex-series').value = ex.series || '';
+  if (document.getElementById('presc-ex-reps')) document.getElementById('presc-ex-reps').value = ex.reps || '';
+  if (document.getElementById('presc-ex-carga')) document.getElementById('presc-ex-carga').value = ex.carga || '';
+  if (document.getElementById('presc-ex-1rm-max')) document.getElementById('presc-ex-1rm-max').value = ex.carga1RM || '';
+  if (document.getElementById('presc-ex-pct-1rm')) document.getElementById('presc-ex-pct-1rm').value = ex.perc1RM || '';
+  
   document.getElementById('presc-tecnica').value = ex.tecnica || 'tradicional';
-  document.getElementById('presc-descanso').value = ex.descanso || '';
+  if (document.getElementById('presc-ex-descanso')) document.getElementById('presc-ex-descanso').value = ex.descanso || '';
   document.getElementById('presc-cadencia').value = ex.cadencia || '';
   document.getElementById('presc-video').value = ex.video || '';
   document.getElementById('presc-obs-ex').value = ex.obs || '';
   
+  // Calcular carga exibida se houver 1RM
+  calcularCarga1RM();
+
   // Buscar 1RM do aluno para este exercício para referência
-  const rmRegs = state.rms.filter(r => String(r.alunoId) === String(currentAlunoId) && String(r.exercicioId) === String(ex.exId));
+  const rmRegs = (state.rms || []).filter(r => String(r.alunoId) === String(currentAlunoId) && String(r.exercicioId) === String(ex.exId));
   const ref = document.getElementById('rm-referencia');
   if (ref) {
     if (rmRegs.length > 0) {
       const ultimoRM = rmRegs[rmRegs.length - 1].rm;
-      ref.textContent = `Último 1RM: ${ultimoRM.toFixed(1)} kg`;
+      ref.textContent = `Último 1RM registrado: ${ultimoRM.toFixed(1)} kg`;
       ref.dataset.rm = ultimoRM;
     } else {
       ref.textContent = 'Sem 1RM registrado para este exercício.';
@@ -681,12 +804,14 @@ function atualizarExercicioFicha(id, originalOnClick, originalText) {
   if (idx === -1) return;
 
   // Capturar os novos valores
-  fichaExercicios[idx].series = document.getElementById('presc-series').value;
-  fichaExercicios[idx].reps = document.getElementById('presc-reps').value;
-  fichaExercicios[idx].carga = document.getElementById('presc-carga').value;
-  fichaExercicios[idx].pct = document.getElementById('presc-pct-rm').value;
+  fichaExercicios[idx].series = document.getElementById('presc-ex-series')?.value || '';
+  fichaExercicios[idx].reps = document.getElementById('presc-ex-reps')?.value || '';
+  fichaExercicios[idx].carga = document.getElementById('presc-ex-carga')?.value || '';
+  fichaExercicios[idx].carga1RM = document.getElementById('presc-ex-1rm-max')?.value || '';
+  fichaExercicios[idx].perc1RM = document.getElementById('presc-ex-pct-1rm')?.value || '';
+  
   fichaExercicios[idx].tecnica = document.getElementById('presc-tecnica').value;
-  fichaExercicios[idx].descanso = document.getElementById('presc-descanso').value;
+  fichaExercicios[idx].descanso = document.getElementById('presc-ex-descanso')?.value || '';
   fichaExercicios[idx].cadencia = document.getElementById('presc-cadencia').value;
   fichaExercicios[idx].video = document.getElementById('presc-video').value;
   fichaExercicios[idx].obs = document.getElementById('presc-obs-ex').value;
