@@ -458,48 +458,55 @@ function carregarTreino() {
     return;
   }
 
-  // 1. Renderizar Cronograma Semanal e definir divisaoAtiva automática se não selecionada manualmente
+  // 1. Renderizar Cronograma Semanal com Datas e Divisões
   if (cronogramaContainer) {
     const diasSemana = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
     const diasLabels = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
-    const hojeIdx = (new Date().getDay() + 6) % 7; // Ajustar para 0=Segunda
-    const hojeNome = diasSemana[hojeIdx];
     
-    // Obter divisões únicas disponíveis (A, B, C...)
+    // Obter data atual e calcular o início da semana (Segunda-feira)
+    const hoje = new Date();
+    const diaSemanaHoje = (hoje.getDay() + 6) % 7; // 0=Seg, 1=Ter...
+    const segundaFeira = new Date(hoje);
+    segundaFeira.setDate(hoje.getDate() - diaSemanaHoje);
+
     const divisoesUnicas = [...new Set(ficha.exercicios.map(e => e.divisao || 'A'))].sort();
     const diasTreino = ficha.diasTreino || [];
     
-    // Mapear cada dia de treino para uma divisão (A, B, C...) em sequência
+    // 1.2 Mapeamento de fluxo contínuo (A, B, C, D... A, B...) de Segunda a Domingo
     const mapeamentoAuto = {};
-    let divIdx = 0;
-    diasSemana.forEach(dia => {
-      if (diasTreino.includes(dia)) {
-        mapeamentoAuto[dia] = divisoesUnicas[divIdx % divisoesUnicas.length];
-        divIdx++;
-      } else {
-        mapeamentoAuto[dia] = 'OFF';
-      }
+    diasSemana.forEach((dia, idx) => {
+      // O fluxo segue a ordem dos dias (idx 0 a 6) e reinicia as letras conforme a quantidade de divisões
+      mapeamentoAuto[dia] = divisoesUnicas[idx % divisoesUnicas.length] || 'A';
     });
 
-    // Se não foi selecionado manualmente, definir divisaoAtiva para o treino de HOJE (se houver)
+    // Se não foi selecionado manualmente, definir divisaoAtiva para o treino de HOJE
     if (!divisaoSelecionadaManualmente) {
-      if (diasTreino.includes(hojeNome)) {
-        divisaoAtiva = mapeamentoAuto[hojeNome];
-      } else {
-        // Se hoje for descanso, sugerir a primeira divisão disponível
-        divisaoAtiva = divisoesUnicas[0] || 'A';
-      }
+      const hojeNome = diasSemana[diaSemanaHoje];
+      divisaoAtiva = mapeamentoAuto[hojeNome] || divisoesUnicas[0] || 'A';
     }
     
     cronogramaContainer.innerHTML = diasSemana.map((dia, idx) => {
       const treina = diasTreino.includes(dia);
       const div = mapeamentoAuto[dia];
-      const isHoje = idx === hojeIdx;
+      const isHoje = idx === diaSemanaHoje;
       
+      // Calcular a data específica de cada dia da semana atual
+      const dataDia = new Date(segundaFeira);
+      dataDia.setDate(segundaFeira.getDate() + idx);
+      const dataFormatada = dataDia.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+
       return `
-        <div class="cron-dia ${treina ? 'treino' : 'descanso'} ${isHoje ? 'hoje' : ''}" onclick="mudarDivisao('${treina && div !== 'OFF' ? div : (divisoesUnicas[0] || 'A')}')" style="cursor: pointer;">
-          <div class="dia-nome">${diasLabels[idx]}</div>
-          <div class="dia-divisao">${div}</div>
+        <div class="cron-dia ${treina ? 'treino' : 'descanso'} ${isHoje ? 'hoje' : ''} ${div === divisaoAtiva ? 'ativo' : ''}" 
+             onclick="mudarDivisao('${div}')" 
+             style="cursor: pointer; min-width: 60px; transition: all 0.2s;">
+          <div class="dia-nome" style="font-weight: 800; font-size: 0.75rem;">${diasLabels[idx]}</div>
+          <div class="dia-data" style="font-size: 0.65rem; opacity: 0.8; margin-bottom: 4px;">${dataFormatada}</div>
+          <div class="dia-divisao" style="background: ${div === divisaoAtiva ? '#fff' : 'rgba(255,255,255,0.2)'}; 
+               color: ${div === divisaoAtiva ? 'var(--primary)' : '#fff'}; 
+               border-radius: 50%; width: 24px; height: 24px; display: flex; 
+               align-items: center; justify-content: center; font-weight: 900; margin: 0 auto;">
+            ${div}
+          </div>
         </div>
       `;
     }).join('');
@@ -509,7 +516,6 @@ function carregarTreino() {
   if (selectDivisao) {
     const divisoesPresentes = [...new Set(ficha.exercicios.map(e => e.divisao || 'A'))].sort();
     
-    // Se a divisão ativa não estiver presente, resetar para a primeira
     if (!divisoesPresentes.includes(divisaoAtiva)) {
       divisaoAtiva = divisoesPresentes[0] || 'A';
     }
@@ -525,10 +531,12 @@ function carregarTreino() {
   let html = '';
   
   if (exerciciosFiltrados.length === 0) {
-    html = `<p class="empty-msg">Nenhum exercício na Divisão ${divisaoAtiva}.</p>`;
+    html = `<div class="section-card" style="text-align: center; padding: 3rem;">
+              <p class="empty-msg">Nenhum exercício cadastrado para o <strong>TREINO ${divisaoAtiva}</strong>.</p>
+              <p style="font-size: 0.85rem; color: var(--muted); margin-top: 10px;">Selecione outro dia no cronograma acima.</p>
+            </div>`;
   } else {
     html = exerciciosFiltrados.map(e => {
-      // Cores por agrupamento (mesma lógica do admin)
       const grupoNormalizado = e.grupo ? e.grupo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : 'geral';
       const bgClass = `bg-${grupoNormalizado}`;
       
@@ -559,14 +567,20 @@ function carregarTreino() {
       `;
     }).join('');
 
-    // Adicionar botão de concluir treino no final da lista
     html += `
       <div style="margin-top: 2rem; padding: 0 1rem 2rem;">
-        <button class="btn-full" onclick="concluirTreino()" style="background: #10b981; height: 55px; font-size: 1.1rem; font-weight: 800; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">✅ CONCLUIR TREINO DE HOJE</button>
+        <button class="btn-full" onclick="concluirTreino()" style="background: #10b981; height: 55px; font-size: 1.1rem; font-weight: 800; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">✅ CONCLUIR TREINO ${divisaoAtiva} DE HOJE</button>
       </div>
     `;
   }
   container.innerHTML = html;
+}
+
+function mudarDivisao(div) {
+  divisaoAtiva = div;
+  divisaoSelecionadaManualmente = true;
+  carregarTreino();
+  toast(`Alternado para Treino ${div}`, 'info');
 }
 
 function concluirTreino() {
