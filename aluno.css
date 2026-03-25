@@ -541,6 +541,26 @@ input[type=range] { width: 100%; accent-color: var(--primary); }
 .bg-cardio { background-color: #06b6d4; }
 .bg-geral { background-color: #64748b; }
 
+/* ===== NOVOS ESTILOS DE PAGAMENTO ===== */
+.plano-card-select.ativo {
+  border-color: var(--primary) !important;
+  background: #eff6ff !important;
+  transform: scale(1.02);
+  box-shadow: 0 8px 20px rgba(37,99,235,0.15);
+}
+
+.badge-pag {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.badge-pago { background: #dcfce7; color: #166534; }
+.badge-pendente { background: #fef3c7; color: #92400e; }
+.badge-cancelado { background: #fee2e2; color: #991b1b; }
+
 /* ===== TOAST ===== */
 .toast-aluno {
   position: fixed;

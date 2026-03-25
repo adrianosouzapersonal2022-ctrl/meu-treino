@@ -180,10 +180,10 @@ function processarRecuperarSenha() {
 
 function verificarAcesso() {
   // ACESSO TOTAL LIBERADO PARA TODOS OS ALUNOS
-  // Removemos as verificações de bloqueio para garantir acesso imediato
+  // ABA DE PAGAMENTO SEMPRE DISPONÍVEL CONFORME SOLICITADO
   const bnavPagamento = document.getElementById('bnav-pagamento');
   if (bnavPagamento) {
-    bnavPagamento.style.display = 'none';
+    bnavPagamento.style.display = 'flex';
   }
 }
 
@@ -568,11 +568,14 @@ function carregarTreino() {
               <div class="ex-info-item"><strong>Técnica:</strong> ${e.tecnica ? e.tecnica.charAt(0).toUpperCase() + e.tecnica.slice(1) : 'Tradicional'}</div>
             </div>
             ${e.obs ? `<div class="ex-obs"><strong>Obs:</strong> ${e.obs}</div>` : ''}
-            ${e.video ? `
-              <div class="ex-video">
-                <a href="${e.video}" target="_blank" class="btn-video">🎥 Ver Execução</a>
-              </div>
-            ` : ''}
+            <div class="ex-actions" style="margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap;">
+              ${e.video ? `
+                <a href="${e.video}" target="_blank" class="btn-video" style="flex: 1; min-width: 140px; justify-content: center;">🎥 Ver Execução</a>
+              ` : ''}
+              <button onclick="iniciarCronometro(${e.descanso || 60})" class="btn-timer" style="flex: 1; min-width: 140px; display: flex; align-items: center; justify-content: center; gap: 8px; background: #f8fafc; color: #1e293b; border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 8px; font-weight: 700; cursor: pointer;">
+                ⏱️ Descanso (${e.descanso || 60}s)
+              </button>
+            </div>
           </div>
         </div>
       `;
@@ -760,18 +763,9 @@ function carregarPerfil() {
 function carregarHistoricoPagamentos() {
   const container = document.getElementById('historico-pagamentos');
   
-  // Se for aluno gratuito, mostrar mensagem informativa
-  if (alunoLogado.tipo === 'gratuito') {
-    container.innerHTML = `
-      <div style="text-align:center; padding: 2rem; background: #f0fdf4; border-radius: 12px; border: 1px solid #bbf7d0;">
-        <div style="font-size: 2.5rem; margin-bottom: 1rem;">✅</div>
-        <h3 style="color: #166534; margin-bottom: 0.5rem;">Acesso Gratuito Liberado</h3>
-        <p style="color: #15803d; font-size: 0.9rem;">Você possui acesso ilimitado e gratuito à plataforma TREINOFITASM.</p>
-      </div>
-    `;
-    return;
-  }
-
+  // Mostrar resumo de planos se for aluno gratuito ou pago
+  // Agora todos podem ver e selecionar planos
+  
   const pags = JSON.parse(localStorage.getItem('pagamentos') || '[]').filter(p => String(p.alunoId) === String(alunoLogado.id));
   
   if (pags.length === 0) {
@@ -783,10 +777,142 @@ function carregarHistoricoPagamentos() {
     <div class="pag-item">
       <span>${new Date(p.vencimento).toLocaleDateString('pt-BR')}</span>
       <span>R$ ${parseFloat(p.valor).toFixed(2)}</span>
-      <span class="badge badge-${p.status}">${p.status.toUpperCase()}</span>
+      <span class="badge-pag badge-${p.status || 'pendente'}">${(p.status || 'pendente').toUpperCase()}</span>
       <div style="font-size:0.7rem; color:#666;">Método: ${p.metodo || '—'}</div>
     </div>
   `).join('');
+}
+
+// ===== NOVAS FUNÇÕES DE PAGAMENTO =====
+let planoSelecionado = null;
+
+function selecionarPlano(nome, preco) {
+  planoSelecionado = { nome, preco };
+  
+  // Destacar visualmente o plano selecionado
+  document.querySelectorAll('.plano-card-select').forEach(el => el.classList.remove('ativo'));
+  event.currentTarget.classList.add('ativo');
+
+  // Rolar até os métodos de pagamento
+  document.getElementById('sessao-metodos-pagamento').style.display = 'block';
+  document.getElementById('sessao-metodos-pagamento').scrollIntoView({ behavior: 'smooth' });
+}
+
+function selecionarMetodo(metodo) {
+  if (!planoSelecionado) {
+    toast('Selecione um plano primeiro!', 'warning');
+    return;
+  }
+
+  // Esconder formulários anteriores
+  document.getElementById('form-cartao').style.display = 'none';
+  document.getElementById('sessao-pix').style.display = 'none';
+
+  if (metodo === 'pix') {
+    document.getElementById('sessao-pix').style.display = 'block';
+    document.getElementById('sessao-pix').scrollIntoView({ behavior: 'smooth' });
+  } else if (metodo === 'credito' || metodo === 'debito') {
+    document.getElementById('tipo-cartao-texto').textContent = metodo === 'credito' ? 'Crédito' : 'Débito';
+    document.getElementById('form-cartao').style.display = 'block';
+    document.getElementById('form-cartao').scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+function processarPagamentoCartao() {
+  const nro = document.getElementById('card-number').value;
+  const nome = document.getElementById('card-name').value;
+  const val = document.getElementById('card-expiry').value;
+  const cvc = document.getElementById('card-cvc').value;
+
+  if (!nro || !nome || !val || !cvc) {
+    toast('Preencha todos os campos do cartão!', 'error');
+    return;
+  }
+
+  // Simulação de processamento online
+  toast('Processando pagamento...', 'info');
+  
+  setTimeout(() => {
+    const pagamentos = JSON.parse(localStorage.getItem('pagamentos') || '[]');
+    const novoPag = {
+      id: Date.now(),
+      alunoId: alunoLogado.id,
+      valor: planoSelecionado.preco,
+      plano: planoSelecionado.nome,
+      metodo: 'Cartão',
+      status: 'pago',
+      data: new Date().toISOString().slice(0, 10),
+      vencimento: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().slice(0, 10)
+    };
+
+    pagamentos.push(novoPag);
+    localStorage.setItem('pagamentos', JSON.stringify(pagamentos));
+    
+    toast('✅ Pagamento aprovado! Plano ativado.', 'success');
+    
+    // Notificação via WhatsApp para o Administrador
+    setTimeout(() => {
+      enviarNotificacaoWhats(alunoLogado, planoSelecionado.nome, planoSelecionado.preco);
+    }, 1500);
+
+    // Resetar UI
+    document.getElementById('form-cartao').style.display = 'none';
+    document.getElementById('sessao-metodos-pagamento').style.display = 'none';
+    carregarHistoricoPagamentos();
+  }, 2000);
+}
+
+function enviarNotificacaoWhats(aluno, plano, valor) {
+  const foneAdmin = '5585989265728';
+  const data = new Date().toLocaleDateString('pt-BR');
+  const msg = `🔔 *NOTIFICAÇÃO DE PAGAMENTO - TREINOFITASM*\n\n` +
+              `👤 *Aluno:* ${aluno.nome}\n` +
+              `📧 *E-mail:* ${aluno.email}\n` +
+              `📞 *Telefone:* ${aluno.telefone || 'Não informado'}\n` +
+              `🎯 *Objetivo:* ${aluno.objetivo || 'Não informado'}\n` +
+              `💎 *Plano:* ${plano || 'Personalizado'}\n` +
+              `💰 *Valor:* R$ ${valor ? parseFloat(valor).toFixed(2) : 'A combinar'}\n` +
+              `📅 *Data:* ${data}\n\n` +
+              `✅ O pagamento foi efetivado com sucesso no aplicativo!`;
+  
+  const url = `https://api.whatsapp.com/send?phone=${foneAdmin}&text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+}
+
+function suporteWhats() {
+  const foneAdmin = '5585989265728';
+  const a = alunoLogado;
+  const msg = `Olá! Sou o aluno *${a.nome}*\n` +
+              `📧 E-mail: ${a.email}\n` +
+              `📞 Telefone: ${a.telefone || 'Não informado'}\n` +
+              `🎯 Objetivo: ${a.objetivo || 'Não informado'}\n\n` +
+              `Preciso de suporte com meu plano/pagamento no app TREINOFITASM.`;
+  const url = `https://api.whatsapp.com/send?phone=${foneAdmin}&text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+}
+
+function notificarPagamentoJaFeito() {
+  const foneAdmin = '5585989265728';
+  const a = alunoLogado;
+  const data = new Date().toLocaleDateString('pt-BR');
+  const msg = `💳 *CONFIRMAÇÃO DE PAGAMENTO REALIZADO*\n\n` +
+              `👤 *Aluno:* ${a.nome}\n` +
+              `📧 *E-mail:* ${a.email}\n` +
+              `📞 *Telefone:* ${a.telefone || 'Não informado'}\n` +
+              `🎯 *Objetivo:* ${a.objetivo || 'Não informado'}\n\n` +
+              `Olá! Gostaria de avisar que já realizei o pagamento da minha mensalidade/plano. Por favor, verifique para liberar/atualizar meu acesso.\n\n` +
+              `📅 Enviado em: ${data}`;
+  
+  const url = `https://api.whatsapp.com/send?phone=${foneAdmin}&text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+}
+
+function notificarPixManual() {
+  if (!planoSelecionado) {
+    toast('Selecione um plano primeiro!', 'warning');
+    return;
+  }
+  enviarNotificacaoWhats(alunoLogado, planoSelecionado.nome, planoSelecionado.preco);
 }
 
 // ===== PDF DOWNLOADS =====
@@ -879,6 +1005,57 @@ function baixarAvaliacaoPDF() {
   `);
   win.document.close();
   win.print();
+}
+
+// ===== CRONÔMETRO DE DESCANSO =====
+let timerInterval = null;
+let timerSeconds = 0;
+
+function iniciarCronometro(segundos) {
+  const overlay = document.getElementById('timer-overlay');
+  const display = document.getElementById('timer-display');
+  
+  if (!overlay || !display) return;
+  
+  timerSeconds = segundos;
+  display.textContent = formatarTempo(timerSeconds);
+  overlay.style.display = 'flex';
+  
+  if (timerInterval) clearInterval(timerInterval);
+  
+  timerInterval = setInterval(() => {
+    timerSeconds--;
+    display.textContent = formatarTempo(timerSeconds);
+    
+    if (timerSeconds <= 0) {
+      clearInterval(timerInterval);
+      finalizarCronometro();
+    }
+  }, 1000);
+}
+
+function formatarTempo(s) {
+  const min = Math.floor(s / 60);
+  const seg = s % 60;
+  return `${min}:${seg < 10 ? '0' : ''}${seg}`;
+}
+
+function fecharCronometro() {
+  const overlay = document.getElementById('timer-overlay');
+  if (overlay) overlay.style.display = 'none';
+  if (timerInterval) clearInterval(timerInterval);
+}
+
+function finalizarCronometro() {
+  // Som de aviso ou vibração (se suportado)
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+  
+  const display = document.getElementById('timer-display');
+  if (display) display.textContent = "FIM! 💪";
+  
+  setTimeout(() => {
+    fecharCronometro();
+  }, 2000);
 }
 
 function copiarPix() {

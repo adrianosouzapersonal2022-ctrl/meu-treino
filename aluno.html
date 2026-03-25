@@ -249,12 +249,26 @@
 
       <!-- ABA: PAGAMENTO -->
       <div id="tab-pagamento" class="tab-pane">
+        <div class="section-card" style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: white; border: none; padding: 1.5rem;">
+          <h3 style="color: white; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 8px;"><span>💬</span> Suporte e Pagamentos</h3>
+          <p style="font-size: 0.85rem; opacity: 0.95; margin-bottom: 1.2rem; line-height: 1.4;">Se você tiver dúvidas ou se já realizou o pagamento via transferência direta, fale conosco agora!</p>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button onclick="suporteWhats()" style="background: white; color: #16a34a; border: none; padding: 12px 8px; border-radius: 10px; font-weight: 800; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 5px;">
+              SUPORTE GERAL
+            </button>
+            <button onclick="notificarPagamentoJaFeito()" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid white; padding: 12px 8px; border-radius: 10px; font-weight: 800; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 5px;">
+              JÁ PAGUEI
+            </button>
+          </div>
+        </div>
+
         <div class="section-card">
           <h3 class="card-title">💎 Nossos Planos</h3>
           <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1rem;">Escolha o plano que melhor se adapta ao seu objetivo.</p>
           
           <div class="planos-grid" style="display: grid; gap: 1rem; margin-bottom: 1.5rem;">
-            <div class="plano-card" style="border: 1px solid #e2e8f0; padding: 1rem; border-radius: 8px; background: #fff;">
+            <div class="plano-card-select" onclick="selecionarPlano('MENSAL', 150.00)" style="border: 1px solid #e2e8f0; padding: 1rem; border-radius: 12px; background: #fff; cursor: pointer; transition: all 0.3s;">
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <strong>MENSAL</strong>
                 <span style="color: #2563eb; font-weight: bold;">R$ 150,00</span>
@@ -262,7 +276,7 @@
               <p style="font-size: 0.75rem; color: #64748b; margin-top: 0.5rem;">• Renovação mês a mês<br>• Prescrição completa<br>• Suporte via App</p>
             </div>
             
-            <div class="plano-card" style="border: 2px solid #2563eb; padding: 1rem; border-radius: 8px; background: #eff6ff; position: relative;">
+            <div class="plano-card-select" onclick="selecionarPlano('TRIMESTRAL', 390.00)" style="border: 2px solid #e2e8f0; padding: 1rem; border-radius: 12px; background: #fff; position: relative; cursor: pointer; transition: all 0.3s;">
               <span style="position: absolute; top: -10px; right: 10px; background: #2563eb; color: white; font-size: 0.65rem; padding: 2px 8px; border-radius: 10px;">MAIS POPULAR</span>
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <strong>TRIMESTRAL</strong>
@@ -271,7 +285,7 @@
               <p style="font-size: 0.75rem; color: #64748b; margin-top: 0.5rem;">• 3 meses de acompanhamento<br>• R$ 130,00 por mês<br>• Avaliações mensais</p>
             </div>
 
-            <div class="plano-card" style="border: 1px solid #e2e8f0; padding: 1rem; border-radius: 8px; background: #fff;">
+            <div class="plano-card-select" onclick="selecionarPlano('SEMESTRAL', 720.00)" style="border: 1px solid #e2e8f0; padding: 1rem; border-radius: 12px; background: #fff; cursor: pointer; transition: all 0.3s;">
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <strong>SEMESTRAL</strong>
                 <span style="color: #2563eb; font-weight: bold;">R$ 720,00</span>
@@ -281,21 +295,57 @@
           </div>
         </div>
 
-        <div class="section-card">
-          <h3 class="card-title">💳 Meus Pagamentos</h3>
-          <div id="historico-pagamentos"></div>
+        <!-- MÉTODOS DE PAGAMENTO (ESCONDIDO ATÉ SELECIONAR PLANO) -->
+        <div id="sessao-metodos-pagamento" class="section-card" style="display: none;">
+          <h3 class="card-title">💳 Escolha o Método de Pagamento</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1rem;">
+            <button onclick="selecionarMetodo('pix')" style="padding: 15px; border-radius: 10px; border: 1.5px solid #2563eb; background: #eff6ff; color: #2563eb; font-weight: 800; cursor: pointer;">PIX</button>
+            <button onclick="selecionarMetodo('credito')" style="padding: 15px; border-radius: 10px; border: 1.5px solid #2563eb; background: #eff6ff; color: #2563eb; font-weight: 800; cursor: pointer;">Cartão de Crédito</button>
+            <button onclick="selecionarMetodo('debito')" style="padding: 15px; border-radius: 10px; border: 1.5px solid #2563eb; background: #eff6ff; color: #2563eb; font-weight: 800; cursor: pointer;">Cartão de Débito</button>
+          </div>
+
+          <!-- FORMULÁRIO CARTÃO -->
+          <div id="form-cartao" style="display: none; border-top: 1px solid #eee; padding-top: 1.5rem;">
+            <h4 style="margin-bottom: 1rem; color: #1e293b;">Pagar com Cartão de <span id="tipo-cartao-texto"></span></h4>
+            <div class="field"><label>Número do Cartão</label><input type="text" id="card-number" placeholder="0000 0000 0000 0000" maxlength="19"/></div>
+            <div class="field"><label>Nome no Cartão</label><input type="text" id="card-name" placeholder="Como impresso no cartão"/></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div class="field"><label>Validade</label><input type="text" id="card-expiry" placeholder="MM/AA" maxlength="5"/></div>
+              <div class="field"><label>CVC</label><input type="text" id="card-cvc" placeholder="123" maxlength="4"/></div>
+            </div>
+            <div style="font-size: 0.7rem; color: #64748b; margin-bottom: 1rem; display: flex; align-items: center; gap: 5px;">
+              🛡️ Pagamento seguro via SSL (Todas as bandeiras aceitas)
+            </div>
+            <button class="btn-full" onclick="processarPagamentoCartao()" style="background: #2563eb;">Finalizar Pagamento</button>
+          </div>
+
+          <!-- SEÇÃO PIX -->
+          <div id="sessao-pix" style="display: none; border-top: 1px solid #eee; padding-top: 1.5rem;">
+            <h3 class="card-title">Pagar via PIX</h3>
+            <div class="pix-container" style="background: #f8fafc; padding: 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0; text-align: center;">
+              <div class="pix-info">
+                <p style="font-size: 0.9rem; color: #1e293b; margin-bottom: 1rem;"><strong>Dados para Transferência PIX:</strong></p>
+                <div style="background: white; padding: 15px; border-radius: 10px; border: 1px solid #cbd5e1; text-align: left; font-size: 0.85rem; margin-bottom: 1rem;">
+                  <p><strong>Nome:</strong> Adriano de Souza Moraes</p>
+                  <p><strong>Chave PIX (CPF):</strong> 62900412315</p>
+                  <p><strong>Banco:</strong> Caixa Econômica Federal</p>
+                </div>
+                <div class="pix-chave" id="pix-chave-box" style="display: none;">62900412315</div>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                  <button class="btn-copy" onclick="copiarPix()" style="width: 100%; padding: 12px; border: 2px solid #2563eb; border-radius: 10px; background: white; color: #2563eb; font-weight: 800; cursor: pointer;">📋 Copiar Chave PIX</button>
+                  <button onclick="notificarPixManual()" style="width: 100%; padding: 12px; border: none; border-radius: 10px; background: #16a34a; color: white; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <span>📲</span> Notificar Pagamento via WhatsApp
+                  </button>
+                </div>
+                <p style="font-size: 0.75rem; color: #64748b; margin-top: 1rem;">Após realizar o PIX, clique no botão acima para nos enviar a confirmação instantaneamente.</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="section-card">
-          <h3 class="card-title">Realizar Pagamento (PIX)</h3>
-          <div class="pix-container">
-            <div class="pix-info">
-              <p><strong>Chave PIX:</strong></p>
-              <div class="pix-chave" id="pix-chave-box">treinofitasm@contato.com.br</div>
-              <button class="btn-copy" onclick="copiarPix()">📋 Copiar Chave</button>
-              <p style="font-size: 0.75rem; color: #64748b; margin-top: 1rem; text-align: center;">Após o pagamento, envie o comprovante para o seu professor para liberação imediata.</p>
-            </div>
-          </div>
+          <h3 class="card-title">💳 Meus Pagamentos</h3>
+          <div id="historico-pagamentos"></div>
         </div>
       </div>
 
@@ -319,6 +369,16 @@
         <span class="bnav-icon">💳</span><span class="bnav-label">Pagamento</span>
       </button>
     </nav>
+  </div>
+
+  <!-- OVERLAY CRONÔMETRO -->
+  <div id="timer-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:9999; flex-direction:column; align-items:center; justify-content:center; color:white;">
+    <div style="font-size:1.2rem; margin-bottom:1rem; opacity:0.8; font-weight:700;">⏱️ TEMPO DE DESCANSO</div>
+    <div id="timer-display" style="font-size:6rem; font-weight:900; font-family:monospace; margin-bottom:2rem; text-shadow:0 0 20px rgba(37,99,235,0.5);">0:00</div>
+    <div style="display:flex; gap:15px; width:80%; max-width:300px;">
+      <button onclick="fecharCronometro()" style="flex:1; padding:15px; border-radius:12px; border:2px solid white; background:none; color:white; font-weight:800; cursor:pointer;">CANCELAR</button>
+      <button onclick="finalizarCronometro()" style="flex:1; padding:15px; border-radius:12px; border:none; background:#16a34a; color:white; font-weight:800; cursor:pointer;">PULAR</button>
+    </div>
   </div>
 
   <!-- TOAST -->
