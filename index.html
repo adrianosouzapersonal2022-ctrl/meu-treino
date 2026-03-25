@@ -128,8 +128,8 @@
               </div>
               <div class="form-row">
                 <div class="form-group">
-                  <label for="email">E-mail</label>
-                  <input type="email" id="email" name="email" placeholder="email@exemplo.com" />
+                  <label for="email">E-mail *</label>
+                  <input type="email" id="email" name="email" placeholder="email@exemplo.com" required />
                 </div>
                 <div class="form-group">
                   <label for="profissao">Profissão</label>
@@ -798,55 +798,65 @@
                     </table>
                   </div>
                 </div>
-
-                <div class="form-section">
-                  <h2 class="section-title">Prescrição do Exercício Aeróbio</h2>
-                  <div class="form-row">
-                    <div class="form-group"><label>Objetivo</label>
-                      <select id="aerobio-objetivo">
-                        <option value="saude">Saúde Geral</option>
-                        <option value="emagrecimento">Emagrecimento</option>
-                        <option value="resistencia">Resistência Aeróbia</option>
-                        <option value="performance">Performance</option>
-                      </select>
-                    </div>
-                    <div class="form-group"><label>Modalidade</label>
-                      <select id="aerobio-modalidade">
-                        <option value="caminhada">Caminhada</option>
-                        <option value="corrida">Corrida</option>
-                        <option value="bicicleta">Bicicleta</option>
-                        <option value="natacao">Natação</option>
-                        <option value="eliptico">Elíptico</option>
-                        <option value="hiit">HIIT</option>
-                      </select>
-                    </div>
-                    <div class="form-group"><label>Nível</label>
-                    <select id="aerobio-nivel">
-                      <option value="iniciante">Iniciante</option>
-                      <option value="intermediario">Intermediário</option>
-                      <option value="avancado">Avançado</option>
-                    </select>
-                  </div>
-                  <div class="form-group"><label>Sessões</label><input type="number" id="aerobio-sessoes" placeholder="12" min="1" /></div>
-                </div>
-                <div class="form-group full">
-                  <label>Dias da Semana</label>
-                  <div class="checkbox-grid">
-                    <label class="check-label"><input type="checkbox" name="aerobio-dia" value="segunda"> Seg</label>
-                    <label class="check-label"><input type="checkbox" name="aerobio-dia" value="terca"> Ter</label>
-                    <label class="check-label"><input type="checkbox" name="aerobio-dia" value="quarta"> Qua</label>
-                    <label class="check-label"><input type="checkbox" name="aerobio-dia" value="quinta"> Qui</label>
-                    <label class="check-label"><input type="checkbox" name="aerobio-dia" value="sexta"> Sex</label>
-                    <label class="check-label"><input type="checkbox" name="aerobio-dia" value="sabado"> Sáb</label>
-                    <label class="check-label"><input type="checkbox" name="aerobio-dia" value="domingo"> Dom</label>
-                  </div>
-                </div>
-                <div class="btn-row"><button type="button" class="btn-primary" onclick="gerarPrescricaoAerobio()">Gerar Prescrição</button></div>
               </div>
 
-                <div id="aerobio-presc-resultado" style="display:none;">
-                  <div class="form-section">
-                    <h2 class="section-title">Ficha de Prescrição Aeróbia</h2>
+              <div class="form-section">
+                <h2 class="section-title">Prescrição do Exercício Aeróbio</h2>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Objetivo</label>
+                    <select id="aerobio-objetivo" onchange="atualizarRangeIntensidade()">
+                      <option value="regenerativo">Regenerativo (Recuperação)</option>
+                      <option value="emagrecimento" selected>Emagrecimento (FatMax / Queima de Gordura)</option>
+                      <option value="resistencia">Resistência Aeróbia (Moderado)</option>
+                      <option value="performance">Performance / VO2 Máximo (Vigoroso)</option>
+                      <option value="competicao">Competição (Máximo / Anaeróbio)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label id="label-intensidade">Intensidade (%)</label>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <input type="number" id="aerobio-intensidade-valor" min="30" max="100" value="55" style="width: 80px;" />
+                      <span id="range-intensidade-info" style="font-size: 0.7rem; color: #64748b; font-weight: 600;">(45% - 65%)</span>
+                    </div>
+                  </div>
+                  <div class="form-group"><label>Modalidade</label>
+                    <select id="aerobio-modalidade">
+                      <option value="caminhada">Caminhada</option>
+                      <option value="corrida">Corrida</option>
+                      <option value="bicicleta">Bicicleta</option>
+                      <option value="natacao">Natação</option>
+                      <option value="eliptico">Elíptico</option>
+                      <option value="hiit">HIIT</option>
+                    </select>
+                  </div>
+                  <div class="form-group"><label>Nível</label>
+                  <select id="aerobio-nivel" onchange="atualizarDuracaoPorNivel()">
+                    <option value="iniciante">Iniciante</option>
+                    <option value="intermediario">Intermediário</option>
+                    <option value="avancado">Avançado</option>
+                  </select>
+                </div>
+                <div class="form-group"><label>Duração/Sessão (min)</label><input type="number" id="aerobio-duracao-sessao" placeholder="30" min="1" value="30" /></div>
+                <div class="form-group"><label>Total de Sessões</label><input type="number" id="aerobio-sessoes" placeholder="12" min="1" value="12" /></div>
+              </div>
+              <div class="form-group full">
+                <label>Dias da Semana</label>
+                <div class="checkbox-grid">
+                  <label class="check-label"><input type="checkbox" name="aerobio-dia" value="segunda"> Seg</label>
+                  <label class="check-label"><input type="checkbox" name="aerobio-dia" value="terca"> Ter</label>
+                  <label class="check-label"><input type="checkbox" name="aerobio-dia" value="quarta"> Qua</label>
+                  <label class="check-label"><input type="checkbox" name="aerobio-dia" value="quinta"> Qui</label>
+                  <label class="check-label"><input type="checkbox" name="aerobio-dia" value="sexta"> Sex</label>
+                  <label class="check-label"><input type="checkbox" name="aerobio-dia" value="sabado"> Sáb</label>
+                  <label class="check-label"><input type="checkbox" name="aerobio-dia" value="domingo"> Dom</label>
+                </div>
+              </div>
+              <div class="btn-row"><button type="button" class="btn-primary" onclick="gerarPrescricaoAerobio()" style="height: 55px; font-size: 1.1rem; font-weight: 800; background: var(--primary); color: white; border: none; border-radius: 12px; width: 100%; box-shadow: 0 4px 12px rgba(37,99,235,0.2);">Treino</button></div>
+            </div>
+
+              <div id="aerobio-presc-resultado" style="display:none; margin-top: 25px;">
+                  <div class="form-section" style="border: 2px solid var(--primary); background: #f8fafc; padding: 0;">
                     <div id="aerobio-presc-conteudo"></div>
                   </div>
                 </div>

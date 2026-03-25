@@ -56,7 +56,8 @@ html, body {
 /* ===== FIELDS ===== */
 .field { margin-bottom: 1rem; }
 .field label, .field-label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 5px; }
-.mobile-input, .mobile-select, .mobile-textarea {
+.mobile-input, .mobile-select, .mobile-textarea, 
+input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="date"], select, textarea {
   width: 100%;
   padding: 12px 14px;
   border: 1.5px solid var(--border);
@@ -66,7 +67,7 @@ html, body {
   background: var(--surface);
   transition: border-color 0.2s;
 }
-.mobile-input:focus, .mobile-select:focus, .mobile-textarea:focus {
+input:focus, select:focus, textarea:focus {
   outline: none; border-color: var(--primary);
 }
 .mobile-textarea { resize: vertical; }

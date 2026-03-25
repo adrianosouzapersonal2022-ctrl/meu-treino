@@ -462,27 +462,6 @@ function calcularGastoCalorico() {
   if (kSem) kSem.value = kcalSemanal.toFixed(0) + ' kcal';
 }
 
-function gerarPrescricaoAerobio() {
-  const sessoes = document.getElementById('aerobio-sessoes').value;
-  const duracao = document.getElementById('aerobio-duracao').value;
-  const kcalSemanal = document.getElementById('aerobio-kcal-semanal').value;
-  
-  const res = document.getElementById('aerobio-presc-resultado');
-  if (res) {
-    res.style.display = 'block';
-    document.getElementById('aerobio-presc-conteudo').innerHTML = `
-      <div class="info-box">
-        <strong>Planejamento Aeróbio:</strong><br>
-        • Frequência: ${sessoes}x por semana<br>
-        • Duração: ${duracao} min por sessão<br>
-        • Gasto Semanal Alvo: ${kcalSemanal}<br>
-        • Intensidade Sugerida: 60-80% da FCmáx
-      </div>
-    `;
-  }
-  showToast('Prescrição aeróbia gerada!', 'success');
-}
-
 function imprimirAerobioPDF() {
   const conteudo = document.getElementById('aerobio-presc-conteudo')?.innerHTML;
   if (!conteudo) { showToast('Gere a prescrição primeiro', 'error'); return; }

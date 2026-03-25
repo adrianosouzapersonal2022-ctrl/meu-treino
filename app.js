@@ -1,13 +1,24 @@
 // ==================== STATE ====================
+// Helper para parse seguro de JSON
+function safeParse(key, fallback = '[]') {
+  try {
+    const item = localStorage.getItem(key);
+    return JSON.parse(item || fallback);
+  } catch (e) {
+    console.error(`Erro ao parsear ${key} do localStorage:`, e);
+    return JSON.parse(fallback);
+  }
+}
+
 const state = {
-  alunos: JSON.parse(localStorage.getItem('alunos') || '[]'),
-  avaliacoes: JSON.parse(localStorage.getItem('avaliacoes') || '[]'),
-  testes: JSON.parse(localStorage.getItem('testes') || '[]'),
-  pagamentos: JSON.parse(localStorage.getItem('pagamentos') || '[]'),
-  fichas: JSON.parse(localStorage.getItem('fichas') || '[]'),
-  anamneses: JSON.parse(localStorage.getItem('anamneses') || '[]'),
-  rms: JSON.parse(localStorage.getItem('rms') || '[]'),
-  treinosCustom: JSON.parse(localStorage.getItem('treinosCustom') || '[]')
+  alunos: safeParse('alunos', '[]'),
+  avaliacoes: safeParse('avaliacoes', '[]'),
+  testes: safeParse('testes', '[]'),
+  pagamentos: safeParse('pagamentos', '[]'),
+  fichas: safeParse('fichas', '[]'),
+  anamneses: safeParse('anamneses', '[]'),
+  rms: safeParse('rms', '[]'),
+  treinosCustom: safeParse('treinosCustom', '[]')
 };
 
 let alunoLogado = null;
@@ -210,16 +221,16 @@ function salvarCadastro() {
   const email = document.getElementById('email').value.trim().toLowerCase();
   const dataNasc = document.getElementById('dataNasc').value;
   const sexo = document.getElementById('sexo').value;
-  if (!nome || !dataNasc || !sexo) { showToast('Preencha os campos obrigatórios (*)', 'error'); return; }
+  if (!nome || !email || !dataNasc || !sexo) { showToast('Preencha os campos obrigatórios (*)', 'error'); return; }
 
   const id = window._editingId || Date.now();
   const patologias = [...document.querySelectorAll('input[name="patologia"]:checked')].map(c => c.value);
   
   // Buscar se o aluno já existe para não perder a senha se for edição
-  const alunoExistente = state.alunos.find(a => a.id === id);
+  const alunoExistente = state.alunos.find(a => String(a.id) === String(id));
 
   const aluno = {
-    id,
+    id: alunoExistente ? alunoExistente.id : id,
     nome, 
     email,
     senha: alunoExistente ? alunoExistente.senha : '123456', // Senha padrão se for novo
@@ -241,7 +252,7 @@ function salvarCadastro() {
     obs: document.getElementById('obs')?.value || '',
   };
 
-  const idx = state.alunos.findIndex(a => a.id === id);
+  const idx = state.alunos.findIndex(a => String(a.id) === String(id));
   if (idx >= 0) state.alunos[idx] = aluno; else state.alunos.push(aluno);
   
   saveState();
@@ -333,9 +344,12 @@ function excluirAluno(id) {
 }
 
 function editarAluno(id) {
-  const a = state.alunos.find(x => x.id === id);
-  if (!a) return;
-  window._editingId = id;
+  const a = state.alunos.find(x => String(x.id) === String(id));
+  if (!a) {
+    console.error('Aluno não encontrado para edição:', id);
+    return;
+  }
+  window._editingId = a.id;
   document.getElementById('nome').value = a.nome;
   document.getElementById('email').value = a.email || '';
   document.getElementById('dataNasc').value = a.dataNasc;
@@ -1298,13 +1312,7 @@ function renderMuralAdmin() {
   }
 
   try {
-    let mensagens = [];
-    try {
-      mensagens = JSON.parse(localStorage.getItem('mural_feedbacks') || '[]');
-    } catch (e) {
-      console.error('Erro ao ler mensagens do mural:', e);
-      mensagens = [];
-    }
+    let mensagens = safeParse('mural_feedbacks', '[]');
 
     // Renderizar Estatísticas
     if (stats) {
@@ -1425,7 +1433,7 @@ function renderMuralAdmin() {
 }
 
 function reagirMural(id, emoji) {
-  const mensagens = JSON.parse(localStorage.getItem('mural_feedbacks') || '[]');
+  const mensagens = safeParse('mural_feedbacks', '[]');
   const idx = mensagens.findIndex(m => m.id === id);
   if (idx >= 0) {
     if (!mensagens[idx].reacoes) mensagens[idx].reacoes = [];
@@ -1448,7 +1456,7 @@ function responderMensagem(id) {
   const texto = input ? input.value.trim() : '';
   if (!texto) return;
 
-  const mensagens = JSON.parse(localStorage.getItem('mural_feedbacks') || '[]');
+  const mensagens = safeParse('mural_feedbacks', '[]');
   const idx = mensagens.findIndex(m => m.id === id);
   if (idx >= 0) {
     mensagens[idx].respostaProfessor = texto;
@@ -1465,7 +1473,7 @@ function adminEnviarMensagemMural() {
   const texto = input ? input.value.trim() : '';
   if (!texto) return;
 
-  const mensagens = JSON.parse(localStorage.getItem('mural_feedbacks') || '[]');
+  const mensagens = safeParse('mural_feedbacks', '[]');
   const novaMsg = {
     id: Date.now(),
     alunoId: 'admin',
@@ -1489,7 +1497,7 @@ function adminEnviarMensagemMural() {
 function enviarMensagemTesteSistema() {
   const texto = "🚀 MENSAGEM DE TESTE DO SISTEMA: Olá a todos os alunos! Este é um teste das notificações e do mural da comunidade. Bons treinos! 💪🔥";
   const muralKey = 'mural_feedbacks';
-  const mensagens = JSON.parse(localStorage.getItem(muralKey) || '[]');
+  const mensagens = safeParse(muralKey, '[]');
   
   const novaMsg = {
     id: Date.now(),
@@ -1513,7 +1521,7 @@ function enviarMensagemTesteSistema() {
 
 function removerMensagemMural(id) {
   if (confirm('Excluir mensagem?')) {
-    let mensagens = JSON.parse(localStorage.getItem('mural_feedbacks') || '[]');
+    let mensagens = safeParse('mural_feedbacks', '[]');
     mensagens = mensagens.filter(m => m.id !== id);
     localStorage.setItem('mural_feedbacks', JSON.stringify(mensagens));
     renderMuralAdmin();
@@ -1523,15 +1531,15 @@ function removerMensagemMural(id) {
 // ==================== GESTÃO DE DADOS (BACKUP) ====================
 function exportarSistema() {
   const backup = {
-    alunos: JSON.parse(localStorage.getItem('alunos') || '[]'),
-    avaliacoes: JSON.parse(localStorage.getItem('avaliacoes') || '[]'),
-    testes: JSON.parse(localStorage.getItem('testes') || '[]'),
-    pagamentos: JSON.parse(localStorage.getItem('pagamentos') || '[]'),
-    fichas: JSON.parse(localStorage.getItem('fichas') || '[]'),
-    anamneses: JSON.parse(localStorage.getItem('anamneses') || '[]'),
-    rms: JSON.parse(localStorage.getItem('rms') || '[]'),
-    treinosCustom: JSON.parse(localStorage.getItem('treinosCustom') || '[]'),
-    mural_feedbacks: JSON.parse(localStorage.getItem('mural_feedbacks') || '[]')
+    alunos: safeParse('alunos', '[]'),
+    avaliacoes: safeParse('avaliacoes', '[]'),
+    testes: safeParse('testes', '[]'),
+    pagamentos: safeParse('pagamentos', '[]'),
+    fichas: safeParse('fichas', '[]'),
+    anamneses: safeParse('anamneses', '[]'),
+    rms: safeParse('rms', '[]'),
+    treinosCustom: safeParse('treinosCustom', '[]'),
+    mural_feedbacks: safeParse('mural_feedbacks', '[]')
   };
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup));
   const link = document.createElement('a');
@@ -1566,13 +1574,13 @@ window.addEventListener('storage', (e) => {
 // ==================== RESTAURAÇÃO DE DADOS (JESSICA BRUNA) ====================
 function restaurarDadosJessica() {
   const JESSICA_ID = '1711111111111';
-  const alunos = JSON.parse(localStorage.getItem('alunos') || '[]');
+  const alunos = safeParse('alunos', '[]');
   const jessica = alunos.find(a => String(a.id) === JESSICA_ID);
   
   if (!jessica) return;
 
   // 1. Restaurar Ficha (Treino)
-  const fichas = JSON.parse(localStorage.getItem('fichas') || '[]');
+  const fichas = safeParse('fichas', '[]');
   const jaTemFicha = fichas.some(f => String(f.alunoId) === JESSICA_ID);
   
   if (!jaTemFicha) {
@@ -1603,7 +1611,7 @@ function restaurarDadosJessica() {
   }
 
   // 2. Restaurar Avaliação
-  const avs = JSON.parse(localStorage.getItem('avaliacoes') || '[]');
+  const avs = safeParse('avaliacoes', '[]');
   const jaTemAv = avs.some(a => String(a.alunoId) === JESSICA_ID);
   if (!jaTemAv) {
     const novaAv = {
@@ -1623,7 +1631,7 @@ function restaurarDadosJessica() {
   }
 
   // 3. Restaurar Anamnese
-  const anamneses = JSON.parse(localStorage.getItem('anamneses') || '[]');
+  const anamneses = safeParse('anamneses', '[]');
   const jaTemAn = anamneses.some(a => String(a.alunoId) === JESSICA_ID);
   if (!jaTemAn) {
     const novaAn = {
@@ -1645,7 +1653,7 @@ function restaurarDadosJessica() {
 // ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', () => {
   // RESTAURAR DADOS INICIAIS
-  let alunosExistentes = JSON.parse(localStorage.getItem('alunos') || '[]');
+  let alunosExistentes = safeParse('alunos', '[]');
   if (alunosExistentes.length === 0) {
     const jessica = {
       id: '1711111111111',
@@ -1709,6 +1717,435 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('dataVO2')) document.getElementById('dataVO2').value = hoje;
   if (document.getElementById('dataAntro')) document.getElementById('dataAntro').value = hoje;
   
-  if (document.getElementById('protocoloAntro')) mostrarProtocolo();
   if (document.getElementById('protocoloVO2')) carregarProtocolo();
+  
+  // Inicializar range de intensidade se estiver na página de treino
+  if (document.getElementById('aerobio-objetivo')) atualizarRangeIntensidade();
 });
+
+// ==================== PRESCRIÇÃO AERÓBIA (NOVA LÓGICA) ====================
+const RANGES_AEROBIO = {
+  regenerativo: { min: 30, max: 40, padrao: 35, met: 3.5, label: 'Regenerativo (Recuperação Ativa)' },
+  emagrecimento: { min: 45, max: 65, padrao: 55, met: 7.0, label: 'Emagrecimento (Zona de FatMax)' },
+  resistencia: { min: 65, max: 75, padrao: 70, met: 9.0, label: 'Resistência Aeróbia (Limiar 1)' },
+  performance: { min: 75, max: 90, padrao: 80, met: 11.0, label: 'Performance (Limiar 2 / VO2Máx)' },
+  competicao: { min: 90, max: 100, padrao: 95, met: 15.0, label: 'Competição (Esforço Máximo)' }
+};
+
+const DURACAO_NIVEL = {
+  iniciante: 20,
+  intermediario: 40,
+  avancado: 60
+};
+
+function atualizarRangeIntensidade() {
+  const obj = document.getElementById('aerobio-objetivo').value;
+  const range = RANGES_AEROBIO[obj];
+  const info = document.getElementById('range-intensidade-info');
+  const input = document.getElementById('aerobio-intensidade-valor');
+  
+  if (range && info && input) {
+    info.textContent = `(${range.min}% - ${range.max}%)`;
+    input.min = range.min;
+    input.max = range.max;
+    input.value = range.padrao;
+  }
+}
+
+function atualizarDuracaoPorNivel() {
+  const nivel = document.getElementById('aerobio-nivel').value;
+  const duracaoInput = document.getElementById('aerobio-duracao-sessao');
+  if (duracaoInput && DURACAO_NIVEL[nivel]) {
+    duracaoInput.value = DURACAO_NIVEL[nivel];
+  }
+}
+
+function carregarAerobio() {
+  const selId = document.getElementById('alunoAerobio').value;
+  if (!selId) return;
+  const aluno = state.alunos.find(a => String(a.id) === String(selId));
+  if (!aluno) return;
+  
+  // Buscar último teste de VO2 ou Antro para pegar dados
+  const ultimoVO2 = state.testes.filter(t => String(t.alunoId) === String(selId)).pop();
+  const ultimaAv = state.avaliacoes.filter(a => String(a.alunoId) === String(selId)).pop();
+  
+  const idade = parseInt(aluno.idade) || 25;
+  const fcMax = Math.round(208 - (0.7 * idade)); // Tanaka
+  
+  document.getElementById('aerobio-fcmax').value = fcMax;
+  document.getElementById('aerobio-fcrep').value = 60; // Padrão
+  document.getElementById('aerobio-vo2max').value = ultimoVO2 ? ultimoVO2.vo2.toFixed(1) : (ultimaAv ? 35 : '');
+}
+
+function calcularZonasAerobio() {
+  const fcMax = parseInt(document.getElementById('aerobio-fcmax').value);
+  const fcRep = parseInt(document.getElementById('aerobio-fcrep').value);
+  const vo2Max = parseFloat(document.getElementById('aerobio-vo2max').value);
+  
+  if (!fcMax) { showToast('FC Máxima é obrigatória', 'error'); return; }
+  
+  const fcReserva = fcRep ? (fcMax - fcRep) : 0;
+  const tbody = document.getElementById('zonas-tbody');
+  
+  const zonas = [
+    { z: 'Z1', nome: 'Muito Leve', pct: '50-60%', rpe: '7-10', obj: 'Regenerativo' },
+    { z: 'Z2', nome: 'Leve', pct: '60-70%', rpe: '11-12', obj: 'Saúde / Queima Gordura' },
+    { z: 'Z3', nome: 'Moderado', pct: '70-80%', rpe: '13-14', obj: 'Resistência' },
+    { z: 'Z4', nome: 'Pesado', pct: '80-90%', rpe: '15-16', obj: 'Limiar' },
+    { z: 'Z5', nome: 'Máximo', pct: '90-100%', rpe: '17-20', obj: 'Performance' }
+  ];
+
+  tbody.innerHTML = zonas.map(z => {
+    const pcts = z.pct.replace('%', '').split('-');
+    const minPct = parseInt(pcts[0]) / 100;
+    const maxPct = parseInt(pcts[1]) / 100;
+    
+    const fcMin = Math.round(fcMax * minPct);
+    const fcMaxZ = Math.round(fcMax * maxPct);
+    
+    let karvonen = '—';
+    if (fcReserva) {
+      const kMin = Math.round((fcReserva * minPct) + fcRep);
+      const kMax = Math.round((fcReserva * maxPct) + fcRep);
+      karvonen = `${kMin}-${kMax}`;
+    }
+    
+    let vo2Range = '—';
+    if (vo2Max) {
+      vo2Range = `${(vo2Max * minPct).toFixed(1)}-${(vo2Max * maxPct).toFixed(1)}`;
+    }
+
+    return `<tr>
+      <td>${z.z}</td><td>${z.nome}</td><td>${z.pct}</td><td>${fcMin}-${fcMaxZ}</td>
+      <td>${z.pct}</td><td>${karvonen}</td><td>${z.pct}</td><td>${vo2Range}</td>
+      <td>${z.rpe}</td><td>${z.obj}</td>
+    </tr>`;
+  }).join('');
+  
+  document.getElementById('aerobio-zonas').style.display = 'block';
+  showToast('Zonas calculadas!', 'success');
+}
+
+function gerarPrescricaoAerobio() {
+  try {
+    const selId = document.getElementById('alunoAerobio').value;
+    if (!selId) { showToast('Selecione um aluno primeiro', 'error'); return; }
+    
+    const aluno = state.alunos.find(a => String(a.id) === String(selId));
+    if (!aluno) { showToast('Aluno não encontrado', 'error'); return; }
+
+    const objKey = document.getElementById('aerobio-objetivo').value;
+    const modalidade = document.getElementById('aerobio-modalidade').value;
+    const nivel = document.getElementById('aerobio-nivel').value;
+    const sessoes = parseInt(document.getElementById('aerobio-sessoes').value) || 12;
+    const duracaoSessao = parseInt(document.getElementById('aerobio-duracao-sessao').value) || 30;
+    const intensidade = parseInt(document.getElementById('aerobio-intensidade-valor').value) || 55;
+    
+    let fcMax = parseInt(document.getElementById('aerobio-fcmax').value);
+    const fcRep = parseInt(document.getElementById('aerobio-fcrep').value) || 70;
+    
+    if (!fcMax) {
+      if (aluno.idade) {
+        fcMax = Math.round(208 - (0.7 * parseInt(aluno.idade)));
+        document.getElementById('aerobio-fcmax').value = fcMax;
+      } else {
+        fcMax = 190; // Fallback
+      }
+    }
+    
+    // Cálculo de FC Alvo (Karvonen - Heart Rate Reserve)
+    const fcReserva = fcMax - fcRep;
+    const rangeObj = RANGES_AEROBIO[objKey] || RANGES_AEROBIO['emagrecimento'];
+    
+    // Usar a intensidade digitada pelo usuário
+    const intensidadePct = intensidade / 100;
+    const fcAlvoBase = Math.round((fcReserva * intensidadePct) + fcRep);
+    
+    // Definir uma zona de +/- 5 bpm em torno da intensidade alvo para criar uma faixa
+    const fcAlvoMin = fcAlvoBase - 5;
+    const fcAlvoMax = fcAlvoBase + 5;
+    
+    // Gasto Calórico Estimado (Ajustado pela Intensidade)
+    // METs aproximados baseados na intensidade (VO2 Reserve % ≈ HR Reserve %)
+    // MET = (Intensidade% * (VO2max - 3.5) + 3.5) / 3.5
+    // Como não temos VO2max, usamos o MET base do objetivo e escalamos pela intensidade relativa
+    const metBase = rangeObj.met || 6.0;
+    const metEscalado = metBase * (intensidade / rangeObj.padrao);
+    const peso = parseFloat(aluno.peso) || 75;
+    const gastoCalorico = Math.round(metEscalado * peso * (duracaoSessao / 60));
+
+    const dias = [...document.querySelectorAll('input[name="aerobio-dia"]:checked')].map(d => d.value);
+    const objLabel = rangeObj.label;
+
+    let protocoloInfo = '';
+    if (objKey === 'emagrecimento') {
+      protocoloInfo = 'Zona de FatMax: Intensidade ideal para maximizar a oxidação de gordura durante o exercício. Mantenha o ritmo constante.';
+    } else if (objKey === 'regenerativo') {
+      protocoloInfo = 'Recuperação Ativa: Intensidade leve para auxiliar na remoção de resíduos metabólicos sem gerar fadiga adicional.';
+    } else if (objKey === 'performance' || objKey === 'competicao') {
+      protocoloInfo = 'Foco em VO2 Máximo e Limiar Anaeróbio: Treino de alta intensidade para melhora de rendimento e vigor físico.';
+    } else {
+      protocoloInfo = 'Melhora da Capacidade Cardiorrespiratória: Foco em resistência e fortalecimento do sistema cardiovascular.';
+    }
+
+    let sessoesHtml = '';
+    const sessoesLista = [];
+    for (let i = 1; i <= sessoes; i++) {
+      sessoesLista.push({ num: i, duracao: duracaoSessao });
+      sessoesHtml += `
+        <div style="display: flex; justify-content: space-between; padding: 12px 15px; background: ${i % 2 === 0 ? '#f8fafc' : 'white'}; border-bottom: 1px solid #e2e8f0; font-size: 0.95rem;">
+          <span><strong>Sessão ${i}</strong></span>
+          <span>⏱️ ${duracaoSessao} min</span>
+          <span style="color: #2563eb; font-weight: 800;">💓 ${fcAlvoMin}-${fcAlvoMax} bpm</span>
+        </div>
+      `;
+    }
+
+    const prescricao = {
+      id: Date.now(),
+      alunoId: String(selId),
+      objetivo: objKey,
+      objetivoLabel: objLabel,
+      modalidade,
+      nivel,
+      intensidade: `${rangeObj.min}% - ${rangeObj.max}%`,
+      fcAlvo: `${fcAlvoMin}-${fcAlvoMax}`,
+      fcInicial: fcAlvoMin,
+      fcFinal: fcAlvoMax,
+      intensidadeReal: intensidade,
+      duracaoSessao,
+      gastoCalorico,
+      protocolo: protocoloInfo,
+      sessoesTotais: sessoes,
+      sessoesLista,
+      dias,
+      data: new Date().toISOString().slice(0, 10)
+    };
+
+    window._ultimaPrescAerobia = prescricao;
+
+    const resContainer = document.getElementById('aerobio-presc-resultado');
+    const resConteudo = document.getElementById('aerobio-presc-conteudo');
+    
+    if (resConteudo && resContainer) {
+      resConteudo.innerHTML = `
+        <div class="info-box" style="background: white; border: 3px solid #2563eb; padding: 30px; border-radius: 20px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); margin-top: 20px; border-top: 8px solid #2563eb;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 3px solid #f1f5f9; padding-bottom: 20px;">
+            <div>
+              <h3 style="color: #1e293b; margin: 0; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.025em;">
+                🏃 CONFIGURAÇÃO DO TREINO AERÓBIO
+              </h3>
+              <div style="color: #64748b; font-size: 0.9rem; font-weight: 600; margin-top: 4px;">Objetivo: ${objLabel}</div>
+            </div>
+            <div style="background: #2563eb; color: white; padding: 10px 20px; border-radius: 12px; font-size: 0.9rem; font-weight: 900; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">
+              MODALIDADE: ${modalidade.toUpperCase()}
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 35px;">
+            <div style="background: #eff6ff; padding: 20px; border-radius: 16px; border: 1px solid #dbeafe; text-align: center;">
+              <div style="font-size: 0.75rem; color: #1e40af; text-transform: uppercase; font-weight: 800; margin-bottom: 10px; letter-spacing: 0.05em;">Zona de FC Alvo</div>
+              <div style="display: flex; justify-content: center; align-items: baseline; gap: 8px; margin-bottom: 4px;">
+                <span style="font-size: 1.6rem; font-weight: 900; color: #2563eb;">${fcAlvoMin}</span>
+                <span style="font-size: 1rem; color: #64748b; font-weight: 700;">a</span>
+                <span style="font-size: 1.6rem; font-weight: 900; color: #2563eb;">${fcAlvoMax}</span>
+                <span style="font-size: 0.9rem; color: #1e40af; font-weight: 700;">BPM</span>
+              </div>
+              <div style="font-size: 0.75rem; color: #3b82f6; font-weight: 600;">Intensidade: ${intensidade}% da FC Reserva</div>
+            </div>
+            
+            <div style="background: #f0fdf4; padding: 20px; border-radius: 16px; border: 1px solid #dcfce7; text-align: center;">
+              <div style="font-size: 0.75rem; color: #166534; text-transform: uppercase; font-weight: 800; margin-bottom: 10px; letter-spacing: 0.05em;">Gasto Calórico Estimado</div>
+              <div style="display: flex; justify-content: center; align-items: baseline; gap: 6px;">
+                <span style="font-size: 2.2rem; font-weight: 950; color: #10b981;">~${gastoCalorico}</span>
+                <span style="font-size: 1rem; color: #166534; font-weight: 800;">KCAL</span>
+              </div>
+              <div style="font-size: 0.75rem; color: #15803d; font-weight: 600; margin-top: 4px;">Total por cada Sessão</div>
+            </div>
+
+            <div style="background: #f8fafc; padding: 20px; border-radius: 16px; border: 1px solid #e2e8f0; text-align: center;">
+              <div style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 800; margin-bottom: 10px; letter-spacing: 0.05em;">Tempo por Sessão</div>
+              <div style="display: flex; justify-content: center; align-items: baseline; gap: 6px;">
+                <span style="font-size: 2.2rem; font-weight: 950; color: #1e293b;">${duracaoSessao}</span>
+                <span style="font-size: 1rem; color: #64748b; font-weight: 800;">MIN</span>
+              </div>
+              <div style="font-size: 0.75rem; color: #475569; font-weight: 600; margin-top: 4px;">Duração Recomendada</div>
+            </div>
+          </div>
+
+          <div style="background: #fffbeb; padding: 20px; border-radius: 16px; border-left: 8px solid #f59e0b; margin-bottom: 35px; box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.05);">
+            <div style="font-size: 0.85rem; font-weight: 900; color: #92400e; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+              📚 PROTOCOLO DE TREINAMENTO CIENTÍFICO
+            </div>
+            <div style="font-size: 1.05rem; color: #78350f; line-height: 1.6; font-weight: 500;">
+              ${protocoloInfo}
+            </div>
+          </div>
+
+          <h4 style="font-size: 1rem; color: #1e293b; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 2px; font-weight: 900; display: flex; align-items: center; gap: 10px;">
+            📅 CRONOGRAMA DETALHADO DE SESSÕES
+          </h4>
+          <div style="border: 2px solid #f1f5f9; border-radius: 16px; overflow: hidden; margin-bottom: 35px; max-height: 400px; overflow-y: auto; background: #fff;">
+            <div style="display: flex; background: #f8fafc; padding: 12px 15px; border-bottom: 2px solid #e2e8f0; font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">
+              <span style="flex: 1;">Sessão</span>
+              <span style="flex: 1; text-align: center;">Duração</span>
+              <span style="flex: 1; text-align: right;">Zona Alvo (BPM)</span>
+            </div>
+            ${sessoesHtml}
+          </div>
+          
+          <div style="display: flex; flex-direction: column; gap: 15px;">
+            <button onclick="salvarPrescricaoAerobia()" class="btn-success" style="width: 100%; height: 70px; font-weight: 950; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; gap: 15px; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3); border-radius: 18px; cursor: pointer; border: none; transition: transform 0.2s, box-shadow 0.2s;">
+              💾 GRAVAR NO CADASTRO DO ALUNO
+            </button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+              <button onclick="baixarPDFPrescricaoAerobia()" class="btn-primary" style="height: 60px; font-weight: 900; background: #6366f1; border-radius: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; border: none; color: white; font-size: 1.1rem; box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.2);">
+                📥 BAIXAR PDF
+              </button>
+              <button onclick="document.getElementById('aerobio-presc-resultado').style.display='none'" class="btn-secondary" style="height: 60px; font-weight: 900; border-radius: 15px; cursor: pointer; background: #64748b; border: none; color: white; font-size: 1.1rem;">
+                FECHAR JANELA
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      resContainer.style.display = 'block';
+      resContainer.scrollIntoView({ behavior: 'smooth' });
+      showToast('Treino gerado com sucesso!', 'success');
+    } else {
+      console.error('Elementos de resultado aeróbio não encontrados');
+      showToast('Erro ao exibir resultado', 'error');
+    }
+  } catch (error) {
+    console.error('Erro em gerarPrescricaoAerobio:', error);
+    showToast('Erro interno ao gerar treino', 'error');
+  }
+}
+
+function salvarPrescricaoAerobia() {
+  try {
+    if (!window._ultimaPrescAerobia) {
+      showToast('Gere o treino antes de salvar', 'error');
+      return;
+    }
+    
+    const presc = window._ultimaPrescAerobia;
+    const idx = state.fichas.findIndex(f => String(f.alunoId) === String(presc.alunoId));
+    
+    if (idx === -1) {
+      const novaFicha = {
+        alunoId: presc.alunoId,
+        data: new Date().toISOString().slice(0, 10),
+        exercicios: [],
+        aerobio: presc
+      };
+      state.fichas.push(novaFicha);
+    } else {
+      state.fichas[idx].aerobio = presc;
+    }
+    
+    saveState();
+    showToast('✅ Treino aeróbio salvo e enviado!', 'success');
+  } catch (error) {
+    console.error('Erro ao salvar prescrição aeróbia:', error);
+    showToast('Erro ao salvar treino', 'error');
+  }
+}
+
+function baixarPDFPrescricaoAerobia() {
+  try {
+    if (!window._ultimaPrescAerobia) return;
+    const p = window._ultimaPrescAerobia;
+    const aluno = state.alunos.find(a => String(a.id) === String(p.alunoId));
+    
+    let sessoesHtml = '';
+    p.sessoesLista.forEach(s => {
+      sessoesHtml += `
+        <tr>
+          <td style="padding: 12px; border-bottom: 1px solid #eee;">Sessão ${s.num}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #eee;">⏱️ ${s.duracao} min</td>
+          <td style="padding: 12px; border-bottom: 1px solid #eee; color: #2563eb; font-weight: 700;">💓 ${p.fcInicial} - ${p.fcFinal} bpm</td>
+        </tr>
+      `;
+    });
+
+    const win = window.open('', '_blank');
+    win.document.write(`
+      <html><head><title>Prescrição Aeróbia - ${aluno ? aluno.nome : 'Aluno'}</title>
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #1e293b; line-height: 1.6; background: #fff; }
+        .header { text-align: center; border-bottom: 4px solid #2563eb; padding-bottom: 25px; margin-bottom: 35px; }
+        .header h1 { color: #2563eb; margin: 0; font-size: 28px; text-transform: uppercase; letter-spacing: 2px; }
+        .header p { margin: 5px 0 0; color: #64748b; font-weight: bold; }
+        .card { border: 2px solid #e2e8f0; border-radius: 16px; padding: 30px; background: #f8fafc; margin-bottom: 35px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 25px; }
+        .item { background: white; padding: 18px; border-radius: 12px; border: 1px solid #e2e8f0; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .label { font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 800; margin-bottom: 6px; }
+        .value { font-size: 18px; font-weight: 900; color: #1e293b; }
+        .highlight { color: #2563eb; }
+        .kcal { color: #ea580c; }
+        .protocolo-box { margin-top: 30px; padding: 20px; background: #fffbeb; border-left: 6px solid #f59e0b; border-radius: 8px; }
+        .protocolo-title { font-weight: 900; color: #92400e; text-transform: uppercase; font-size: 13px; margin-bottom: 8px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 25px; background: white; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; }
+        th { background: #f1f5f9; text-align: left; padding: 15px; font-size: 12px; text-transform: uppercase; color: #64748b; letter-spacing: 1px; }
+        .footer { text-align: center; margin-top: 60px; font-size: 13px; color: #94a3b8; border-top: 1px solid #eee; padding-top: 20px; }
+      </style>
+      </head><body>
+        <div class="header">
+          <h1>TREINOFITASM</h1>
+          <p>PRESCRIÇÃO DE TREINAMENTO AERÓBIO CIENTÍFICO</p>
+        </div>
+        
+        <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end;">
+          <div>
+            <div style="font-size: 12px; color: #64748b; text-transform: uppercase; font-weight: 800;">Aluno(a)</div>
+            <div style="font-size: 20px; font-weight: 900; color: #1e293b;">${aluno ? aluno.nome : 'Não identificado'}</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 12px; color: #64748b; text-transform: uppercase; font-weight: 800;">Data da Prescrição</div>
+            <div style="font-size: 16px; font-weight: 700;">${new Date(p.data).toLocaleDateString('pt-BR')}</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 style="margin-top:0; color: #2563eb; font-size: 22px; border-bottom: 2px solid #dbeafe; padding-bottom: 10px;">🎯 Objetivo: ${p.objetivoLabel}</h2>
+          
+          <div class="grid">
+            <div class="item"><div class="label">Modalidade</div><div class="value">${p.modalidade.toUpperCase()}</div></div>
+            <div class="item"><div class="label">Zona Alvo (BPM)</div><div class="value highlight">${p.fcInicial} - ${p.fcFinal}</div></div>
+            <div class="item"><div class="label">Gasto Calórico</div><div class="value kcal">~${p.gastoCalorico} kcal</div></div>
+            <div class="item"><div class="label">Duração / Sessão</div><div class="value">${p.duracaoSessao} min</div></div>
+            <div class="item"><div class="label">Total de Sessões</div><div class="value">${p.sessoesTotais}</div></div>
+            <div class="item"><div class="label">Frequência Semanal</div><div class="value">${p.dias.length}x na semana</div></div>
+          </div>
+
+          <div class="protocolo-box">
+            <div class="protocolo-title">📚 Protocolo e Orientação Científica</div>
+            <div style="font-size: 15px; color: #78350f;">${p.protocolo}</div>
+          </div>
+        </div>
+
+        <h3 style="font-size: 16px; text-transform: uppercase; letter-spacing: 1px; color: #1e293b; margin-bottom: 15px;">📅 Cronograma Detalhado de Sessões</h3>
+        <table>
+          <thead>
+            <tr><th>Sessão</th><th>Duração Estimada</th><th>Zona de Treinamento (BPM)</th></tr>
+          </thead>
+          <tbody>
+            ${sessoesHtml}
+          </tbody>
+        </table>
+
+        <div class="footer">
+          <strong>TREINOFITASM - Consultoria Esportiva & Performance</strong><br>
+          Este treino foi calculado com base em parâmetros fisiológicos individuais (Fórmula de Karvonen).
+        </div>
+      </body></html>
+    `);
+    win.document.close();
+    setTimeout(() => win.print(), 500);
+  } catch (err) {
+    console.error('Erro ao gerar PDF aeróbio:', err);
+    showToast('Erro ao gerar PDF', 'error');
+  }
+}

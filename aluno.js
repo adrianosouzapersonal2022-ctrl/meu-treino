@@ -4,6 +4,17 @@
 
 let alunoLogado = null;
 let chartAlunoComp = null;
+
+// Helper para parse seguro de JSON
+function safeParse(key, fallback = '[]') {
+  try {
+    const item = localStorage.getItem(key);
+    return JSON.parse(item || fallback);
+  } catch (e) {
+    console.error(`Erro ao parsear ${key} do localStorage:`, e);
+    return JSON.parse(fallback);
+  }
+}
 let divisaoAtiva = 'A'; // Divisão padrão
 let divisaoSelecionadaManualmente = false;
 let diaSelecionadoIdx = null; // Índice do dia selecionado no cronograma (0-6)
@@ -92,49 +103,82 @@ function fazerLogin() {
     return;
   }
   
-  const alunos = JSON.parse(localStorage.getItem('alunos') || '[]');
-  const aluno = alunos.find(a => (a.email && a.email.toLowerCase() === email) && (String(a.senha) === String(senha)));
+  const alunos = safeParse('alunos', '[]');
+  console.log('Tentativa de login para:', email);
+  console.log('Total de alunos no sistema:', alunos.length);
+  
+  if (alunos.length === 0) {
+    console.warn('Nenhum aluno cadastrado no sistema.');
+    error.style.display = 'block';
+    error.textContent = 'Não há alunos cadastrados. Fale com seu professor.';
+    return;
+  }
+
+  const aluno = alunos.find(a => (a.email && a.email.toLowerCase().trim() === email) && (String(a.senha).trim() === String(senha).trim()));
   
   if (!aluno) {
+    console.warn('Falha no login: Aluno não encontrado ou senha incorreta para:', email);
     error.style.display = 'block';
     error.textContent = 'E-mail ou senha incorretos.';
     return;
   }
   
   alunoLogado = aluno;
-  localStorage.setItem('alunoLogadoId', aluno.id);
+  if (aluno.id) {
+    localStorage.setItem('alunoLogadoId', String(aluno.id));
+  }
   entrarNoApp();
 }
 
 function entrarNoApp() {
   divisaoSelecionadaManualmente = false; // Resetar seleção automática ao entrar
-  document.getElementById('screen-login').style.display = 'none';
-  if (document.getElementById('screen-cadastro-online')) document.getElementById('screen-cadastro-online').style.display = 'none';
-  document.getElementById('screen-app').style.display = 'block';
   
-  const nome = alunoLogado.nome || 'Aluno';
-  document.getElementById('header-nome').textContent = nome;
-  document.getElementById('av-inicial').textContent = nome.charAt(0).toUpperCase();
-  document.getElementById('header-sub').textContent = 'Seu treino está pronto!';
+  const screenLogin = document.getElementById('screen-login');
+  const screenApp = document.getElementById('screen-app');
+  const screenReg = document.getElementById('screen-cadastro-online');
+
+  if (screenLogin) screenLogin.style.display = 'none';
+  if (screenReg) screenReg.style.display = 'none';
+  if (screenApp) screenApp.style.display = 'block';
+  
+  const nome = (alunoLogado && alunoLogado.nome) ? alunoLogado.nome : 'Aluno';
+  const headerNome = document.getElementById('header-nome');
+  const avInicial = document.getElementById('av-inicial');
+  const headerSub = document.getElementById('header-sub');
+
+  if (headerNome) headerNome.textContent = nome;
+  if (avInicial) avInicial.textContent = nome.charAt(0).toUpperCase();
+  if (headerSub) headerSub.textContent = 'Seu treino está pronto!';
   
   // Mensagem de Acesso Liberado
   toast('✅ Acesso liberado com sucesso! Verifique seu treino.', 'success');
   
   // Enviar mensagem automática de boas-vindas se for o primeiro login do dia
-  enviarMensagemAutomaticaBoasVindas();
+  try { enviarMensagemAutomaticaBoasVindas(); } catch(e) { console.error('Erro em enviarMensagemAutomaticaBoasVindas:', e); }
 
   // Verificar Acesso (Pagamento) e esconder aba se for gratuito
-  verificarAcesso();
+  try { verificarAcesso(); } catch(e) { console.error('Erro em verificarAcesso:', e); }
 
   // ABA PRINCIPAL AGORA É TREINO
-  showTab('treino');
+  try { showTab('treino'); } catch(e) { console.error('Erro em showTab:', e); }
 
-  carregarInicio();
-  carregarTreino();
-  carregarAvaliacao();
-  carregarPerfil();
-  carregarHistoricoPagamentos();
-  carregarMensagensMural();
+  // Carregamento assíncrono das seções para não travar o login
+  const functionsToCall = [
+    { name: 'carregarInicio', fn: carregarInicio },
+    { name: 'carregarTreino', fn: carregarTreino },
+    { name: 'carregarAvaliacao', fn: carregarAvaliacao },
+    { name: 'carregarPerfil', fn: carregarPerfil },
+    { name: 'carregarHistoricoPagamentos', fn: carregarHistoricoPagamentos },
+    { name: 'carregarMensagensMural', fn: carregarMensagensMural }
+  ];
+
+  functionsToCall.forEach(item => {
+    try {
+      if (typeof item.fn === 'function') item.fn();
+    } catch (err) {
+      console.error(`Erro ao executar ${item.name}:`, err);
+    }
+  });
 }
 
 function enviarMensagemAutomaticaBoasVindas() {
@@ -151,7 +195,7 @@ function enviarMensagemAutomaticaBoasVindas() {
 
   const textoMsg = mensagensDiarias[hoje];
   const muralKey = 'mural_feedbacks';
-  const mensagens = JSON.parse(localStorage.getItem(muralKey) || '[]');
+  const mensagens = safeParse(muralKey, '[]');
   
   // Verificar se o sistema já enviou a mensagem de hoje para evitar duplicidade
   const dataHoje = new Date().toLocaleDateString('pt-BR');
@@ -201,7 +245,7 @@ function processarRecuperarSenha() {
     return;
   }
 
-  const alunos = JSON.parse(localStorage.getItem('alunos') || '[]');
+  const alunos = safeParse('alunos', '[]');
   const idx = alunos.findIndex(a => a.email && a.email.toLowerCase() === email);
 
   if (idx === -1) {
@@ -261,10 +305,10 @@ function realizarCadastroOnline() {
     return;
   }
 
-  const alunos = JSON.parse(localStorage.getItem('alunos') || '[]');
+  const alunos = safeParse('alunos', '[]');
   
   // Verificar se e-mail já existe
-  const alunoExistenteIdx = alunos.findIndex(a => a.email === email);
+  const alunoExistenteIdx = alunos.findIndex(a => a.email && a.email.toLowerCase() === email.toLowerCase());
   
   if (alunoExistenteIdx !== -1) {
     const alunoExistente = alunos[alunoExistenteIdx];
@@ -358,18 +402,18 @@ function carregarInicio() {
   }
 
   // Recarregar dados do aluno do localStorage para garantir que pegamos mudanças de gratuidade
-  const todosAlunos = JSON.parse(localStorage.getItem('alunos') || '[]');
+  const todosAlunos = safeParse('alunos', '[]');
   const alunoAtualizado = todosAlunos.find(x => String(x.id) === String(a.id));
   if (alunoAtualizado) {
     alunoLogado = alunoAtualizado;
     verificarAcesso(); // Re-validar acesso com dados novos
   }
 
-  const avs = JSON.parse(localStorage.getItem('avaliacoes') || '[]').filter(x => String(x.alunoId) === String(a.id));
+  const avs = safeParse('avaliacoes', '[]').filter(x => String(x.alunoId) === String(a.id));
   const lastAv = avs[avs.length - 1];
 
   // Verificar se já tem anamnese
-  const anamneses = JSON.parse(localStorage.getItem('anamneses') || '[]');
+  const anamneses = safeParse('anamneses', '[]');
   const jaTemAnamnese = anamneses.some(an => String(an.alunoId) === String(a.id));
   document.getElementById('anamnese-pendente-alert').style.display = jaTemAnamnese ? 'none' : 'block';
 
@@ -380,8 +424,68 @@ function carregarInicio() {
 
   document.getElementById('resumo-objetivo').textContent = a.objetivo || 'Foco no Treino';
 
-  const todasFichas = JSON.parse(localStorage.getItem('fichas') || '[]');
+  const todasFichas = safeParse('fichas', '[]');
   const ficha = todasFichas.find(f => String(f.alunoId) === String(a.id));
+  
+  // Renderizar Prescrição Aeróbia se existir
+  const secaoAerobio = document.getElementById('secao-aerobio-aluno');
+  const conteudoAerobio = document.getElementById('conteudo-aerobio-aluno');
+  
+  if (ficha && ficha.aerobio && secaoAerobio && conteudoAerobio) {
+    const ae = ficha.aerobio;
+    secaoAerobio.style.display = 'block';
+    
+    let sessoesHtml = '';
+    if (ae.sessoesLista) {
+      ae.sessoesLista.forEach(s => {
+        sessoesHtml += `
+          <div style="display: flex; justify-content: space-between; padding: 6px 10px; background: white; border-bottom: 1px solid #f0fdf4; font-size: 0.8rem;">
+            <span>Sessão ${s.num}</span>
+            <span style="font-weight: 700;">${s.duracao} min</span>
+          </div>
+        `;
+      });
+    }
+
+    conteudoAerobio.innerHTML = `
+      <div style="background: #f0fdf4; border: 2px solid #10b981; padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <div style="font-weight: 900; color: #166534; font-size: 1.2rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+          <span>🏃</span> ${ae.objetivoLabel}
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+          <div style="background: white; padding: 12px; border-radius: 12px; border: 1px solid #bbf7d0; text-align: center;">
+            <div style="font-size: 0.65rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Modalidade</div>
+            <div style="font-size: 1rem; font-weight: 800; color: #1e293b;">${ae.modalidade.toUpperCase()}</div>
+          </div>
+          <div style="background: white; padding: 12px; border-radius: 12px; border: 1px solid #bbf7d0; text-align: center;">
+            <div style="font-size: 0.65rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Duração</div>
+            <div style="font-size: 1.1rem; font-weight: 900; color: #10b981;">${ae.duracaoSessao || ae.volume} min</div>
+          </div>
+          <div style="background: #eff6ff; padding: 12px; border-radius: 12px; border: 1px solid #bfdbfe; text-align: center;">
+            <div style="font-size: 0.65rem; color: #1e40af; text-transform: uppercase; font-weight: 700;">Zona Alvo (BPM)</div>
+            <div style="font-size: 1.1rem; font-weight: 900; color: #2563eb;">${ae.fcInicial || ae.fcAlvo.split('-')[0]} - ${ae.fcFinal || ae.fcAlvo.split('-')[1]}</div>
+          </div>
+          <div style="background: #fff7ed; padding: 12px; border-radius: 12px; border: 1px solid #fed7aa; text-align: center;">
+            <div style="font-size: 0.65rem; color: #9a3412; text-transform: uppercase; font-weight: 700;">Gasto Calórico</div>
+            <div style="font-size: 1.1rem; font-weight: 900; color: #ea580c;">~${ae.gastoCalorico || 0} kcal</div>
+          </div>
+        </div>
+        
+        <div style="background: white; border-radius: 10px; border: 1px solid #bbf7d0; overflow: hidden; max-height: 180px; overflow-y: auto; margin-bottom: 15px;">
+          <div style="background: #f8fafc; padding: 8px 12px; font-size: 0.7rem; font-weight: 800; color: #64748b; border-bottom: 1px solid #e2e8f0;">CRONOGRAMA DE SESSÕES</div>
+          ${sessoesHtml || '<div style="padding: 10px; font-size: 0.8rem; color: #64748b;">Cronograma indisponível</div>'}
+        </div>
+
+        <div style="background: #fdfcea; padding: 12px; border-radius: 10px; border-left: 4px solid #eab308; font-size: 0.85rem; color: #854d0e; line-height: 1.4;">
+          <strong>Protocolo:</strong> ${ae.protocolo || 'Manter intensidade constante conforme FC alvo.'}
+        </div>
+      </div>
+    `;
+  } else if (secaoAerobio) {
+    secaoAerobio.style.display = 'none';
+  }
+
   const prox = document.getElementById('proximo-treino');
 
   if (ficha && ficha.exercicios && ficha.exercicios.length > 0) {
@@ -475,7 +579,7 @@ function salvarAnamneseAluno() {
     origem: 'aluno'
   };
 
-  const anamneses = JSON.parse(localStorage.getItem('anamneses') || '[]');
+  const anamneses = safeParse('anamneses', '[]');
   anamneses.push(anamnese);
   localStorage.setItem('anamneses', JSON.stringify(anamneses));
 
@@ -523,7 +627,7 @@ function getGifExercicio(exer) {
 
 function carregarTreino() {
   const a = alunoLogado;
-  const todasFichas = JSON.parse(localStorage.getItem('fichas') || '[]');
+  const todasFichas = safeParse('fichas', '[]');
   const ficha = todasFichas.find(f => String(f.alunoId) === String(a.id));
   const container = document.getElementById('ficha-treino-content');
   const selectDivisao = document.getElementById('select-divisao-treino');
@@ -617,14 +721,53 @@ function carregarTreino() {
   const exerciciosFiltrados = ficha.exercicios.filter(e => (e.divisao || 'A').toUpperCase() === divisaoAtiva.toUpperCase());
   
   let html = '';
+
+  // 3.1 Renderizar Card de Aeróbio se for o dia correto
+  const diasSemanaNomes = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
+  const hojeNomeIdx = diaSelecionadoIdx !== null ? diaSelecionadoIdx : (new Date().getDay() + 6) % 7;
+  const diaNomeAtivo = diasSemanaNomes[hojeNomeIdx];
+
+  if (ficha.aerobio && ficha.aerobio.dias && ficha.aerobio.dias.includes(diaNomeAtivo)) {
+    const ae = ficha.aerobio;
+    html += `
+      <div class="section-card" style="margin-bottom: 25px; border-left: 5px solid #10b981; background: #f0fdf4; padding: 20px; border-radius: 16px;">
+        <h3 style="color: #166534; font-size: 1.2rem; font-weight: 900; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+          🏃 TREINO AERÓBIO: ${ae.objetivoLabel}
+        </h3>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px;">
+          <div style="background: white; padding: 12px; border-radius: 12px; border: 1px solid #bbf7d0; text-align: center;">
+            <div style="font-size: 0.65rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Modalidade</div>
+            <div style="font-size: 1rem; font-weight: 800; color: #1e293b;">${ae.modalidade.toUpperCase()}</div>
+          </div>
+          <div style="background: white; padding: 12px; border-radius: 12px; border: 1px solid #bbf7d0; text-align: center;">
+            <div style="font-size: 0.65rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Duração</div>
+            <div style="font-size: 1.1rem; font-weight: 900; color: #10b981;">${ae.duracaoSessao || ae.volume} min</div>
+          </div>
+          <div style="background: white; padding: 12px; border-radius: 12px; border: 1px solid #bbf7d0; text-align: center;">
+            <div style="font-size: 0.65rem; color: #64748b; text-transform: uppercase; font-weight: 700;">FC Alvo</div>
+            <div style="font-size: 1rem; font-weight: 900; color: #2563eb;">${ae.fcAlvo} bpm</div>
+          </div>
+          <div style="background: white; padding: 12px; border-radius: 12px; border: 1px solid #bbf7d0; text-align: center;">
+            <div style="font-size: 0.65rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Gasto Calórico</div>
+            <div style="font-size: 1rem; font-weight: 900; color: #f59e0b;">~${ae.gastoCalorico || 0} kcal</div>
+          </div>
+        </div>
+
+        <div style="background: #fffbeb; padding: 12px; border-radius: 10px; border-left: 4px solid #f59e0b; font-size: 0.85rem; color: #92400e; line-height: 1.4;">
+          <strong>Protocolo:</strong> ${ae.protocolo || 'Manter intensidade constante conforme FC alvo.'}
+        </div>
+      </div>
+    `;
+  }
   
-  if (exerciciosFiltrados.length === 0) {
+  if (exerciciosFiltrados.length === 0 && !html) {
     html = `<div class="section-card" style="text-align: center; padding: 3rem;">
               <p class="empty-msg">Nenhum exercício cadastrado para o <strong>TREINO ${divisaoAtiva}</strong>.</p>
               <p style="font-size: 0.85rem; color: var(--muted); margin-top: 10px;">Selecione outro dia no cronograma acima.</p>
             </div>`;
   } else {
-    html = exerciciosFiltrados.map(e => {
+    html += exerciciosFiltrados.map(e => {
       const grupoNormalizado = e.grupo ? e.grupo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : 'geral';
       const bgClass = `bg-${grupoNormalizado}`;
       const gifUrl = getGifExercicio(e);
@@ -673,21 +816,12 @@ function carregarTreino() {
               <button onclick="iniciarCronometro(${e.descanso || 60})" class="btn-timer" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; background: #f8fafc; color: #1e293b; border: 1px solid #cbd5e1; padding: 10px; border-radius: 10px; font-weight: 800; cursor: pointer;">
                 ⏱️ ${e.descanso || 60}s
               </button>
-              <button class="btn-check" id="check-${e.id}" style="flex: 2; background: #2563eb; color: white; border: none; padding: 10px; border-radius: 10px; font-weight: 800; cursor: pointer;">Concluir</button>
+              <button class="btn-check" id="check-${e.id}" onclick="toggleCheck('${e.id}')" style="flex: 2; background: #2563eb; color: white; border: none; padding: 10px; border-radius: 10px; font-weight: 800; cursor: pointer;">Concluir</button>
             </div>
           </div>
         </div>
       `;
     }).join('');
-
-    html += `
-      <div style="margin-top: 2rem; padding: 0 1rem 2rem;">
-        <button class="btn-full" onclick="concluirTreino()" style="background: #10b981; height: 55px; font-size: 1.1rem; font-weight: 800; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">✅ CONCLUIR TREINO ${divisaoAtiva} DE HOJE</button>
-      </div>
-    `;
-  }
-  container.innerHTML = html;
-}
 
     html += `
       <div style="margin-top: 2rem; padding: 0 1rem 2rem;">
@@ -712,7 +846,7 @@ function mudarDivisao(div, idx) {
     // Caso tenha vindo do dropdown (select)
     // Precisamos encontrar o dia no cronograma que corresponde a esta letra de treino (A, B, C...)
     const diasSemana = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
-    const todasFichas = JSON.parse(localStorage.getItem('fichas') || '[]');
+    const todasFichas = safeParse('fichas', '[]');
     const ficha = todasFichas.find(f => String(f.alunoId) === String(alunoLogado.id));
     
     if (ficha && ficha.exercicios) {
@@ -743,7 +877,7 @@ function mudarDivisao(div, idx) {
 
 function concluirTreino() {
   const a = alunoLogado;
-  const todasFichas = JSON.parse(localStorage.getItem('fichas') || '[]');
+  const todasFichas = safeParse('fichas', '[]');
   const idx = todasFichas.findIndex(f => String(f.alunoId) === String(a.id));
   
   if (idx === -1) {
@@ -769,11 +903,11 @@ function concluirTreino() {
 function carregarAvaliacao() {
   const a = alunoLogado;
   // Buscar avaliações e garantir que estão ordenadas pela data mais recente
-  const avs = JSON.parse(localStorage.getItem('avaliacoes') || '[]')
+  const avs = safeParse('avaliacoes', '[]')
     .filter(x => String(x.alunoId) === String(a.id))
     .sort((a, b) => new Date(b.data) - new Date(a.data));
     
-  const anam = JSON.parse(localStorage.getItem('anamneses') || '[]')
+  const anam = safeParse('anamneses', '[]')
     .filter(x => String(x.alunoId) === String(a.id))
     .sort((a, b) => new Date(b.data) - new Date(a.data));
 
@@ -874,7 +1008,7 @@ function carregarHistoricoPagamentos() {
   // Mostrar resumo de planos se for aluno gratuito ou pago
   // Agora todos podem ver e selecionar planos
   
-  const pags = JSON.parse(localStorage.getItem('pagamentos') || '[]').filter(p => String(p.alunoId) === String(alunoLogado.id));
+  const pags = safeParse('pagamentos', '[]').filter(p => String(p.alunoId) === String(alunoLogado.id));
   
   if (pags.length === 0) {
     container.innerHTML = '<p class="empty-msg">Nenhum pagamento registrado.</p>';
@@ -941,7 +1075,7 @@ function processarPagamentoCartao() {
   toast('Processando pagamento...', 'info');
   
   setTimeout(() => {
-    const pagamentos = JSON.parse(localStorage.getItem('pagamentos') || '[]');
+    const pagamentos = safeParse('pagamentos', '[]');
     const novoPag = {
       id: Date.now(),
       alunoId: alunoLogado.id,
@@ -1023,10 +1157,25 @@ function notificarPixManual() {
   enviarNotificacaoWhats(alunoLogado, planoSelecionado.nome, planoSelecionado.preco);
 }
 
+// Funções para marcar exercícios individuais
+window.toggleCheck = function(id) {
+  const btn = document.getElementById(`check-${id}`);
+  if (!btn) return;
+
+  if (btn.textContent === 'Concluir') {
+    btn.style.background = '#10b981';
+    btn.textContent = 'Concluído';
+    toast('Exercício marcado!', 'success');
+  } else {
+    btn.style.background = '#2563eb';
+    btn.textContent = 'Concluir';
+  }
+}
+
 // ===== PDF DOWNLOADS =====
 function baixarTreinoPDF() {
   const a = alunoLogado;
-  const todasFichas = JSON.parse(localStorage.getItem('fichas') || '[]');
+  const todasFichas = safeParse('fichas', '[]');
   const ficha = todasFichas.find(f => String(f.alunoId) === String(a.id));
   
   if (!ficha || !ficha.exercicios || ficha.exercicios.length === 0) {
@@ -1176,7 +1325,7 @@ function carregarMensagensMural() {
   const mural = document.getElementById('mural-mensagens');
   if (!mural) return;
 
-  const mensagens = JSON.parse(localStorage.getItem('mural_feedbacks') || '[]');
+  const mensagens = safeParse('mural_feedbacks', '[]');
   
   if (mensagens.length === 0) {
     mural.innerHTML = `<p style="text-align: center; color: #94a3b8; font-size: 0.8rem; padding: 20px;">Nenhuma mensagem enviada ainda. Seja o primeiro!</p>`;
@@ -1184,7 +1333,7 @@ function carregarMensagensMural() {
   }
 
   mural.innerHTML = mensagens.map(m => `
-    <div style="background: ${m.isAdmin ? '#eff6ff' : 'white'}; padding: 15px; border-radius: 16px; border: 1px solid ${m.isAdmin ? '#bfdbfe' : '#e2e8f0'}; align-self: ${m.alunoId === alunoLogado.id ? 'flex-end' : 'flex-start'}; max-width: 90%; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 5px;">
+    <div style="background: ${m.isAdmin ? '#eff6ff' : 'white'}; padding: 15px; border-radius: 16px; border: 1px solid ${m.isAdmin ? '#bfdbfe' : '#e2e8f0'}; align-self: ${(alunoLogado && m.alunoId === alunoLogado.id) ? 'flex-end' : 'flex-start'}; max-width: 90%; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 5px;">
       <div style="display: flex; justify-content: space-between; gap: 15px; margin-bottom: 6px; align-items: center;">
         <strong style="font-size: 0.8rem; color: ${m.isAdmin ? '#2563eb' : '#1e293b'}; display: flex; align-items: center; gap: 5px;">
           ${m.isAdmin ? '⭐' : ''} ${m.nome}
@@ -1222,7 +1371,7 @@ function enviarMensagemMural() {
     return;
   }
 
-  const mensagens = JSON.parse(localStorage.getItem('mural_feedbacks') || '[]');
+  const mensagens = safeParse('mural_feedbacks', '[]');
   const novaMsg = {
     id: Date.now(),
     alunoId: alunoLogado.id,
@@ -1243,10 +1392,21 @@ function enviarMensagemMural() {
 }
 
 // Chamar carregarMensagensMural quando a aba treino for aberta
-const originalShowTab = window.showTab;
+const originalShowTab = (typeof showTab === 'function') ? showTab : window.showTab;
 window.showTab = function(id) {
-  if (typeof originalShowTab === 'function') originalShowTab(id);
-  if (id === 'treino') {
+  if (typeof originalShowTab === 'function') {
+    originalShowTab(id);
+  } else {
+    // Fallback if original was somehow lost
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
+    const targetTab = document.getElementById('tab-' + id);
+    const targetBtn = document.getElementById('bnav-' + id);
+    if (targetTab) targetTab.classList.add('active');
+    if (targetBtn) targetBtn.classList.add('active');
+  }
+  
+  if (id === 'treino' || id === 'comunidade') {
     setTimeout(carregarMensagensMural, 100);
   }
 };
@@ -1278,6 +1438,7 @@ window.addEventListener('scroll', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('Script aluno.js carregado e DOM pronto.');
   // Suporte ao Enter no Login Aluno
   const loginEmailInput = document.getElementById('login-email');
   const loginSenhaInput = document.getElementById('login-senha');
@@ -1295,8 +1456,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const savedId = localStorage.getItem('alunoLogadoId');
-  if (savedId) {
-    const alunos = JSON.parse(localStorage.getItem('alunos') || '[]');
+  if (savedId && savedId !== 'null' && savedId !== 'undefined') {
+    const alunos = safeParse('alunos', '[]');
     const aluno = alunos.find(a => String(a.id) === String(savedId));
     if (aluno) {
       alunoLogado = aluno;
