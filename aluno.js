@@ -522,10 +522,12 @@ function carregarTreino() {
   // 3. Renderizar Exercícios da Divisão Ativa
   const exerciciosFiltrados = ficha.exercicios.filter(e => (e.divisao || 'A') === divisaoAtiva);
   
+  let html = '';
+  
   if (exerciciosFiltrados.length === 0) {
-    container.innerHTML = `<p class="empty-msg">Nenhum exercício na Divisão ${divisaoAtiva}.</p>`;
+    html = `<p class="empty-msg">Nenhum exercício na Divisão ${divisaoAtiva}.</p>`;
   } else {
-    container.innerHTML = exerciciosFiltrados.map(e => {
+    html = exerciciosFiltrados.map(e => {
       // Cores por agrupamento (mesma lógica do admin)
       const grupoNormalizado = e.grupo ? e.grupo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : 'geral';
       const bgClass = `bg-${grupoNormalizado}`;
@@ -556,7 +558,40 @@ function carregarTreino() {
         </div>
       `;
     }).join('');
+
+    // Adicionar botão de concluir treino no final da lista
+    html += `
+      <div style="margin-top: 2rem; padding: 0 1rem 2rem;">
+        <button class="btn-full" onclick="concluirTreino()" style="background: #10b981; height: 55px; font-size: 1.1rem; font-weight: 800; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">✅ CONCLUIR TREINO DE HOJE</button>
+      </div>
+    `;
   }
+  container.innerHTML = html;
+}
+
+function concluirTreino() {
+  const a = alunoLogado;
+  const todasFichas = JSON.parse(localStorage.getItem('fichas') || '[]');
+  const idx = todasFichas.findIndex(f => String(f.alunoId) === String(a.id));
+  
+  if (idx === -1) {
+    toast('Erro ao localizar sua ficha.', 'error');
+    return;
+  }
+
+  // Incrementar sessões realizadas
+  todasFichas[idx].sessoesRealizadas = (todasFichas[idx].sessoesRealizadas || 0) + 1;
+  localStorage.setItem('fichas', JSON.stringify(todasFichas));
+
+  // Feedback visual
+  const meta = todasFichas[idx].metaSessoes || 0;
+  const atual = todasFichas[idx].sessoesRealizadas;
+  
+  alert(`🔥 Parabéns! Treino concluído.\nVocê já realizou ${atual}${meta > 0 ? ' de ' + meta : ''} sessões.`);
+  
+  toast('✅ Treino registrado com sucesso!', 'success');
+  carregarInicio();
+  carregarTreino();
 }
 
 function mudarDivisao(div) {
@@ -798,6 +833,17 @@ function copiarPix() {
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {
+  // Suporte ao Enter no Login Aluno
+  const loginEmailInput = document.getElementById('login-email');
+  const loginSenhaInput = document.getElementById('login-senha');
+  if (loginEmailInput && loginSenhaInput) {
+    [loginEmailInput, loginSenhaInput].forEach(el => {
+      el.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') fazerLogin();
+      });
+    });
+  }
+
   const params = new URLSearchParams(window.location.search);
   if (params.get('action') === 'register') {
     showOnlineRegistration();

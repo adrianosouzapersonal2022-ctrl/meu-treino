@@ -1537,68 +1537,68 @@
     </div>
   </div>
 
-  <div id="modal-novo-exercicio" class="screen-overlay" style="display: none; z-index: 9999; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);">
-    <div class="login-card" style="max-width: 480px; width: 95%; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); padding: 1.5rem; background: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #cbd5e1; padding-bottom: 10px;">
-        <h2 id="modal-novo-exer-titulo" style="font-size: 1.1rem; color: #1e293b; margin: 0; font-weight: 800; letter-spacing: -0.5px;">📝 Cadastrar Exercício</h2>
-        <button onclick="fecharModalNovoExercicio()" style="background: #e2e8f0; border: none; width: 28px; height: 28px; border-radius: 50%; font-size: 1rem; cursor: pointer; color: #64748b; display: flex; align-items: center; justify-content: center;">&times;</button>
+  <div id="modal-novo-exercicio" class="screen-overlay" style="display: none; z-index: 9999; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); align-items: stretch; justify-content: flex-end;">
+    <div class="login-card" style="max-width: 500px; width: 100%; height: 100vh; border-radius: 0; box-shadow: -10px 0 50px rgba(0,0,0,0.5); padding: 2rem; background: #000000; color: #ffffff; border: none; margin: 0; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid #333; padding-bottom: 15px;">
+        <h2 id="modal-novo-exer-titulo" style="font-size: 1.4rem; color: #ffffff; margin: 0; font-weight: 800; letter-spacing: -0.5px;">📝 Cadastrar Exercício</h2>
+        <button onclick="fecharModalNovoExercicio()" style="background: #333; border: none; width: 35px; height: 35px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; color: #ffffff; display: flex; align-items: center; justify-content: center;">&times;</button>
       </div>
       
       <input type="hidden" id="novo-exer-id" value="">
 
       <!-- NOME E BOTÃO SALVAR NO TOPO -->
-      <div class="form-group" style="margin-bottom: 1rem;">
-          <label style="font-weight: 700; color: #64748b; display: block; margin-bottom: 5px; font-size: 0.75rem; text-transform: uppercase;">Nome do Exercício *</label>
-          <div style="display: flex; gap: 8px;">
-            <input type="text" id="novo-exer-nome" placeholder="Ex: Agachamento Sumô" style="flex: 1; padding: 10px; border-radius: 8px; border: 2px solid #cbd5e1; background: #fff; color: #1e293b; font-size: 0.95rem; outline: none;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#cbd5e1'" />
-            <button id="btn-salvar-novo-exer" class="btn-primary" onclick="salvarNovoExercicioBanco()" style="padding: 0 15px; height: 42px; border-radius: 8px; background: #3b82f6; color: #fff; border: none; font-weight: 800; cursor: pointer; font-size: 0.85rem; white-space: nowrap;">💾 SALVAR</button>
+      <div class="form-group" style="margin-bottom: 2rem;">
+          <label style="font-weight: 700; color: #94a3b8; display: block; margin-bottom: 10px; font-size: 0.85rem; text-transform: uppercase;">Nome do Exercício *</label>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <input type="text" id="novo-exer-nome" placeholder="Ex: Agachamento Sumô" style="width: 100%; padding: 15px; border-radius: 10px; border: 2px solid #333; background: #1a1a1a; color: #ffffff; font-size: 1.1rem; outline: none;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#333'" />
+            <button id="btn-salvar-novo-exer" class="btn-primary" onclick="salvarNovoExercicioBanco()" style="width: 100%; height: 55px; border-radius: 12px; background: #3b82f6; color: #fff; border: none; font-weight: 800; cursor: pointer; font-size: 1.1rem; letter-spacing: 1px; transition: transform 0.2s;">💾 SALVAR EXERCÍCIO</button>
           </div>
       </div>
         
       <!-- LISTA DE AGRUPAMENTOS EM BAIXO -->
-      <div class="form-group" style="margin-bottom: 1rem;">
-        <label style="font-weight: 700; color: #64748b; display: block; margin-bottom: 8px; font-size: 0.75rem; text-transform: uppercase;">Agrupamentos Musculares * (Marque um ou mais)</label>
-        <div id="novo-exer-grupos-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #fff; padding: 10px; border-radius: 10px; border: 1px solid #cbd5e1; max-height: 180px; overflow-y: auto;">
-          <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 8px; color: #1e293b; cursor: pointer; background: #f8fafc; padding: 6px 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
-            <input type="checkbox" name="novo-grupo" value="Ombro" style="width: 16px; height: 16px; accent-color: #f59e0b;"> Ombro
+      <div class="form-group" style="margin-bottom: 2rem;">
+        <label style="font-weight: 700; color: #94a3b8; display: block; margin-bottom: 15px; font-size: 0.85rem; text-transform: uppercase;">Agrupamentos Musculares *</label>
+        <div id="novo-exer-grupos-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: #111; padding: 15px; border-radius: 15px; border: 1px solid #333;">
+          <label style="font-size: 1rem; display: flex; align-items: center; gap: 12px; color: #ffffff; cursor: pointer; background: #1a1a1a; padding: 12px; border-radius: 10px; border: 1px solid #333;">
+            <input type="checkbox" name="novo-grupo" value="Ombro" style="width: 20px; height: 20px; accent-color: #f59e0b;"> Ombro
           </label>
-          <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 8px; color: #1e293b; cursor: pointer; background: #f8fafc; padding: 6px 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
-            <input type="checkbox" name="novo-grupo" value="Peito" style="width: 16px; height: 16px; accent-color: #ef4444;"> Peito
+          <label style="font-size: 1rem; display: flex; align-items: center; gap: 12px; color: #ffffff; cursor: pointer; background: #1a1a1a; padding: 12px; border-radius: 10px; border: 1px solid #333;">
+            <input type="checkbox" name="novo-grupo" value="Peito" style="width: 20px; height: 20px; accent-color: #ef4444;"> Peito
           </label>
-          <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 8px; color: #1e293b; cursor: pointer; background: #f8fafc; padding: 6px 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
-            <input type="checkbox" name="novo-grupo" value="Costa" style="width: 16px; height: 16px; accent-color: #3b82f6;"> Costa
+          <label style="font-size: 1rem; display: flex; align-items: center; gap: 12px; color: #ffffff; cursor: pointer; background: #1a1a1a; padding: 12px; border-radius: 10px; border: 1px solid #333;">
+            <input type="checkbox" name="novo-grupo" value="Costa" style="width: 20px; height: 20px; accent-color: #3b82f6;"> Costa
           </label>
-          <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 8px; color: #1e293b; cursor: pointer; background: #f8fafc; padding: 6px 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
-            <input type="checkbox" name="novo-grupo" value="Biceps" style="width: 16px; height: 16px; accent-color: #8b5cf6;"> Biceps
+          <label style="font-size: 1rem; display: flex; align-items: center; gap: 12px; color: #ffffff; cursor: pointer; background: #1a1a1a; padding: 12px; border-radius: 10px; border: 1px solid #333;">
+            <input type="checkbox" name="novo-grupo" value="Biceps" style="width: 20px; height: 20px; accent-color: #8b5cf6;"> Biceps
           </label>
-          <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 8px; color: #1e293b; cursor: pointer; background: #f8fafc; padding: 6px 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
-            <input type="checkbox" name="novo-grupo" value="Triceps" style="width: 16px; height: 16px; accent-color: #ec4899;"> Triceps
+          <label style="font-size: 1rem; display: flex; align-items: center; gap: 12px; color: #ffffff; cursor: pointer; background: #1a1a1a; padding: 12px; border-radius: 10px; border: 1px solid #333;">
+            <input type="checkbox" name="novo-grupo" value="Triceps" style="width: 20px; height: 20px; accent-color: #ec4899;"> Triceps
           </label>
-          <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 8px; color: #1e293b; cursor: pointer; background: #f8fafc; padding: 6px 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
-            <input type="checkbox" name="novo-grupo" value="Coxa" style="width: 16px; height: 16px; accent-color: #10b981;"> Coxa
+          <label style="font-size: 1rem; display: flex; align-items: center; gap: 12px; color: #ffffff; cursor: pointer; background: #1a1a1a; padding: 12px; border-radius: 10px; border: 1px solid #333;">
+            <input type="checkbox" name="novo-grupo" value="Coxa" style="width: 20px; height: 20px; accent-color: #10b981;"> Coxa
           </label>
-          <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 8px; color: #1e293b; cursor: pointer; background: #f8fafc; padding: 6px 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
-            <input type="checkbox" name="novo-grupo" value="Gluteo" style="width: 16px; height: 16px; accent-color: #6366f1;"> Gluteo
+          <label style="font-size: 1rem; display: flex; align-items: center; gap: 12px; color: #ffffff; cursor: pointer; background: #1a1a1a; padding: 12px; border-radius: 10px; border: 1px solid #333;">
+            <input type="checkbox" name="novo-grupo" value="Gluteo" style="width: 20px; height: 20px; accent-color: #6366f1;"> Gluteo
           </label>
-          <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 8px; color: #1e293b; cursor: pointer; background: #f8fafc; padding: 6px 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
-            <input type="checkbox" name="novo-grupo" value="Abdomen" style="width: 16px; height: 16px; accent-color: #64748b;"> Abdomen
+          <label style="font-size: 1rem; display: flex; align-items: center; gap: 12px; color: #ffffff; cursor: pointer; background: #1a1a1a; padding: 12px; border-radius: 10px; border: 1px solid #333;">
+            <input type="checkbox" name="novo-grupo" value="Abdomen" style="width: 20px; height: 20px; accent-color: #64748b;"> Abdomen
           </label>
         </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1rem;">
+      <div style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 2rem;">
           <div class="form-group">
-            <label style="font-weight: 700; color: #64748b; display: block; margin-bottom: 5px; font-size: 0.7rem; text-transform: uppercase;">Equipamento</label>
-            <input type="text" id="novo-exer-equip" placeholder="Ex: Halter" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; color: #1e293b; font-size: 0.85rem;" />
+            <label style="font-weight: 700; color: #94a3b8; display: block; margin-bottom: 8px; font-size: 0.8rem; text-transform: uppercase;">Equipamento Utilizado</label>
+            <input type="text" id="novo-exer-equip" placeholder="Ex: Halter, Barra, Máquina..." style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #333; background: #1a1a1a; color: #ffffff; font-size: 1rem;" />
           </div>
           <div class="form-group">
-            <label style="font-weight: 700; color: #64748b; display: block; margin-bottom: 5px; font-size: 0.7rem; text-transform: uppercase;">Vídeo/GIF</label>
-            <input type="text" id="novo-exer-video" placeholder="Link" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; color: #1e293b; font-size: 0.85rem;" />
+            <label style="font-weight: 700; color: #94a3b8; display: block; margin-bottom: 8px; font-size: 0.8rem; text-transform: uppercase;">Link do Vídeo/GIF (YouTube/Giphy)</label>
+            <input type="text" id="novo-exer-video" placeholder="Cole o link aqui..." style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #333; background: #1a1a1a; color: #ffffff; font-size: 1rem;" />
           </div>
       </div>
 
-      <div style="display: flex; justify-content: flex-end; gap: 10px;">
-        <button class="btn-secondary" onclick="fecharModalNovoExercicio()" style="padding: 8px 15px; border-radius: 8px; background: #64748b; color: #fff; border: none; font-weight: 600; cursor: pointer; font-size: 0.8rem;">Cancelar</button>
+      <div style="display: flex; justify-content: stretch; gap: 15px; margin-top: auto; padding-bottom: 2rem;">
+        <button class="btn-secondary" onclick="fecharModalNovoExercicio()" style="flex: 1; padding: 15px; border-radius: 12px; background: #333; color: #fff; border: none; font-weight: 600; cursor: pointer; font-size: 1rem;">Fechar</button>
       </div>
     </div>
   </div>

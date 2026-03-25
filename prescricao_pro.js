@@ -136,19 +136,35 @@ function renderListaExercicios() {
   const container = document.getElementById('presc-lista-exercicios');
   if (!container) return;
   
-  const busca = (document.getElementById('presc-busca')?.value || '').toLowerCase();
+  const buscaRaw = (document.getElementById('presc-busca')?.value || '').trim();
+  const busca = buscaRaw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const gruposChecked = Array.from(document.querySelectorAll('input[name="grupo-filter"]:checked')).map(cb => cb.value);
   
   let lista = getExerciciosCompletos(); 
   
   if (busca) {
-    lista = lista.filter(e => e.nome.toLowerCase().includes(busca) || e.grupo.toLowerCase().includes(busca));
+    lista = lista.filter(e => {
+      const nomeNorm = e.nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const grupoNorm = e.grupo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const equipNorm = (e.equip || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      return nomeNorm.includes(busca) || grupoNorm.includes(busca) || equipNorm.includes(busca);
+    });
   }
   
   if (gruposChecked.length > 0) {
     lista = lista.filter(e => gruposChecked.includes(e.grupo));
   }
   
+  if (lista.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 2rem; color: #64748b;">
+        <p>🔍 Nenhum exercício encontrado para "${buscaRaw}".</p>
+        <button class="btn-success" onclick="abrirModalNovoExercicio()" style="margin-top: 10px;">+ Cadastrar "${buscaRaw}"</button>
+      </div>
+    `;
+    return;
+  }
+
   container.innerHTML = lista.map(e => {
     const grupoClass = `grupo-${e.grupo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
     const bgClass = `bg-${e.grupo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
@@ -660,7 +676,11 @@ function mostrarInfoTecnica() {
 }
 
 function salvarFichaCompleta() {
-  if (!currentAlunoId) { showToast('Selecione um aluno primeiro', 'error'); return; }
+  if (!currentAlunoId) { 
+    alert('⚠️ Erro: Selecione um aluno primeiro para salvar o treino.');
+    showToast('Selecione um aluno primeiro', 'error'); 
+    return; 
+  }
   
   const diasTreino = Array.from(document.querySelectorAll('input[name="dia-treino"]:checked')).map(cb => cb.value);
   const mapeamentoDias = {};
@@ -680,11 +700,19 @@ function salvarFichaCompleta() {
     data: new Date().toISOString().slice(0, 10)
   };
   
+  // Garantir que estamos atualizando o state global corretamente
   const idx = state.fichas.findIndex(f => String(f.alunoId) === String(currentAlunoId));
-  if (idx >= 0) state.fichas[idx] = ficha;
-  else state.fichas.push(ficha);
+  if (idx >= 0) {
+    state.fichas[idx] = ficha;
+  } else {
+    state.fichas.push(ficha);
+  }
   
+  // Forçar salvamento imediato e redundante para garantir persistência
   saveState();
+  localStorage.setItem('fichas', JSON.stringify(state.fichas));
+  
+  alert('✅ SUCESSO!\nO treino foi cadastrado e salvo no banco de dados.\nO aluno já pode visualizar no app dele.');
   showToast('Treino salvo com sucesso!', 'success');
 }
 

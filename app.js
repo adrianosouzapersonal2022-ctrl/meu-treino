@@ -1208,6 +1208,17 @@ function logoutAdmin() {
 
 // Renderizar tabelas de referência ao carregar
 document.addEventListener('DOMContentLoaded', () => {
+  // Suporte ao Enter no Login Admin
+  const adminUserInput = document.getElementById('admin-user');
+  const adminPassInput = document.getElementById('admin-pass');
+  if (adminUserInput && adminPassInput) {
+    [adminUserInput, adminPassInput].forEach(el => {
+      el.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') loginAdmin();
+      });
+    });
+  }
+
   // Tabela de técnicas
   const tb = document.getElementById('tabela-tecnicas-corpo');
   if (tb) tb.innerHTML = TECNICAS_DB.map(t =>
