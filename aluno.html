@@ -219,6 +219,26 @@
               <button class="btn-full btn-primary" onclick="baixarTreinoPDF()">📥 Baixar Treino PDF</button>
             </div>
           </div>
+
+          <!-- SEÇÃO: MURAL DE FEEDBACK (CHAT) -->
+          <div class="section-card" style="border-top: 4px solid #2563eb; background: #f8fafc;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <h3 class="card-title" style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                <span>💬</span> Mural de Feedback
+              </h3>
+              <button onclick="carregarMensagensMural()" style="background: none; border: none; color: #2563eb; font-size: 0.75rem; font-weight: 800; cursor: pointer;">🔄 ATUALIZAR</button>
+            </div>
+            <p style="font-size: 0.75rem; color: #64748b; margin-bottom: 1rem;">Compartilhe sua evolução e veja as mensagens dos colegas!</p>
+            
+            <div id="mural-mensagens" style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; background: white; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 1rem;">
+              <p style="text-align: center; color: #94a3b8; font-size: 0.8rem; padding: 20px;">Nenhuma mensagem enviada ainda. Seja o primeiro!</p>
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="input-msg-mural" placeholder="Escreva um feedback ou dúvida..." style="flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; outline: none; font-size: 0.9rem;">
+              <button onclick="enviarMensagemMural()" style="background: #2563eb; color: white; border: none; padding: 0 15px; border-radius: 10px; cursor: pointer; font-weight: 800;">ENVIAR</button>
+            </div>
+          </div>
         </div>
       </div>
 

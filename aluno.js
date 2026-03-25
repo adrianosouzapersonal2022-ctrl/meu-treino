@@ -131,6 +131,7 @@ function entrarNoApp() {
   carregarAvaliacao();
   carregarPerfil();
   carregarHistoricoPagamentos();
+  carregarMensagensMural();
 }
 
 function abrirModalEsqueciSenha() {
@@ -1062,6 +1063,100 @@ function copiarPix() {
   const chave = document.getElementById('pix-chave-box').textContent;
   navigator.clipboard.writeText(chave).then(() => toast('Chave PIX copiada!', 'success'));
 }
+
+// ===== MURAL DE FEEDBACK (CHAT) =====
+function carregarMensagensMural() {
+  const mural = document.getElementById('mural-mensagens');
+  if (!mural) return;
+
+  const mensagens = JSON.parse(localStorage.getItem('mural_feedbacks') || '[]');
+  
+  if (mensagens.length === 0) {
+    mural.innerHTML = `<p style="text-align: center; color: #94a3b8; font-size: 0.8rem; padding: 20px;">Nenhuma mensagem enviada ainda. Seja o primeiro!</p>`;
+    return;
+  }
+
+  mural.innerHTML = mensagens.map(m => `
+    <div style="background: ${m.isAdmin ? '#eff6ff' : 'white'}; padding: 15px; border-radius: 16px; border: 1px solid ${m.isAdmin ? '#bfdbfe' : '#e2e8f0'}; align-self: ${m.alunoId === alunoLogado.id ? 'flex-end' : 'flex-start'}; max-width: 90%; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 5px;">
+      <div style="display: flex; justify-content: space-between; gap: 15px; margin-bottom: 6px; align-items: center;">
+        <strong style="font-size: 0.8rem; color: ${m.isAdmin ? '#2563eb' : '#1e293b'}; display: flex; align-items: center; gap: 5px;">
+          ${m.isAdmin ? '⭐' : ''} ${m.nome}
+        </strong>
+        <span style="font-size: 0.65rem; color: #94a3b8;">${m.data}</span>
+      </div>
+      
+      <div style="font-size: 0.9rem; color: #334155; line-height: 1.5;">${m.texto}</div>
+      
+      <!-- RESPOSTA DO PROFESSOR (SE HOUVER) -->
+      ${m.respostaProfessor ? `
+        <div style="margin-top: 10px; background: #f0fdf4; border-left: 3px solid #16a34a; padding: 8px 12px; border-radius: 8px;">
+          <div style="font-size: 0.7rem; color: #166534; font-weight: 800; text-transform: uppercase; margin-bottom: 2px;">Resposta do Professor:</div>
+          <div style="font-size: 0.85rem; color: #14532d; font-style: italic;">"${m.respostaProfessor}"</div>
+        </div>
+      ` : ''}
+
+      ${m.reacoes && m.reacoes.length > 0 ? `
+        <div style="margin-top: 8px; display: flex; gap: 5px; flex-wrap: wrap;">
+          ${m.reacoes.map(r => `<span title="Reação do Professor" style="background: white; padding: 2px 8px; border-radius: 20px; border: 1px solid #e2e8f0; font-size: 0.85rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">${r}</span>`).join('')}
+        </div>
+      ` : ''}
+    </div>
+  `).join('');
+
+  mural.scrollTop = mural.scrollHeight;
+}
+
+function enviarMensagemMural() {
+  const input = document.getElementById('input-msg-mural');
+  const texto = input.value.trim();
+  
+  if (!texto || !alunoLogado) {
+    if (!alunoLogado) console.error('Erro: Nenhum aluno logado para enviar mensagem.');
+    return;
+  }
+
+  const mensagens = JSON.parse(localStorage.getItem('mural_feedbacks') || '[]');
+  const novaMsg = {
+    id: Date.now(),
+    alunoId: alunoLogado.id,
+    nome: alunoLogado.nome.split(' ')[0], // Só o primeiro nome
+    texto: texto,
+    data: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+    isAdmin: false,
+    reacoes: []
+  };
+
+  mensagens.push(novaMsg);
+  // Manter apenas as últimas 50 mensagens para não sobrecarregar
+  if (mensagens.length > 50) mensagens.shift();
+  
+  localStorage.setItem('mural_feedbacks', JSON.stringify(mensagens));
+  input.value = '';
+  carregarMensagensMural();
+}
+
+// Chamar carregarMensagensMural quando a aba treino for aberta
+const originalShowTab = window.showTab;
+window.showTab = function(id) {
+  if (typeof originalShowTab === 'function') originalShowTab(id);
+  if (id === 'treino') {
+    setTimeout(carregarMensagensMural, 100);
+  }
+};
+
+// Listener para mensagens em tempo real
+window.addEventListener('storage', (e) => {
+  if (e.key === 'mural_feedbacks') {
+    carregarMensagensMural();
+  }
+});
+
+// Suporte ao Enter no Mural
+document.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter' && document.activeElement.id === 'input-msg-mural') {
+    enviarMensagemMural();
+  }
+});
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {

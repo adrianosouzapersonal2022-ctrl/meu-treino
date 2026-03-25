@@ -76,6 +76,7 @@
         <button class="nav-btn" onclick="showPage('antropometria')">Antropometria</button>
         <button class="nav-btn admin-only" onclick="showPage('treino')">Treino & Testes</button>
         <button class="nav-btn" onclick="showPage('pagamentos')">Pagamentos</button>
+        <button class="nav-btn admin-only" onclick="showPage('comunidade')">💬 Comunidade</button>
         <button class="nav-btn" onclick="logoutAdmin()" style="background: #ef4444; color: white; border-radius: 4px; padding: 5px 10px; margin-left: 10px;">Sair</button>
       </nav>
     </header>
@@ -1494,6 +1495,33 @@
 </section> <!-- /page-antropometria -->
 
     </main>
+
+    <!-- ===================== COMUNIDADE E FEEDBACK (ADMIN) ===================== -->
+    <section id="page-comunidade" class="page">
+      <div class="page-header">
+        <h1>💬 Mural da Comunidade</h1>
+        <p>Interaja com seus alunos e responda aos feedbacks</p>
+      </div>
+      <div class="container">
+        <div class="form-section">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h2 class="section-title" style="margin: 0; border: none;">Mensagens Recentes</h2>
+            <button class="btn-secondary" onclick="renderMuralAdmin()" style="padding: 5px 10px; font-size: 0.8rem;">🔄 Atualizar Mural</button>
+          </div>
+          <div id="admin-mural-mensagens" style="display: flex; flex-direction: column; gap: 15px; max-height: 600px; overflow-y: auto; padding: 10px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+            <!-- Conteúdo gerado via JS -->
+          </div>
+          
+          <div style="margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+            <h3 style="font-size: 0.9rem; color: #64748b; margin-bottom: 10px;">Mandar Mensagem Geral:</h3>
+            <div style="display: flex; gap: 10px;">
+              <input type="text" id="admin-input-msg" placeholder="Escreva um comunicado ou mensagem..." style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1;">
+              <button class="btn-primary" onclick="adminEnviarMensagemMural()">Enviar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
   </div><!-- #app -->
 

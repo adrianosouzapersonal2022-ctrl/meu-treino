@@ -83,7 +83,7 @@ const showPage = (name) => {
   }
 
   // Marcar botão como ativo
-  const pages = ['cadastro', 'meus-alunos', 'anamnese', 'antropometria', 'treino', 'pagamentos'];
+  const pages = ['cadastro', 'meus-alunos', 'anamnese', 'antropometria', 'treino', 'pagamentos', 'comunidade'];
   const idx = pages.indexOf(name);
   const btns = document.querySelectorAll('.nav-btn');
   if (idx >= 0 && btns[idx]) {
@@ -96,6 +96,7 @@ const showPage = (name) => {
   if (name === 'meus-alunos') renderListaGeralAlunos();
   if (name === 'pagamentos') renderPagamentos();
   if (name === 'evolucao') carregarEvolucao();
+  if (name === 'comunidade') renderMuralAdmin();
 
   if (name === 'antropometria') {
     const selector = '#page-antropometria input';
@@ -1267,6 +1268,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     renderAlunosGrid();
     if (typeof initPresc === 'function') initPresc();
+    renderMuralAdmin();
     showPage('cadastro');
   }
 });
@@ -1290,6 +1292,145 @@ function checkAdminAuth() {
     }
   }
 }
+
+// ==================== COMUNIDADE E MURAL ====================
+function renderMuralAdmin() {
+  const mural = document.getElementById('admin-mural-mensagens');
+  if (!mural) return;
+
+  const mensagens = JSON.parse(localStorage.getItem('mural_feedbacks') || '[]');
+  
+  if (mensagens.length === 0) {
+    mural.innerHTML = `<p style="text-align: center; color: #94a3b8; padding: 20px;">Nenhuma mensagem enviada pelos alunos ainda.</p>`;
+    return;
+  }
+
+  mural.innerHTML = mensagens.map(m => `
+    <div style="background: white; padding: 20px; border-radius: 16px; border: 1px solid #e2e8f0; position: relative; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 40px; height: 40px; background: ${m.isAdmin ? '#2563eb' : '#f1f5f9'}; color: ${m.isAdmin ? 'white' : '#475569'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.2rem;">
+            ${m.nome.charAt(0)}
+          </div>
+          <div>
+            <strong style="color: ${m.isAdmin ? '#2563eb' : '#1e293b'}; font-size: 1rem;">
+              ${m.nome} ${m.isAdmin ? '⭐ (Você)' : ''}
+            </strong>
+            <div style="font-size: 0.75rem; color: #94a3b8;">${m.data}</div>
+          </div>
+        </div>
+        <button onclick="removerMensagemMural(${m.id})" style="background: #fee2e2; border: none; color: #ef4444; cursor: pointer; font-size: 0.75rem; padding: 5px 10px; border-radius: 8px; font-weight: 700;">EXCLUIR</button>
+      </div>
+      
+      <div style="font-size: 1rem; color: #334155; line-height: 1.6; margin-bottom: 15px; padding-left: 50px;">
+        ${m.texto}
+      </div>
+      
+      <!-- RESPOSTA DO PROFESSOR (SE HOUVER) -->
+      ${m.respostaProfessor ? `
+        <div style="margin-left: 50px; background: #f0fdf4; border-left: 4px solid #16a34a; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+          <div style="font-size: 0.75rem; color: #166534; font-weight: 800; margin-bottom: 5px;">Sua Resposta:</div>
+          <div style="font-size: 0.95rem; color: #14532d;">${m.respostaProfessor}</div>
+        </div>
+      ` : ''}
+
+      <div style="display: flex; flex-direction: column; gap: 10px; padding-left: 50px; border-top: 1px solid #f1f5f9; padding-top: 15px;">
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <span style="font-size: 0.8rem; color: #64748b; font-weight: 700;">Reagir:</span>
+          <button onclick="reagirMensagem(${m.id}, '👍')" style="background: #f1f5f9; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 1.1rem; transition: all 0.2s;">👍</button>
+          <button onclick="reagirMensagem(${m.id}, '❤️')" style="background: #f1f5f9; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 1.1rem;">❤️</button>
+          <button onclick="reagirMensagem(${m.id}, '💪')" style="background: #f1f5f9; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 1.1rem;">💪</button>
+          <button onclick="reagirMensagem(${m.id}, '🔥')" style="background: #f1f5f9; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 1.1rem;">🔥</button>
+          
+          <div style="margin-left: auto; display: flex; gap: 5px;">
+            ${(m.reacoes || []).map(r => `<span style="background: #eff6ff; padding: 4px 10px; border-radius: 12px; border: 1px solid #bfdbfe; font-size: 0.9rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">${r}</span>`).join('')}
+          </div>
+        </div>
+
+        <!-- CAMPO DE RESPOSTA DIRETA -->
+        ${!m.isAdmin ? `
+          <div style="display: flex; gap: 8px; margin-top: 5px;">
+            <input type="text" id="reply-input-${m.id}" placeholder="Escreva um feedback para o aluno..." style="flex: 1; padding: 10px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.9rem; outline: none; focus: border-color: #2563eb;">
+            <button onclick="responderMensagem(${m.id})" style="background: #1e293b; color: white; border: none; padding: 0 15px; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 0.85rem;">RESPONDER</button>
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `).reverse().join(''); // Mais recentes no topo
+}
+
+function responderMensagem(id) {
+  const input = document.getElementById(`reply-input-${id}`);
+  const texto = input.value.trim();
+  if (!texto) return;
+
+  const mensagens = JSON.parse(localStorage.getItem('mural_feedbacks') || '[]');
+  const idx = mensagens.findIndex(m => m.id === id);
+  
+  if (idx >= 0) {
+    mensagens[idx].respostaProfessor = texto;
+    // Adicionar reação automática de coração ao responder
+    if (!mensagens[idx].reacoes) mensagens[idx].reacoes = [];
+    if (!mensagens[idx].reacoes.includes('❤️')) mensagens[idx].reacoes.push('❤️');
+    
+    localStorage.setItem('mural_feedbacks', JSON.stringify(mensagens));
+    input.value = '';
+    renderMuralAdmin();
+    showToast('Feedback enviado ao aluno!', 'success');
+  }
+}
+
+function adminEnviarMensagemMural() {
+  const input = document.getElementById('admin-input-msg');
+  const texto = input.value.trim();
+  if (!texto) return;
+
+  const mensagens = JSON.parse(localStorage.getItem('mural_feedbacks') || '[]');
+  const novaMsg = {
+    id: Date.now(),
+    alunoId: 'admin',
+    nome: 'Professor Adriano',
+    texto: texto,
+    data: new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+    isAdmin: true,
+    reacoes: []
+  };
+
+  mensagens.push(novaMsg);
+  localStorage.setItem('mural_feedbacks', JSON.stringify(mensagens));
+  input.value = '';
+  renderMuralAdmin();
+  showToast('Mensagem enviada para o mural!', 'success');
+}
+
+function reagirMensagem(id, emoji) {
+  const mensagens = JSON.parse(localStorage.getItem('mural_feedbacks') || '[]');
+  const idx = mensagens.findIndex(m => m.id === id);
+  if (idx >= 0) {
+    if (!mensagens[idx].reacoes) mensagens[idx].reacoes = [];
+    if (!mensagens[idx].reacoes.includes(emoji)) {
+      mensagens[idx].reacoes.push(emoji);
+      localStorage.setItem('mural_feedbacks', JSON.stringify(mensagens));
+      renderMuralAdmin();
+    }
+  }
+}
+
+function removerMensagemMural(id) {
+  if (confirm('Deseja excluir esta mensagem do mural?')) {
+    let mensagens = JSON.parse(localStorage.getItem('mural_feedbacks') || '[]');
+    mensagens = mensagens.filter(m => m.id !== id);
+    localStorage.setItem('mural_feedbacks', JSON.stringify(mensagens));
+    renderMuralAdmin();
+  }
+}
+
+// Listener para mensagens em tempo real no Admin
+window.addEventListener('storage', (e) => {
+  if (e.key === 'mural_feedbacks') {
+    renderMuralAdmin();
+  }
+});
 
 // ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', () => {
