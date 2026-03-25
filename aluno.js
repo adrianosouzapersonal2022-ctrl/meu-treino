@@ -6,6 +6,7 @@ let alunoLogado = null;
 let chartAlunoComp = null;
 let divisaoAtiva = 'A'; // Divisão padrão
 let divisaoSelecionadaManualmente = false;
+let diaSelecionadoIdx = null; // Índice do dia selecionado no cronograma (0-6)
 
 // PWA Install Logic para o Aluno
 let deferredPromptAluno;
@@ -463,48 +464,58 @@ function carregarTreino() {
     const diasSemana = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
     const diasLabels = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
     
-    // Obter data atual e calcular o início da semana (Segunda-feira)
+    // 1.1 Cálculo de Datas e Índices
     const hoje = new Date();
     const diaSemanaHoje = (hoje.getDay() + 6) % 7; // 0=Seg, 1=Ter...
     const segundaFeira = new Date(hoje);
     segundaFeira.setDate(hoje.getDate() - diaSemanaHoje);
 
-    const divisoesUnicas = [...new Set(ficha.exercicios.map(e => e.divisao || 'A'))].sort();
+    const divisoesUnicas = [...new Set(ficha.exercicios.map(e => (e.divisao || 'A').toUpperCase()))].sort();
     const diasTreino = ficha.diasTreino || [];
     
-    // 1.2 Mapeamento de fluxo contínuo (A, B, C, D... A, B...) de Segunda a Domingo
+    // Mapeamento de fluxo contínuo (A, B, C, D... A, B...) de Segunda a Domingo
     const mapeamentoAuto = {};
     diasSemana.forEach((dia, idx) => {
-      // O fluxo segue a ordem dos dias (idx 0 a 6) e reinicia as letras conforme a quantidade de divisões
       mapeamentoAuto[dia] = divisoesUnicas[idx % divisoesUnicas.length] || 'A';
     });
 
-    // Se não foi selecionado manualmente, definir divisaoAtiva para o treino de HOJE
-    if (!divisaoSelecionadaManualmente) {
-      const hojeNome = diasSemana[diaSemanaHoje];
-      divisaoAtiva = mapeamentoAuto[hojeNome] || divisoesUnicas[0] || 'A';
+    // Se for a primeira carga do app (ou após login), definir para o dia de HOJE
+    if (diaSelecionadoIdx === null) {
+      diaSelecionadoIdx = diaSemanaHoje;
+      if (!divisaoSelecionadaManualmente) {
+        const hojeNome = diasSemana[diaSemanaHoje];
+        divisaoAtiva = mapeamentoAuto[hojeNome] || divisoesUnicas[0] || 'A';
+      }
     }
     
     cronogramaContainer.innerHTML = diasSemana.map((dia, idx) => {
       const treina = diasTreino.includes(dia);
       const div = mapeamentoAuto[dia];
       const isHoje = idx === diaSemanaHoje;
-      
+      const isAtivo = (idx === diaSelecionadoIdx);
+
       // Calcular a data específica de cada dia da semana atual
       const dataDia = new Date(segundaFeira);
       dataDia.setDate(segundaFeira.getDate() + idx);
       const dataFormatada = dataDia.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 
       return `
-        <div class="cron-dia ${treina ? 'treino' : 'descanso'} ${isHoje ? 'hoje' : ''} ${div === divisaoAtiva ? 'ativo' : ''}" 
-             onclick="mudarDivisao('${div}')" 
-             style="cursor: pointer; min-width: 60px; transition: all 0.2s;">
-          <div class="dia-nome" style="font-weight: 800; font-size: 0.75rem;">${diasLabels[idx]}</div>
-          <div class="dia-data" style="font-size: 0.65rem; opacity: 0.8; margin-bottom: 4px;">${dataFormatada}</div>
-          <div class="dia-divisao" style="background: ${div === divisaoAtiva ? '#fff' : 'rgba(255,255,255,0.2)'}; 
-               color: ${div === divisaoAtiva ? 'var(--primary)' : '#fff'}; 
-               border-radius: 50%; width: 24px; height: 24px; display: flex; 
-               align-items: center; justify-content: center; font-weight: 900; margin: 0 auto;">
+        <div class="cron-dia ${isAtivo ? 'ativo-azul' : (treina ? 'treino' : 'descanso')} ${isHoje ? 'hoje' : ''}" 
+             onclick="mudarDivisao('${div}', ${idx})" 
+             style="cursor: pointer; min-width: 60px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+                    background: ${isAtivo ? 'var(--primary)' : '#ffffff'}; 
+                    color: ${isAtivo ? '#fff' : '#1e293b'}; 
+                    border: ${isAtivo ? '2px solid var(--primary)' : '1px solid #cbd5e1'};
+                    transform: ${isAtivo ? 'scale(1.05)' : 'scale(1)'};
+                    box-shadow: ${isAtivo ? '0 4px 15px rgba(37,99,235,0.3)' : '0 2px 5px rgba(0,0,0,0.05)'};
+                    display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px 5px; border-radius: 12px;">
+          <div class="dia-nome" style="font-weight: 800; font-size: 0.75rem; color: inherit;">${diasLabels[idx]} ${isHoje ? '⭐' : ''}</div>
+          <div class="dia-data" style="font-size: 0.65rem; opacity: ${isAtivo ? '1' : '0.7'}; margin-bottom: 6px; color: inherit;">${dataFormatada}</div>
+          <div class="dia-divisao" style="background: ${isAtivo ? '#fff' : '#f1f5f9'}; 
+               color: ${isAtivo ? 'var(--primary)' : '#1e293b'}; 
+               border-radius: 50%; width: 28px; height: 28px; display: flex; 
+               align-items: center; justify-content: center; font-weight: 900; margin: 0 auto;
+               box-shadow: ${isAtivo ? '0 2px 5px rgba(0,0,0,0.1)' : 'none'}; border: 1px solid ${isAtivo ? '#fff' : '#cbd5e1'};">
             ${div}
           </div>
         </div>
@@ -514,19 +525,19 @@ function carregarTreino() {
 
   // 2. Renderizar Dropdown de Divisões (A, B, C...)
   if (selectDivisao) {
-    const divisoesPresentes = [...new Set(ficha.exercicios.map(e => e.divisao || 'A'))].sort();
+    const divisoesPresentes = [...new Set(ficha.exercicios.map(e => (e.divisao || 'A').toUpperCase()))].sort();
     
-    if (!divisoesPresentes.includes(divisaoAtiva)) {
+    if (!divisoesPresentes.includes(divisaoAtiva.toUpperCase())) {
       divisaoAtiva = divisoesPresentes[0] || 'A';
     }
 
     selectDivisao.innerHTML = divisoesPresentes.map(div => `
-      <option value="${div}" ${div === divisaoAtiva ? 'selected' : ''}>TREINO ${div}</option>
+      <option value="${div}" ${div.toUpperCase() === divisaoAtiva.toUpperCase() ? 'selected' : ''}>TREINO ${div}</option>
     `).join('');
   }
 
   // 3. Renderizar Exercícios da Divisão Ativa
-  const exerciciosFiltrados = ficha.exercicios.filter(e => (e.divisao || 'A') === divisaoAtiva);
+  const exerciciosFiltrados = ficha.exercicios.filter(e => (e.divisao || 'A').toUpperCase() === divisaoAtiva.toUpperCase());
   
   let html = '';
   
@@ -576,11 +587,47 @@ function carregarTreino() {
   container.innerHTML = html;
 }
 
-function mudarDivisao(div) {
-  divisaoAtiva = div;
+function mudarDivisao(div, idx) {
+  if (!div) return;
+  
+  // Normalizar para maiúsculo para evitar problemas de comparação
+  const divUpper = div.toUpperCase();
+  divisaoAtiva = divUpper;
+  
+  if (idx !== undefined) {
+    // Caso tenha vindo do clique no cronograma
+    diaSelecionadoIdx = parseInt(idx);
+  } else {
+    // Caso tenha vindo do dropdown (select)
+    // Precisamos encontrar o dia no cronograma que corresponde a esta letra de treino (A, B, C...)
+    const diasSemana = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
+    const todasFichas = JSON.parse(localStorage.getItem('fichas') || '[]');
+    const ficha = todasFichas.find(f => String(f.alunoId) === String(alunoLogado.id));
+    
+    if (ficha && ficha.exercicios) {
+      const divisoesUnicas = [...new Set(ficha.exercicios.map(e => (e.divisao || 'A').toUpperCase()))].sort();
+      
+      // Tentar encontrar um dia que combine com a divisão selecionada
+      const hojeIdx = (new Date().getDay() + 6) % 7;
+      
+      let novoIdx = -1;
+      // Primeiro checa se hoje é essa divisão
+      if ((divisoesUnicas[hojeIdx % divisoesUnicas.length] || 'A') === divUpper) {
+        novoIdx = hojeIdx;
+      } else {
+        // Senão procura o primeiro dia da semana que seja essa divisão
+        novoIdx = diasSemana.findIndex((dia, i) => {
+          const letraDoDia = divisoesUnicas[i % divisoesUnicas.length] || 'A';
+          return letraDoDia === divUpper;
+        });
+      }
+      
+      if (novoIdx !== -1) diaSelecionadoIdx = novoIdx;
+    }
+  }
+  
   divisaoSelecionadaManualmente = true;
   carregarTreino();
-  toast(`Alternado para Treino ${div}`, 'info');
 }
 
 function concluirTreino() {
@@ -605,12 +652,6 @@ function concluirTreino() {
   
   toast('✅ Treino registrado com sucesso!', 'success');
   carregarInicio();
-  carregarTreino();
-}
-
-function mudarDivisao(div) {
-  divisaoAtiva = div;
-  divisaoSelecionadaManualmente = true;
   carregarTreino();
 }
 
