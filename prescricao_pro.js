@@ -248,11 +248,26 @@ function selecionarExercicio(id) {
   
   const painel = document.getElementById('painel-add-exercicio');
   if (painel) {
+    // Resetar o botão para o modo "Adicionar" caso estivesse em modo "Edição"
+    const btnAdd = painel.querySelector('.btn-primary');
+    if (btnAdd) {
+      btnAdd.textContent = 'Adicionar à Ficha';
+      btnAdd.setAttribute('onclick', 'adicionarExercicio()');
+    }
+
     document.getElementById('exer-sel-nome').textContent = ex.nome;
     document.getElementById('exer-sel-grupo').textContent = ex.grupo;
     document.getElementById('exer-sel-equip').textContent = ex.equip || 'Livre';
     painel.style.display = 'block';
     painel.dataset.exId = id;
+    
+    // Limpar campos de entrada para novo exercício
+    document.getElementById('presc-carga').value = '';
+    document.getElementById('presc-reps').value = '';
+    document.getElementById('presc-pct-rm').value = '';
+    document.getElementById('presc-cadencia').value = '';
+    document.getElementById('presc-video').value = ex.video || '';
+    document.getElementById('presc-obs-ex').value = '';
     
     // Buscar 1RM do aluno para este exercício no state
     const rmRegs = state.rms.filter(r => String(r.alunoId) === String(currentAlunoId) && String(r.exercicioId) === String(id));
@@ -534,7 +549,12 @@ function renderFichaTabela() {
   let html = `
     <div style="background: var(--primary); color: white; padding: 12px 15px; border-radius: 8px 8px 0 0; font-weight: 700;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-        <span>TREINO ${divisaoAtual}</span>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span>TREINO ${divisaoAtual}</span>
+          <button onclick="editarPlanilhaTreino('${divisaoAtual}')" style="background: white; color: var(--primary); border: none; padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+            ✏️ EDITAR PLANILHA ${divisaoAtual}
+          </button>
+        </div>
         <span style="font-size: 0.75rem; font-weight: 400;">${exerciciosFiltrados.length} exercícios vinculados</span>
       </div>
       <div style="font-size: 0.7rem; font-weight: 400; opacity: 0.9;">
@@ -579,6 +599,7 @@ function renderFichaTabela() {
           <td>${e.descanso}s</td>
           <td>
             <div style="display:flex; gap:5px;">
+              <button class="btn-secondary" onclick="carregarDadosEdicaoExercicio(${e.id})" style="padding:2px 6px; font-size:0.7rem; background:#3b82f6; color:white; border:none;" title="Editar Exercício">✏️</button>
               <button class="btn-secondary" onclick="moverExercicio(${e.id}, -1)" style="padding:2px 6px; font-size:0.7rem;" title="Mover para Cima">↑</button>
               <button class="btn-secondary" onclick="moverExercicio(${e.id}, 1)" style="padding:2px 6px; font-size:0.7rem;" title="Mover para Baixo">↓</button>
               ${e.video ? `<a href="${e.video}" target="_blank" class="btn-secondary" style="padding:2px 6px; font-size:0.7rem; text-decoration:none;">🎥</a>` : ''}
@@ -591,12 +612,173 @@ function renderFichaTabela() {
   }
   
   html += '</tbody></table>';
+  
+  // Adicionar botão de edição de exercício (não apenas remoção)
+  if (exerciciosFiltrados.length > 0) {
+    html += `
+      <div style="margin-top: 15px; padding: 15px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; text-align: center;">
+        <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 10px;">Clique no ícone de lápis ✏️ para editar detalhes de um exercício já adicionado.</p>
+      </div>
+    `;
+  }
+  
   container.innerHTML = html;
+}
+
+function carregarDadosEdicaoExercicio(id) {
+  const ex = fichaExercicios.find(e => e.id === id);
+  if (!ex) return;
+
+  const painel = document.getElementById('painel-add-exercicio');
+  if (!painel) return;
+
+  // Preencher os campos do painel com os dados do exercício
+  document.getElementById('exer-sel-nome').textContent = ex.nome;
+  document.getElementById('exer-sel-grupo').textContent = ex.grupo;
+  document.getElementById('exer-sel-equip').textContent = ex.equip || 'Livre';
+  
+  document.getElementById('presc-series').value = ex.series || '';
+  document.getElementById('presc-reps').value = ex.reps || '';
+  document.getElementById('presc-carga').value = ex.carga || '';
+  document.getElementById('presc-pct-rm').value = ex.pct || '';
+  document.getElementById('presc-tecnica').value = ex.tecnica || 'tradicional';
+  document.getElementById('presc-descanso').value = ex.descanso || '';
+  document.getElementById('presc-cadencia').value = ex.cadencia || '';
+  document.getElementById('presc-video').value = ex.video || '';
+  document.getElementById('presc-obs-ex').value = ex.obs || '';
+  
+  // Buscar 1RM do aluno para este exercício para referência
+  const rmRegs = state.rms.filter(r => String(r.alunoId) === String(currentAlunoId) && String(r.exercicioId) === String(ex.exId));
+  const ref = document.getElementById('rm-referencia');
+  if (ref) {
+    if (rmRegs.length > 0) {
+      const ultimoRM = rmRegs[rmRegs.length - 1].rm;
+      ref.textContent = `Último 1RM: ${ultimoRM.toFixed(1)} kg`;
+      ref.dataset.rm = ultimoRM;
+    } else {
+      ref.textContent = 'Sem 1RM registrado para este exercício.';
+      ref.dataset.rm = '';
+    }
+  }
+
+  // Mostrar info da técnica se houver
+  if (typeof mostrarInfoTecnica === 'function') mostrarInfoTecnica();
+  
+  // Alterar o comportamento do botão "Adicionar" para "Atualizar" temporariamente
+  const btnAdd = painel.querySelector('.btn-primary');
+  const originalOnClick = btnAdd.getAttribute('onclick');
+  const originalText = btnAdd.textContent;
+
+  btnAdd.textContent = '💾 Atualizar Exercício';
+  btnAdd.setAttribute('onclick', `atualizarExercicioFicha(${id}, '${originalOnClick.replace(/'/g, "\\'")}', '${originalText}')`);
+
+  painel.style.display = 'block';
+  painel.scrollIntoView({ behavior: 'smooth' });
+}
+
+function atualizarExercicioFicha(id, originalOnClick, originalText) {
+  const idx = fichaExercicios.findIndex(e => e.id === id);
+  if (idx === -1) return;
+
+  // Capturar os novos valores
+  fichaExercicios[idx].series = document.getElementById('presc-series').value;
+  fichaExercicios[idx].reps = document.getElementById('presc-reps').value;
+  fichaExercicios[idx].carga = document.getElementById('presc-carga').value;
+  fichaExercicios[idx].pct = document.getElementById('presc-pct-rm').value;
+  fichaExercicios[idx].tecnica = document.getElementById('presc-tecnica').value;
+  fichaExercicios[idx].descanso = document.getElementById('presc-descanso').value;
+  fichaExercicios[idx].cadencia = document.getElementById('presc-cadencia').value;
+  fichaExercicios[idx].video = document.getElementById('presc-video').value;
+  fichaExercicios[idx].obs = document.getElementById('presc-obs-ex').value;
+
+  // Restaurar o botão original
+  const btnAdd = document.querySelector('#painel-add-exercicio .btn-primary');
+  btnAdd.textContent = originalText;
+  btnAdd.setAttribute('onclick', originalOnClick);
+
+  document.getElementById('painel-add-exercicio').style.display = 'none';
+  renderFichaTabela();
+  showToast('✅ Exercício atualizado na ficha!', 'success');
 }
 
 function removerExercicio(id) {
   fichaExercicios = fichaExercicios.filter(e => e.id !== id);
   renderFichaTabela();
+}
+
+function editarPlanilhaTreino(divisao) {
+  const container = document.getElementById('ficha-exercicios-tabela');
+  if (!container) return;
+
+  const exerciciosDaDivisao = fichaExercicios.filter(e => (e.divisao || 'A') === divisao);
+
+  if (exerciciosDaDivisao.length === 0) {
+    showToast(`Não há exercícios no Treino ${divisao} para editar.`, 'warning');
+    return;
+  }
+
+  let html = `
+    <div style="background: #1e293b; color: white; padding: 15px; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center;">
+      <h3 style="margin:0; font-size: 1rem;">📝 Editando Planilha: Treino ${divisao}</h3>
+      <button onclick="renderFichaTabela()" style="background: #ef4444; color: white; border: none; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 700;">CANCELAR</button>
+    </div>
+    <div style="background: white; border: 1px solid #e2e8f0; border-top: none; padding: 15px; border-radius: 0 0 8px 8px;">
+      <table class="data-table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+            <th style="padding: 10px; text-align: left; font-size: 0.8rem;">Exercício</th>
+            <th style="padding: 10px; text-align: center; font-size: 0.8rem;">Séries</th>
+            <th style="padding: 10px; text-align: center; font-size: 0.8rem;">Reps</th>
+            <th style="padding: 10px; text-align: center; font-size: 0.8rem;">Carga (kg)</th>
+            <th style="padding: 10px; text-align: center; font-size: 0.8rem;">Descanso (s)</th>
+            <th style="padding: 10px; text-align: left; font-size: 0.8rem;">Observação</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  exerciciosDaDivisao.forEach(e => {
+    html += `
+      <tr style="border-bottom: 1px solid #f1f5f9;">
+        <td style="padding: 10px; font-weight: 600; font-size: 0.9rem; color: #1e3a8a;">${e.nome}</td>
+        <td style="padding: 10px; text-align: center;">
+          <input type="text" value="${e.series}" onchange="atualizarCampoPlanilha(${e.id}, 'series', this.value)" style="width: 50px; text-align: center; padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px;">
+        </td>
+        <td style="padding: 10px; text-align: center;">
+          <input type="text" value="${e.reps}" onchange="atualizarCampoPlanilha(${e.id}, 'reps', this.value)" style="width: 70px; text-align: center; padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px;">
+        </td>
+        <td style="padding: 10px; text-align: center;">
+          <input type="text" value="${e.carga}" onchange="atualizarCampoPlanilha(${e.id}, 'carga', this.value)" style="width: 60px; text-align: center; padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px;">
+        </td>
+        <td style="padding: 10px; text-align: center;">
+          <input type="number" value="${e.descanso}" onchange="atualizarCampoPlanilha(${e.id}, 'descanso', this.value)" style="width: 60px; text-align: center; padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px;">
+        </td>
+        <td style="padding: 10px;">
+          <input type="text" value="${e.obs || ''}" onchange="atualizarCampoPlanilha(${e.id}, 'obs', this.value)" style="width: 100%; padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px;" placeholder="Ex: Foco no pico...">
+        </td>
+      </tr>
+    `;
+  });
+
+  html += `
+        </tbody>
+      </table>
+      <div style="margin-top: 20px; text-align: right; border-top: 1px solid #e2e8f0; padding-top: 15px;">
+        <button onclick="renderFichaTabela()" class="btn-primary" style="background: #16a34a; font-weight: 800; padding: 10px 25px;">CONCLUIR EDIÇÃO DA PLANILHA ${divisao}</button>
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = html;
+  container.scrollIntoView({ behavior: 'smooth' });
+}
+
+function atualizarCampoPlanilha(id, campo, valor) {
+  const idx = fichaExercicios.findIndex(e => e.id === id);
+  if (idx !== -1) {
+    fichaExercicios[idx][campo] = valor;
+    showToast('Alteração salva na planilha!', 'info');
+  }
 }
 
 function carregarComparativoPresc() {

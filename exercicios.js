@@ -138,6 +138,24 @@ const EXERCICIOS_DB = [
   { id:'gl04', nome:'Coice de Burro',                grupo:'Glúteos',  subgrupo:'Glúteo Máximo',        equip:'Polia',        tipo:'Isolado',    nivel:'Iniciante', video:'' },
   { id:'gl05', nome:'Abdução de Quadril Deitado',    grupo:'Glúteos',  subgrupo:'Glúteo Médio',         equip:'Peso Corporal',tipo:'Isolado',    nivel:'Iniciante', video:'' },
 
+  // ===== ANTEBRAÇO =====
+  { id:'an01', nome:'Rosca Punho Barra',             grupo:'Antebraço', subgrupo:'Flexores do Punho',   equip:'Barra',        tipo:'Isolado',    nivel:'Iniciante', video:'' },
+  { id:'an02', nome:'Rosca Punho Inversa',           grupo:'Antebraço', subgrupo:'Extensores do Punho',  equip:'Barra',        tipo:'Isolado',    nivel:'Iniciante', video:'' },
+  { id:'an03', nome:'Extensão de Punho Halteres',    grupo:'Antebraço', subgrupo:'Extensores do Punho',  equip:'Halteres',     tipo:'Isolado',    nivel:'Iniciante', video:'' },
+  { id:'an04', nome:'Flexão de Punho Halteres',      grupo:'Antebraço', subgrupo:'Flexores do Punho',    equip:'Halteres',     tipo:'Isolado',    nivel:'Iniciante', video:'' },
+
+  // ===== PANTURRILHA (EXTRA) =====
+  { id:'pa01', nome:'Panturrilha no Leg Press',      grupo:'Pernas',   subgrupo:'Gastrocnêmio',         equip:'Máquina',      tipo:'Isolado',    nivel:'Iniciante', video:'' },
+  { id:'pa02', nome:'Panturrilha Unilateral',        grupo:'Pernas',   subgrupo:'Gastrocnêmio',         equip:'Peso Corporal',tipo:'Isolado',    nivel:'Iniciante', video:'' },
+  { id:'pa03', nome:'Panturrilha Donkey (Burrinho)', grupo:'Pernas',   subgrupo:'Gastrocnêmio',         equip:'Máquina/Parceiro', tipo:'Isolado', nivel:'Intermediário', video:'' },
+
+  // ===== CARDIO =====
+  { id:'cd01', nome:'Corrida na Esteira',            grupo:'Cardio',   subgrupo:'Resistência Aeróbica', equip:'Esteira',      tipo:'Cardio',     nivel:'Iniciante', video:'' },
+  { id:'cd02', nome:'Bicicleta Ergométrica',         grupo:'Cardio',   subgrupo:'Resistência Aeróbica', equip:'Bicicleta',    tipo:'Cardio',     nivel:'Iniciante', video:'' },
+  { id:'cd03', nome:'Elíptico',                      grupo:'Cardio',   subgrupo:'Baixo Impacto',        equip:'Máquina',      tipo:'Cardio',     nivel:'Iniciante', video:'' },
+  { id:'cd04', nome:'Pular Corda',                   grupo:'Cardio',   subgrupo:'Coordenação + Cardio', equip:'Corda',        tipo:'Cardio',     nivel:'Intermediário', video:'' },
+  { id:'cd05', nome:'Remo Seco',                     grupo:'Cardio',   subgrupo:'Resistência Muscular', equip:'Máquina',      tipo:'Cardio',     nivel:'Intermediário', video:'' },
+
   // ===== FUNCIONAIS/OLÍMPICOS =====
   { id:'fn01', nome:'Clean e Jerk (Arremesso)',       grupo:'Funcional', subgrupo:'Corpo Inteiro',      equip:'Barra',        tipo:'Olímpico',   nivel:'Avançado', video:'' },
   { id:'fn02', nome:'Snatch (Arranque)',              grupo:'Funcional', subgrupo:'Corpo Inteiro',      equip:'Barra',        tipo:'Olímpico',   nivel:'Avançado', video:'' },

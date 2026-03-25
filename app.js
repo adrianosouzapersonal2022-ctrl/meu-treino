@@ -57,62 +57,55 @@ function saveState() {
 }
 
 // ==================== NAVIGATION ====================
-const showPage = (name) => {
+function showPage(name) {
+  const isAdmin = localStorage.getItem('isAdmin') === 'true';
+  const adminPages = ['meus-alunos', 'treino', 'comunidade', 'anamnese', 'antropometria', 'pagamentos'];
+  
+  if (adminPages.includes(name) && !isAdmin) {
+    console.error('Acesso negado: Página restrita ao administrador.');
+    showPage('cadastro');
+    return;
+  }
+
   console.log('Navegando para:', name);
   
   // Esconder todas as páginas
   document.querySelectorAll('.page').forEach(p => {
     p.classList.remove('active');
-    p.style.display = 'none'; // Garantir que está escondido
-  });
-
-  // Remover estado ativo dos botões
-  document.querySelectorAll('.nav-btn').forEach(b => {
-    b.classList.remove('active');
-    b.removeAttribute('aria-current');
+    p.style.display = 'none';
   });
 
   // Mostrar a página selecionada
   const page = document.getElementById('page-' + name);
   if (page) {
     page.classList.add('active');
-    page.style.display = 'block'; // Forçar exibição
-    console.log('Página encontrada e exibida:', 'page-' + name);
-  } else {
-    console.error('ERRO: Página não encontrada:', 'page-' + name);
+    page.style.display = 'block';
+    
+    // Garantir renderização imediata de componentes específicos
+    if (name === 'comunidade') {
+      setTimeout(() => {
+        renderMuralAdmin();
+      }, 50);
+    }
   }
 
-  // Marcar botão como ativo
-  const pages = ['cadastro', 'meus-alunos', 'anamnese', 'antropometria', 'treino', 'pagamentos', 'comunidade'];
-  const idx = pages.indexOf(name);
-  const btns = document.querySelectorAll('.nav-btn');
-  if (idx >= 0 && btns[idx]) {
-    btns[idx].classList.add('active');
-    btns[idx].setAttribute('aria-current', 'page');
-  }
+  // Marcar botão como ativo de forma robusta
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.classList.remove('active');
+    btn.removeAttribute('aria-current');
+    
+    if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(`'${name}'`)) {
+      btn.classList.add('active');
+      btn.setAttribute('aria-current', 'page');
+    }
+  });
 
   // Ações específicas de cada página
   if (name !== 'cadastro') populateAlunoSelects();
   if (name === 'meus-alunos') renderListaGeralAlunos();
   if (name === 'pagamentos') renderPagamentos();
   if (name === 'evolucao') carregarEvolucao();
-  if (name === 'comunidade') renderMuralAdmin();
-
-  if (name === 'antropometria') {
-    const selector = '#page-antropometria input';
-    document.querySelectorAll(selector).forEach(input => {
-      input.addEventListener('focus', () => {
-        const id = input.id;
-        document.querySelectorAll('.measure-point').forEach(p => {
-          p.classList.toggle('active', p.dataset.target === id);
-        });
-      });
-      input.addEventListener('blur', () => {
-        document.querySelectorAll('.measure-point').forEach(p => p.classList.remove('active'));
-      });
-    });
-  }
-};
+}
 
 const showTab = (id) => {
   const target = document.getElementById(id);
@@ -1189,33 +1182,34 @@ function showPortalScreen(screen) {
 }
 
 function loginAdmin() {
-  const user = document.getElementById('admin-user').value;
-  const pass = document.getElementById('admin-pass').value;
+  const userInput = document.getElementById('admin-user');
+  const passInput = document.getElementById('admin-pass');
+  const user = userInput ? userInput.value : '';
+  const pass = passInput ? passInput.value : '';
   const error = document.getElementById('admin-login-error');
+
+  console.log('Tentativa de login admin:', user);
 
   // Login simples fixo para o administrador
   if (user === 'adrianoquake' && pass === 'adri080979') {
     localStorage.setItem('isAdmin', 'true');
     
-    // Transição de página: Ocultar Portal e mostrar Dashboard
-    const portalContainer = document.getElementById('portal-container');
-    const app = document.getElementById('app');
-    
-    if (portalContainer) portalContainer.style.display = 'none';
-    if (app) {
-      app.style.setProperty('display', 'block', 'important');
-      app.classList.add('auth-ready');
-    }
-    
-    error.style.display = 'none';
+    // Transição de página
+    checkAdminAuth();
     
     // Inicializar dados após login
     renderAlunosGrid();
     if (typeof initPresc === 'function') initPresc();
+    renderMuralAdmin();
     
     showPage('cadastro');
+    
+    // Limpar campos após login
+    if (userInput) userInput.value = '';
+    if (passInput) passInput.value = '';
+    if (error) error.style.display = 'none';
   } else {
-    error.style.display = 'block';
+    if (error) error.style.display = 'block';
   }
 }
 
@@ -1224,165 +1218,247 @@ function logoutAdmin() {
   location.reload();
 }
 
-// Renderizar tabelas de referência ao carregar
-document.addEventListener('DOMContentLoaded', () => {
-  // Suporte ao Enter no Login Admin
-  const adminUserInput = document.getElementById('admin-user');
-  const adminPassInput = document.getElementById('admin-pass');
-  if (adminUserInput && adminPassInput) {
-    [adminUserInput, adminPassInput].forEach(el => {
-      el.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') loginAdmin();
-      });
-    });
-  }
-
-  // Tabela de técnicas
-  const tb = document.getElementById('tabela-tecnicas-corpo');
-  if (tb) tb.innerHTML = TECNICAS_DB.map(t =>
-    `<tr><td><strong>${t.nome}</strong></td><td>${t.categoria}</td><td style="font-size:0.78rem">${t.intensidade}</td><td>${t.series}</td><td>${t.descanso}</td><td>${t.nivel}</td></tr>`
-  ).join('');
-  
-  // Tabela de protocolos
-  const tp = document.getElementById('tabela-protocolos-corpo');
-  if (tp) tp.innerHTML = PROTOCOLOS_DB.map(p => `
-    <div style="margin-bottom:1rem;padding:1rem;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">
-      <strong style="color:#1d4ed8">${p.nome}</strong> – <span style="font-size:0.85rem">${p.descricao}</span>
-      <div class="table-wrapper" style="margin-top:0.5rem;">
-        <table class="data-table" style="font-size:0.78rem;">
-          <thead><tr><th>Período</th><th>Objetivo</th><th>Séries</th><th>Reps</th><th>Intensidade</th></tr></thead>
-          <tbody>${p.fase.map(f=>`<tr><td>${f.sem}</td><td>${f.obj}</td><td>${f.series}</td><td>${f.reps}</td><td>${f.int}</td></tr>`).join('')}</tbody>
-        </table>
-      </div>
-      <p style="font-size:0.72rem;color:#64748b;margin-top:4px;">Ref: ${p.ref}</p>
-    </div>`).join('');
-    
-  // Verificar se já está logado
-  if (localStorage.getItem('isAdmin') === 'true') {
-    const portalContainer = document.getElementById('portal-container');
-    const app = document.getElementById('app');
-    if (portalContainer) portalContainer.style.display = 'none';
-    if (app) {
-      app.style.setProperty('display', 'block', 'important');
-      app.classList.add('auth-ready');
-    }
-    renderAlunosGrid();
-    if (typeof initPresc === 'function') initPresc();
-    renderMuralAdmin();
-    showPage('cadastro');
-  }
-});
-
 function checkAdminAuth() {
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
   const portalContainer = document.getElementById('portal-container');
   const app = document.getElementById('app');
 
+  console.log('Verificando Autenticação Admin:', isAdmin);
+
   if (isAdmin) {
     if (portalContainer) portalContainer.style.display = 'none';
     if (app) {
-      app.style.setProperty('display', 'block', 'important');
       app.classList.add('auth-ready');
+      app.style.display = 'block';
     }
+    
+    // Mostrar abas administrativas
+    document.querySelectorAll('.admin-only').forEach(el => {
+      el.style.display = ''; 
+    });
   } else {
     if (portalContainer) portalContainer.style.display = 'block';
     if (app) {
-      app.style.setProperty('display', 'none', 'important');
       app.classList.remove('auth-ready');
+      app.style.display = 'none';
     }
+    
+    // Esconder abas administrativas
+    document.querySelectorAll('.admin-only').forEach(el => {
+      el.style.display = 'none';
+    });
   }
 }
 
 // ==================== COMUNIDADE E MURAL ====================
+const MENSAGENS_DIARIAS = {
+  0: "☀️ Domingo de descanso merecido! Aproveite para recarregar as energias e preparar a mente para a nova semana que vem por aí! 🔋",
+  1: "🚀 Segunda-feira: Dia de começar com tudo! O treino de hoje é a base para uma semana incrível. Vamos pra cima! 💪",
+  2: "🔥 Terça-feira no foco total! A constância é o que traz o resultado. Não pare agora! ⚡",
+  3: "🎯 Quarta-feira: Metade da semana já foi! Mantenha a disciplina e o ritmo. Cada repetição conta! 🏋️",
+  4: "⚡ Quinta-feira: O cansaço tenta parar, mas sua meta é maior! Bora esmagar esse treino! 👊",
+  5: "🌟 Sexta-feira: Dia de fechar a semana com chave de ouro! Sensação de dever cumprido é a melhor recompensa. Bora! 🏆",
+  6: "🔥 Sábado também é dia! Quem treina no fim de semana chega mais rápido no objetivo. Foco total! 🚀"
+};
+
+const CATEGORIAS_MENSAGENS = {
+  incentivo: [
+    "Parabéns pelo foco! Continue assim e os resultados virão! 💪",
+    "Não pare agora, você está no caminho certo! 🚀",
+    "Cada gota de suor é um passo rumo ao seu objetivo! 🔥",
+    "A disciplina vence o talento quando o talento não tem disciplina! 🎯"
+  ],
+  saude: [
+    "Lembre-se de beber bastante água hoje! 💧",
+    "Uma boa noite de sono é fundamental para a recuperação muscular! 😴",
+    "Alimente-se bem, seu corpo é seu templo! 🍎",
+    "Não esqueça de alongar após o treino! 🧘"
+  ],
+  cobranca: [
+    "Sentimos sua falta no treino hoje! O que aconteceu? 🤔",
+    "A constância é a chave do sucesso. Vamos retomar o ritmo? ⚡",
+    "Seu plano está vencendo, não esqueça de renovar para continuar treinando! 💳"
+  ]
+};
+
 function renderMuralAdmin() {
   const mural = document.getElementById('admin-mural-mensagens');
-  if (!mural) return;
-
-  const mensagens = JSON.parse(localStorage.getItem('mural_feedbacks') || '[]');
+  const stats = document.getElementById('mural-stats');
+  const gridDiario = document.getElementById('mensagens-diarias-grid');
   
-  if (mensagens.length === 0) {
-    mural.innerHTML = `<p style="text-align: center; color: #94a3b8; padding: 20px;">Nenhuma mensagem enviada pelos alunos ainda.</p>`;
+  console.log('Iniciando renderização do Mural Admin...');
+  
+  if (!mural) {
+    console.error('ERRO CRÍTICO: Elemento admin-mural-mensagens não encontrado no DOM!');
     return;
   }
 
-  mural.innerHTML = mensagens.map(m => `
-    <div style="background: white; padding: 20px; border-radius: 16px; border: 1px solid #e2e8f0; position: relative; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 40px; height: 40px; background: ${m.isAdmin ? '#2563eb' : '#f1f5f9'}; color: ${m.isAdmin ? 'white' : '#475569'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.2rem;">
-            ${m.nome.charAt(0)}
-          </div>
-          <div>
-            <strong style="color: ${m.isAdmin ? '#2563eb' : '#1e293b'}; font-size: 1rem;">
-              ${m.nome} ${m.isAdmin ? '⭐ (Você)' : ''}
-            </strong>
-            <div style="font-size: 0.75rem; color: #94a3b8;">${m.data}</div>
-          </div>
-        </div>
-        <button onclick="removerMensagemMural(${m.id})" style="background: #fee2e2; border: none; color: #ef4444; cursor: pointer; font-size: 0.75rem; padding: 5px 10px; border-radius: 8px; font-weight: 700;">EXCLUIR</button>
-      </div>
-      
-      <div style="font-size: 1rem; color: #334155; line-height: 1.6; margin-bottom: 15px; padding-left: 50px;">
-        ${m.texto}
-      </div>
-      
-      <!-- RESPOSTA DO PROFESSOR (SE HOUVER) -->
-      ${m.respostaProfessor ? `
-        <div style="margin-left: 50px; background: #f0fdf4; border-left: 4px solid #16a34a; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
-          <div style="font-size: 0.75rem; color: #166534; font-weight: 800; margin-bottom: 5px;">Sua Resposta:</div>
-          <div style="font-size: 0.95rem; color: #14532d;">${m.respostaProfessor}</div>
-        </div>
-      ` : ''}
+  try {
+    let mensagens = [];
+    try {
+      mensagens = JSON.parse(localStorage.getItem('mural_feedbacks') || '[]');
+    } catch (e) {
+      console.error('Erro ao ler mensagens do mural:', e);
+      mensagens = [];
+    }
 
-      <div style="display: flex; flex-direction: column; gap: 10px; padding-left: 50px; border-top: 1px solid #f1f5f9; padding-top: 15px;">
-        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-          <span style="font-size: 0.8rem; color: #64748b; font-weight: 700;">Reagir:</span>
-          <button onclick="reagirMensagem(${m.id}, '👍')" style="background: #f1f5f9; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 1.1rem; transition: all 0.2s;">👍</button>
-          <button onclick="reagirMensagem(${m.id}, '❤️')" style="background: #f1f5f9; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 1.1rem;">❤️</button>
-          <button onclick="reagirMensagem(${m.id}, '💪')" style="background: #f1f5f9; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 1.1rem;">💪</button>
-          <button onclick="reagirMensagem(${m.id}, '🔥')" style="background: #f1f5f9; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 1.1rem;">🔥</button>
-          
-          <div style="margin-left: auto; display: flex; gap: 5px;">
-            ${(m.reacoes || []).map(r => `<span style="background: #eff6ff; padding: 4px 10px; border-radius: 12px; border: 1px solid #bfdbfe; font-size: 0.9rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">${r}</span>`).join('')}
-          </div>
+    // Renderizar Estatísticas
+    if (stats) {
+      const total = mensagens.length;
+      const admin = mensagens.filter(m => m.isAdmin).length;
+      const alunosIds = [...new Set(mensagens.filter(m=>!m.isAdmin).map(m=>m.alunoId))];
+      stats.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 8px; background: white; padding: 12px; border-radius: 10px; border: 1px solid #bfdbfe;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem;"><span>Total:</span> <strong>${total}</strong></div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem;"><span>Admin:</span> <strong>${admin}</strong></div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem;"><span>Alunos:</span> <strong>${alunosIds.length}</strong></div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #dc2626;"><span>Pendentes:</span> <strong>${mensagens.filter(m => !m.isAdmin && !m.respostaProfessor).length}</strong></div>
         </div>
+      `;
+    }
 
-        <!-- CAMPO DE RESPOSTA DIRETA -->
-        ${!m.isAdmin ? `
-          <div style="display: flex; gap: 8px; margin-top: 5px;">
-            <input type="text" id="reply-input-${m.id}" placeholder="Escreva um feedback para o aluno..." style="flex: 1; padding: 10px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.9rem; outline: none; focus: border-color: #2563eb;">
-            <button onclick="responderMensagem(${m.id})" style="background: #1e293b; color: white; border: none; padding: 0 15px; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 0.85rem;">RESPONDER</button>
+    // Renderizar Sugestões e Categorias
+    if (gridDiario) {
+      const hoje = new Date().getDay();
+      const msgHoje = MENSAGENS_DIARIAS[hoje] || "Bom treino!";
+      
+      gridDiario.innerHTML = `
+        <div style="margin-bottom: 10px;">
+          <p style="font-size: 0.65rem; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 5px;">⭐ Sugestão Hoje</p>
+          <button onclick="enviarMensagemRapida('${msgHoje.replace(/'/g, "\\'")}')" 
+                  style="text-align: left; padding: 10px; border-radius: 8px; border: 1px solid #2563eb; 
+                         background: #eff6ff; cursor: pointer; width: 100%;">
+            <span style="font-size: 0.75rem; color: #1e293b; line-height: 1.3;">${msgHoje}</span>
+          </button>
+        </div>
+        
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          ${Object.entries(CATEGORIAS_MENSAGENS).map(([cat, msgs]) => `
+            <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+              <div style="background: #f8fafc; padding: 4px 8px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: #475569; border-bottom: 1px solid #e2e8f0;">
+                ${cat === 'incentivo' ? '💪 Incentivo' : cat === 'saude' ? '🍎 Saúde' : '💳 Cobrança'}
+              </div>
+              ${msgs.map(m => `
+                <button onclick="enviarMensagemRapida('${m.replace(/'/g, "\\'")}')" 
+                        style="text-align: left; padding: 6px 8px; background: white; border: none; border-bottom: 1px solid #f1f5f9; cursor: pointer; font-size: 0.7rem; color: #334155; width: 100%;">
+                  ${m.substring(0, 35)}...
+                </button>
+              `).join('')}
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    if (mensagens.length === 0) {
+      mural.innerHTML = `
+        <div style="text-align: center; color: #94a3b8; padding: 40px;">
+          <div style="font-size: 3rem; margin-bottom: 10px;">💬</div>
+          <p>Nenhuma mensagem ainda.</p>
+          <p style="font-size: 0.8rem;">Envie um comunicado para seus alunos!</p>
+        </div>
+      `;
+      return;
+    }
+
+    mural.innerHTML = mensagens.map(m => {
+      const ehDuvidaPendente = !m.isAdmin && !m.respostaProfessor;
+      return `
+      <div style="background: white; padding: 15px; border-radius: 12px; border: 1px solid ${ehDuvidaPendente ? '#ef4444' : '#e2e8f0'}; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); position: relative;">
+        ${ehDuvidaPendente ? '<div style="position: absolute; top: 5px; right: 5px; background: #ef4444; color: white; font-size: 0.55rem; padding: 2px 6px; border-radius: 4px; font-weight: 800;">PENDENTE</div>' : ''}
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 32px; height: 32px; background: ${m.isAdmin ? '#2563eb' : (ehDuvidaPendente ? '#ef4444' : '#f1f5f9')}; color: ${m.isAdmin || ehDuvidaPendente ? 'white' : '#475569'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.9rem;">
+              ${(m.nome || 'A').charAt(0)}
+            </div>
+            <div>
+              <strong style="color: ${m.isAdmin ? '#2563eb' : '#1e293b'}; font-size: 0.85rem;">
+                ${m.nome || 'Aluno'} ${m.isAdmin ? '⭐' : ''}
+              </strong>
+              <div style="font-size: 0.65rem; color: #94a3b8;">${m.data}</div>
+            </div>
+          </div>
+          <button onclick="removerMensagemMural(${m.id})" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.7rem; font-weight: 700;">EXCLUIR</button>
+        </div>
+        
+        <div style="font-size: 0.9rem; color: #334155; line-height: 1.5; margin-bottom: 10px; padding-left: 40px;">
+          ${m.texto}
+        </div>
+        
+        ${m.respostaProfessor ? `
+          <div style="margin-left: 40px; background: #f0fdf4; border-left: 3px solid #16a34a; padding: 8px; border-radius: 6px; margin-bottom: 10px;">
+            <div style="font-size: 0.85rem; color: #14532d;">${m.respostaProfessor}</div>
           </div>
         ` : ''}
+
+        <div style="display: flex; flex-direction: column; gap: 8px; padding-left: 40px;">
+          <div style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap;">
+            <button onclick="reagirMural(${m.id}, '👍')" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px 8px; border-radius: 15px; cursor: pointer; font-size: 0.9rem;">👍</button>
+            <button onclick="reagirMural(${m.id}, '❤️')" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px 8px; border-radius: 15px; cursor: pointer; font-size: 0.9rem;">❤️</button>
+            <button onclick="reagirMural(${m.id}, '💪')" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px 8px; border-radius: 15px; cursor: pointer; font-size: 0.9rem;">💪</button>
+            <button onclick="reagirMural(${m.id}, '🔥')" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px 8px; border-radius: 15px; cursor: pointer; font-size: 0.9rem;">🔥</button>
+            
+            <div style="margin-left: auto; display: flex; gap: 3px;">
+              ${(m.reacoes || []).map(r => `<span style="background: #eff6ff; padding: 2px 6px; border-radius: 8px; border: 1px solid #bfdbfe; font-size: 0.75rem;">${r}</span>`).join('')}
+            </div>
+          </div>
+
+          ${!m.isAdmin ? `
+            <div style="display: flex; gap: 5px;">
+              <input type="text" id="reply-input-${m.id}" placeholder="Responder dúvida..." style="flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.8rem; outline: none;" onkeypress="if(event.key==='Enter') responderMensagem(${m.id})">
+              <button onclick="responderMensagem(${m.id})" style="background: #1e293b; color: white; border: none; padding: 0 10px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.75rem;">OK</button>
+            </div>
+          ` : ''}
+        </div>
       </div>
-    </div>
-  `).reverse().join(''); // Mais recentes no topo
+    `; }).reverse().join(''); 
+    
+    console.log('Mural renderizado com sucesso.');
+  } catch (err) {
+    console.error('Erro ao renderizar mural admin:', err);
+    mural.innerHTML = `<p style="color: red; padding: 20px;">Erro ao carregar mensagens. Tente atualizar a página.</p>`;
+  }
+}
+
+function reagirMural(id, emoji) {
+  const mensagens = JSON.parse(localStorage.getItem('mural_feedbacks') || '[]');
+  const idx = mensagens.findIndex(m => m.id === id);
+  if (idx >= 0) {
+    if (!mensagens[idx].reacoes) mensagens[idx].reacoes = [];
+    if (!mensagens[idx].reacoes.includes(emoji)) {
+      mensagens[idx].reacoes.push(emoji);
+      localStorage.setItem('mural_feedbacks', JSON.stringify(mensagens));
+      renderMuralAdmin();
+    }
+  }
+}
+
+function enviarMensagemRapida(texto) {
+  const input = document.getElementById('admin-input-msg');
+  if (input) input.value = texto;
+  adminEnviarMensagemMural();
 }
 
 function responderMensagem(id) {
   const input = document.getElementById(`reply-input-${id}`);
-  const texto = input.value.trim();
+  const texto = input ? input.value.trim() : '';
   if (!texto) return;
 
   const mensagens = JSON.parse(localStorage.getItem('mural_feedbacks') || '[]');
   const idx = mensagens.findIndex(m => m.id === id);
-  
   if (idx >= 0) {
     mensagens[idx].respostaProfessor = texto;
-    // Adicionar reação automática de coração ao responder
     if (!mensagens[idx].reacoes) mensagens[idx].reacoes = [];
     if (!mensagens[idx].reacoes.includes('❤️')) mensagens[idx].reacoes.push('❤️');
-    
     localStorage.setItem('mural_feedbacks', JSON.stringify(mensagens));
-    input.value = '';
     renderMuralAdmin();
-    showToast('Feedback enviado ao aluno!', 'success');
+    showToast('Resposta enviada!', 'success');
   }
 }
 
 function adminEnviarMensagemMural() {
   const input = document.getElementById('admin-input-msg');
-  const texto = input.value.trim();
+  const texto = input ? input.value.trim() : '';
   if (!texto) return;
 
   const mensagens = JSON.parse(localStorage.getItem('mural_feedbacks') || '[]');
@@ -1398,26 +1474,15 @@ function adminEnviarMensagemMural() {
 
   mensagens.push(novaMsg);
   localStorage.setItem('mural_feedbacks', JSON.stringify(mensagens));
-  input.value = '';
+  if (input) input.value = '';
   renderMuralAdmin();
-  showToast('Mensagem enviada para o mural!', 'success');
+  showToast('Mensagem enviada!', 'success');
 }
 
-function reagirMensagem(id, emoji) {
-  const mensagens = JSON.parse(localStorage.getItem('mural_feedbacks') || '[]');
-  const idx = mensagens.findIndex(m => m.id === id);
-  if (idx >= 0) {
-    if (!mensagens[idx].reacoes) mensagens[idx].reacoes = [];
-    if (!mensagens[idx].reacoes.includes(emoji)) {
-      mensagens[idx].reacoes.push(emoji);
-      localStorage.setItem('mural_feedbacks', JSON.stringify(mensagens));
-      renderMuralAdmin();
-    }
-  }
-}
+// Funções de ação do mural já definidas acima (reagirMural, etc)
 
 function removerMensagemMural(id) {
-  if (confirm('Deseja excluir esta mensagem do mural?')) {
+  if (confirm('Excluir mensagem?')) {
     let mensagens = JSON.parse(localStorage.getItem('mural_feedbacks') || '[]');
     mensagens = mensagens.filter(m => m.id !== id);
     localStorage.setItem('mural_feedbacks', JSON.stringify(mensagens));
@@ -1425,27 +1490,194 @@ function removerMensagemMural(id) {
   }
 }
 
-// Listener para mensagens em tempo real no Admin
+// ==================== GESTÃO DE DADOS (BACKUP) ====================
+function exportarSistema() {
+  const backup = {
+    alunos: JSON.parse(localStorage.getItem('alunos') || '[]'),
+    avaliacoes: JSON.parse(localStorage.getItem('avaliacoes') || '[]'),
+    testes: JSON.parse(localStorage.getItem('testes') || '[]'),
+    pagamentos: JSON.parse(localStorage.getItem('pagamentos') || '[]'),
+    fichas: JSON.parse(localStorage.getItem('fichas') || '[]'),
+    anamneses: JSON.parse(localStorage.getItem('anamneses') || '[]'),
+    rms: JSON.parse(localStorage.getItem('rms') || '[]'),
+    treinosCustom: JSON.parse(localStorage.getItem('treinosCustom') || '[]'),
+    mural_feedbacks: JSON.parse(localStorage.getItem('mural_feedbacks') || '[]')
+  };
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup));
+  const link = document.createElement('a');
+  link.setAttribute("href", dataStr);
+  link.setAttribute("download", "backup_treinofit_" + new Date().toISOString().slice(0,10) + ".json");
+  link.click();
+  showToast('Backup exportado!', 'success');
+}
+
+function importarSistema(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (confirm('Isso substituirá todos os dados. Continuar?')) {
+        Object.keys(data).forEach(key => localStorage.setItem(key, JSON.stringify(data[key])));
+        showToast('Dados restaurados!', 'success');
+        setTimeout(() => location.reload(), 1000);
+      }
+    } catch (err) { showToast('Erro ao importar!', 'error'); }
+  };
+  reader.readAsText(file);
+}
+
+// Listener de Storage
 window.addEventListener('storage', (e) => {
-  if (e.key === 'mural_feedbacks') {
-    renderMuralAdmin();
-  }
+  if (e.key === 'mural_feedbacks') renderMuralAdmin();
 });
+
+// ==================== RESTAURAÇÃO DE DADOS (JESSICA BRUNA) ====================
+function restaurarDadosJessica() {
+  const JESSICA_ID = '1711111111111';
+  const alunos = JSON.parse(localStorage.getItem('alunos') || '[]');
+  const jessica = alunos.find(a => String(a.id) === JESSICA_ID);
+  
+  if (!jessica) return;
+
+  // 1. Restaurar Ficha (Treino)
+  const fichas = JSON.parse(localStorage.getItem('fichas') || '[]');
+  const jaTemFicha = fichas.some(f => String(f.alunoId) === JESSICA_ID);
+  
+  if (!jaTemFicha) {
+    const novaFicha = {
+      alunoId: JESSICA_ID,
+      alunoNome: 'Jessica Bruna',
+      dataCriacao: new Date().toLocaleDateString('pt-BR'),
+      metaSessoes: 24,
+      sessoesRealizadas: 0,
+      exercicios: [
+        // TREINO A - Superiores (Empurrar)
+        { id: Date.now()+1, divisao: 'A', grupo: 'Peito', nome: 'Supino Reto Barra', series: '4', reps: '10-12', carga: '20', descanso: '60', tecnica: 'Tradicional' },
+        { id: Date.now()+2, divisao: 'A', grupo: 'Ombros', nome: 'Desenvolvimento Halteres', series: '3', reps: '12', carga: '8', descanso: '60', tecnica: 'Tradicional' },
+        { id: Date.now()+3, divisao: 'A', grupo: 'Tríceps', nome: 'Tríceps Pulley', series: '3', reps: '15', carga: '15', descanso: '45', tecnica: 'Drop Set' },
+        // TREINO B - Superiores (Puxar)
+        { id: Date.now()+4, divisao: 'B', grupo: 'Costas', nome: 'Puxada Frente Aberta', series: '4', reps: '10-12', carga: '35', descanso: '60', tecnica: 'Tradicional' },
+        { id: Date.now()+5, divisao: 'B', grupo: 'Costas', nome: 'Remada Baixa Triângulo', series: '3', reps: '12', carga: '30', descanso: '60', tecnica: 'Tradicional' },
+        { id: Date.now()+6, divisao: 'B', grupo: 'Bíceps', nome: 'Rosca Direta Polia', series: '3', reps: '12', carga: '10', descanso: '45', tecnica: 'Rest-Pause' },
+        // TREINO C - Inferiores
+        { id: Date.now()+7, divisao: 'C', grupo: 'Pernas', nome: 'Agachamento Livre', series: '4', reps: '10', carga: '30', descanso: '90', tecnica: 'Tradicional' },
+        { id: Date.now()+8, divisao: 'C', grupo: 'Pernas', nome: 'Leg Press 45º', series: '3', reps: '12', carga: '120', descanso: '60', tecnica: 'Tradicional' },
+        { id: Date.now()+9, divisao: 'C', grupo: 'Glúteos', nome: 'Elevação Pélvica', series: '4', reps: '12', carga: '40', descanso: '60', tecnica: 'Tradicional' },
+        { id: Date.now()+10, divisao: 'C', grupo: 'Pernas', nome: 'Cadeira Extensora', series: '3', reps: '15', carga: '25', descanso: '45', tecnica: 'Isometria 3s' }
+      ]
+    };
+    fichas.push(novaFicha);
+    localStorage.setItem('fichas', JSON.stringify(fichas));
+  }
+
+  // 2. Restaurar Avaliação
+  const avs = JSON.parse(localStorage.getItem('avaliacoes') || '[]');
+  const jaTemAv = avs.some(a => String(a.alunoId) === JESSICA_ID);
+  if (!jaTemAv) {
+    const novaAv = {
+      id: Date.now() + 20,
+      alunoId: JESSICA_ID,
+      data: new Date().toLocaleDateString('pt-BR'),
+      peso: 65.5,
+      altura: 1.65,
+      imc: 24.06,
+      percGordura: 22.5,
+      massaMagra: 50.7,
+      massaGorda: 14.8,
+      protocolo: 'Jackson & Pollock 3 dobras'
+    };
+    avs.push(novaAv);
+    localStorage.setItem('avaliacoes', JSON.stringify(avs));
+  }
+
+  // 3. Restaurar Anamnese
+  const anamneses = JSON.parse(localStorage.getItem('anamneses') || '[]');
+  const jaTemAn = anamneses.some(a => String(a.alunoId) === JESSICA_ID);
+  if (!jaTemAn) {
+    const novaAn = {
+      alunoId: JESSICA_ID,
+      data: new Date().toLocaleDateString('pt-BR'),
+      objetivo: 'Hipertrofia e Definição',
+      lesoes: 'Nenhuma',
+      medicamentos: 'Nenhum',
+      frequencia: '5x na semana',
+      obs: 'Aluna dedicada, busca melhorar condicionamento físico.'
+    };
+    anamneses.push(novaAn);
+    localStorage.setItem('anamneses', JSON.stringify(anamneses));
+  }
+
+  console.log('Dados de Jessica Bruna restaurados com sucesso.');
+}
 
 // ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', () => {
+  // RESTAURAR DADOS INICIAIS
+  let alunosExistentes = JSON.parse(localStorage.getItem('alunos') || '[]');
+  if (alunosExistentes.length === 0) {
+    const jessica = {
+      id: '1711111111111',
+      nome: 'Jessica Bruna',
+      email: 'jessica@email.com',
+      senha: '12345678',
+      dataNasc: '1995-01-01',
+      sexo: 'F',
+      idade: 31,
+      telefone: '(85) 90000-0000',
+      objetivo: 'hipertrofia',
+      tipo: 'pago',
+      origem: 'online',
+      cadastroData: new Date().toLocaleDateString('pt-BR')
+    };
+    alunosExistentes.push(jessica);
+    localStorage.setItem('alunos', JSON.stringify(alunosExistentes));
+  }
+  
+  // Garantir que os dados de treino da Jessica existam
+  restaurarDadosJessica();
+
   checkAdminAuth();
   
   if (localStorage.getItem('isAdmin') === 'true') {
     renderAlunosGrid();
     if (typeof initPresc === 'function') initPresc();
+    renderMuralAdmin();
   }
   
+  // Enter no Login Admin
+  const adminUserInput = document.getElementById('admin-user');
+  const adminPassInput = document.getElementById('admin-pass');
+  if (adminUserInput && adminPassInput) {
+    [adminUserInput, adminPassInput].forEach(el => {
+      el.addEventListener('keypress', (e) => { if (e.key === 'Enter') loginAdmin(); });
+    });
+  }
+
+  // Tabelas
+  const tb = document.getElementById('tabela-tecnicas-corpo');
+  if (tb) tb.innerHTML = TECNICAS_DB.map(t =>
+    `<tr><td><strong>${t.nome}</strong></td><td>${t.categoria}</td><td style="font-size:0.78rem">${t.intensidade}</td><td>${t.series}</td><td>${t.descanso}</td><td>${t.nivel}</td></tr>`
+  ).join('');
+  
+  const tp = document.getElementById('tabela-protocolos-corpo');
+  if (tp) tp.innerHTML = PROTOCOLOS_DB.map(p => `
+    <div style="margin-bottom:1rem;padding:1rem;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">
+      <strong style="color:#1d4ed8">${p.nome}</strong> – <span style="font-size:0.85rem">${p.descricao}</span>
+      <div class="table-wrapper" style="margin-top:0.5rem;">
+        <table class="data-table" style="font-size:0.78rem;">
+          <thead><tr><th>Período</th><th>Objetivo</th><th>Séries</th><th>Reps</th><th>Intensidade</th></tr></thead>
+          <tbody>${p.fase.map(f=>`<tr><td>${f.sem}</td><td>${f.obj}</td><td>${f.series}</td><td>${f.reps}</td><td>${f.int}</td></tr>`).join('')}</tbody>
+        </table>
+      </div>
+      <p style="font-size:0.72rem;color:#64748b;margin-top:4px;">Ref: ${p.ref}</p>
+    </div>`).join('');
+
+  // Datas padrão
   const hoje = new Date().toISOString().slice(0, 10);
-  const dVO2 = document.getElementById('dataVO2');
-  if (dVO2) dVO2.value = hoje;
-  const dAntro = document.getElementById('dataAntro');
-  if (dAntro) dAntro.value = hoje;
+  if (document.getElementById('dataVO2')) document.getElementById('dataVO2').value = hoje;
+  if (document.getElementById('dataAntro')) document.getElementById('dataAntro').value = hoje;
   
   if (document.getElementById('protocoloAntro')) mostrarProtocolo();
   if (document.getElementById('protocoloVO2')) carregarProtocolo();

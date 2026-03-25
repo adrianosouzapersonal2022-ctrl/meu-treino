@@ -196,8 +196,8 @@ body {
   border: none;
 }
 
-#app { display: none !important; }
-#app.auth-ready { display: block !important; }
+#app { display: none; }
+#app.auth-ready { display: block; }
 .page { 
   display: none; 
   min-height: calc(100vh - 60px); 
