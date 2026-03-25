@@ -669,6 +669,9 @@ function carregarTreino() {
       }
     }
     
+    // Armazenar mapeamento para uso na renderização
+    window._mapeamentoDivisoes = mapeamentoAuto;
+
     cronogramaContainer.innerHTML = diasSemana.map((dia, idx) => {
       const treina = diasTreino.includes(dia);
       const div = mapeamentoAuto[dia];
@@ -722,17 +725,18 @@ function carregarTreino() {
   
   let html = '';
 
-  // 3.1 Renderizar Card de Aeróbio se for o dia correto
+  // 3.1 Renderizar Card de Aeróbio se for o dia selecionado no cronograma
   const diasSemanaNomes = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
-  const hojeNomeIdx = diaSelecionadoIdx !== null ? diaSelecionadoIdx : (new Date().getDay() + 6) % 7;
-  const diaNomeAtivo = diasSemanaNomes[hojeNomeIdx];
+  const hojeIdxReal = (new Date().getDay() + 6) % 7;
+  const idxSelecionado = diaSelecionadoIdx !== null ? diaSelecionadoIdx : hojeIdxReal;
+  const diaNomeSelecionado = diasSemanaNomes[idxSelecionado];
 
-  if (ficha.aerobio && ficha.aerobio.dias && ficha.aerobio.dias.includes(diaNomeAtivo)) {
+  if (ficha.aerobio && ficha.aerobio.dias && ficha.aerobio.dias.includes(diaNomeSelecionado)) {
     const ae = ficha.aerobio;
     html += `
-      <div class="section-card" style="margin-bottom: 25px; border-left: 5px solid #10b981; background: #f0fdf4; padding: 20px; border-radius: 16px;">
+      <div class="section-card" style="margin-bottom: 25px; border-left: 5px solid #10b981; background: #f0fdf4; padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
         <h3 style="color: #166534; font-size: 1.2rem; font-weight: 900; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
-          🏃 TREINO AERÓBIO: ${ae.objetivoLabel}
+          <span>🏃</span> TREINO AERÓBIO: ${ae.objetivoLabel}
         </h3>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px;">
