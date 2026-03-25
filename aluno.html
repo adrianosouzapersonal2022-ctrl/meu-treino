@@ -13,7 +13,7 @@
   <meta http-equiv="Expires" content="0" />
   <title>TREINOFITASM – Aluno</title>
   <link rel="manifest" href="manifest.json"/>
-  <link rel="stylesheet" href="aluno.css?v=1.1"/>
+  <link rel="stylesheet" href="aluno.css?v=1.2"/>
 </head>
 <body>
   <!-- LOGIN -->
@@ -29,7 +29,9 @@
       <div class="field"><label>Senha</label><input type="password" id="login-senha" placeholder="Sua senha"/></div>
       <div id="login-erro" class="login-erro" style="display:none;"></div>
       <button class="btn-full" onclick="fazerLogin()">Entrar</button>
-      <button class="btn-full" onclick="location.href='index.html'" style="background:#64748b; margin-top:0.5rem;">Voltar ao Portal</button>
+      
+      <!-- BOTÃO VOLTAR REFORÇADO NO LOGIN -->
+      <button class="btn-full" onclick="location.href='index.html'" style="background:#64748b; margin-top:0.8rem; border: 2px solid #fff; font-weight: 800;">⬅️ VOLTAR AO PORTAL INICIAL</button>
       
       <div style="text-align:center; margin-top:1rem;">
         <button onclick="abrirModalEsqueciSenha()" style="background:none; border:none; color:#2563eb; text-decoration:underline; cursor:pointer; font-size:0.9rem;">Esqueceu sua senha?</button>
@@ -107,8 +109,8 @@
           <div class="header-sub" id="header-sub">Bem-vindo!</div>
         </div>
       </div>
-      <div style="display: flex; gap: 8px;">
-        <button class="btn-logout" onclick="location.href='index.html'" style="background: rgba(255,255,255,0.15); font-weight: 600;">Voltar ao Portal</button>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button class="btn-logout" onclick="location.href='index.html'" style="background: #64748b; color: white; border: 1px solid white; font-weight: 800; padding: 8px 12px;">⬅️ VOLTAR</button>
         <button class="btn-logout" onclick="fazerLogout()">Sair</button>
       </div>
     </header>
@@ -322,6 +324,6 @@
   <!-- TOAST -->
   <div id="toast-aluno" class="toast-aluno"></div>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="aluno.js?v=1.1"></script>
+  <script src="aluno.js?v=1.2"></script>
 </body>
 </html>
