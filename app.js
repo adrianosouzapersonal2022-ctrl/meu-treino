@@ -58,16 +58,32 @@ function saveState() {
 
 // ==================== NAVIGATION ====================
 const showPage = (name) => {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  console.log('Navegando para:', name);
+  
+  // Esconder todas as páginas
+  document.querySelectorAll('.page').forEach(p => {
+    p.classList.remove('active');
+    p.style.display = 'none'; // Garantir que está escondido
+  });
+
+  // Remover estado ativo dos botões
   document.querySelectorAll('.nav-btn').forEach(b => {
     b.classList.remove('active');
     b.removeAttribute('aria-current');
   });
 
+  // Mostrar a página selecionada
   const page = document.getElementById('page-' + name);
-  if (page) page.classList.add('active');
+  if (page) {
+    page.classList.add('active');
+    page.style.display = 'block'; // Forçar exibição
+    console.log('Página encontrada e exibida:', 'page-' + name);
+  } else {
+    console.error('ERRO: Página não encontrada:', 'page-' + name);
+  }
 
-  const pages = ['cadastro', 'meus-alunos', 'anamnese', 'antropometria', 'treino', 'evolucao', 'pagamentos'];
+  // Marcar botão como ativo
+  const pages = ['cadastro', 'meus-alunos', 'anamnese', 'antropometria', 'treino', 'pagamentos'];
   const idx = pages.indexOf(name);
   const btns = document.querySelectorAll('.nav-btn');
   if (idx >= 0 && btns[idx]) {
@@ -75,6 +91,7 @@ const showPage = (name) => {
     btns[idx].setAttribute('aria-current', 'page');
   }
 
+  // Ações específicas de cada página
   if (name !== 'cadastro') populateAlunoSelects();
   if (name === 'meus-alunos') renderListaGeralAlunos();
   if (name === 'pagamentos') renderPagamentos();
@@ -1276,27 +1293,6 @@ function checkAdminAuth() {
 
 // ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', () => {
-  // Pré-cadastro da Jessica Bruna solicitado pelo usuário
-  const alunosExistentes = JSON.parse(localStorage.getItem('alunos') || '[]');
-  if (!alunosExistentes.some(a => a.nome.toLowerCase() === 'jessicabruna' || a.email === 'jessica@email.com')) {
-    const jessica = {
-      id: 1711111111111,
-      nome: 'Jessica Bruna',
-      email: 'jessica@email.com',
-      senha: '12345678',
-      dataNasc: '1995-01-01',
-      sexo: 'F',
-      idade: 31,
-      telefone: '(00) 00000-0000',
-      objetivo: 'hipertrofia',
-      tipo: 'pago',
-      origem: 'online'
-    };
-    alunosExistentes.push(jessica);
-    localStorage.setItem('alunos', JSON.stringify(alunosExistentes));
-    state.alunos = alunosExistentes; // Atualiza o estado em memória
-  }
-
   checkAdminAuth();
   
   if (localStorage.getItem('isAdmin') === 'true') {
