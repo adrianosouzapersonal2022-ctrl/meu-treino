@@ -484,6 +484,43 @@ function salvarAnamneseAluno() {
   carregarInicio();
 }
 
+/**
+ * Retorna uma URL de GIF baseada no nome do exercício ou grupo muscular
+ * URLs atualizadas para maior estabilidade e fallback robusto
+ */
+function getGifExercicio(exer) {
+  // Se o professor inseriu um link manual que não seja do giphy (que costuma dar erro de hotlink)
+  if (exer.video && (exer.video.includes('.gif') || exer.video.includes('tenor.com')) && !exer.video.includes('giphy.com')) {
+    return exer.video;
+  }
+  
+  const nome = (exer.nome || '').toLowerCase();
+  const grupo = (exer.grupo || '').toLowerCase();
+  
+  // Mapeamento de GIFs de fontes mais estáveis (FitnessProgramer ou placeholders educativos)
+  const GIFS_GRUPO = {
+    'peito': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/BARBELL-BENCH-PRESS.gif',
+    'costas': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/LAT-PULLDOWN.gif',
+    'ombros': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/DUMBBELL-LATERAL-RAISE.gif',
+    'pernas': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/BARBELL-SQUAT.gif',
+    'coxa': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/BARBELL-SQUAT.gif',
+    'gluteos': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/HIP-THRUST.gif',
+    'gluteo': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/HIP-THRUST.gif',
+    'biceps': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/BARBELL-CURL.gif',
+    'triceps': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/PULLDOWN.gif',
+    'abdomen': 'https://fitnessprogramer.com/wp-content/uploads/2021/02/CRUNCH.gif',
+  };
+
+  // Tenta encontrar por palavras-chave no nome
+  if (nome.includes('supino')) return 'https://fitnessprogramer.com/wp-content/uploads/2021/02/BARBELL-BENCH-PRESS.gif';
+  if (nome.includes('agachamento')) return 'https://fitnessprogramer.com/wp-content/uploads/2021/02/BARBELL-SQUAT.gif';
+  if (nome.includes('rosca')) return 'https://fitnessprogramer.com/wp-content/uploads/2021/02/BARBELL-CURL.gif';
+  if (nome.includes('puxada')) return 'https://fitnessprogramer.com/wp-content/uploads/2021/02/LAT-PULLDOWN.gif';
+  if (nome.includes('leg press')) return 'https://fitnessprogramer.com/wp-content/uploads/2021/02/LEG-PRESS.gif';
+
+  return GIFS_GRUPO[grupo] || 'https://via.placeholder.com/400x300/f1f5f9/64748b?text=Visualização+ASM';
+}
+
 function carregarTreino() {
   const a = alunoLogado;
   const todasFichas = JSON.parse(localStorage.getItem('fichas') || '[]');
@@ -590,36 +627,67 @@ function carregarTreino() {
     html = exerciciosFiltrados.map(e => {
       const grupoNormalizado = e.grupo ? e.grupo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : 'geral';
       const bgClass = `bg-${grupoNormalizado}`;
+      const gifUrl = getGifExercicio(e);
       
+      // Cálculo de Carga baseada em 1RM se houver
+      let cargaDisplay = `${e.carga || 0} kg`;
+      let info1RM = '';
+      if (e.perc1RM && e.perc1RM > 0 && e.carga1RM && e.carga1RM > 0) {
+        const cargaCalc = Math.round(e.carga1RM * (e.perc1RM / 100));
+        cargaDisplay = `${cargaCalc} kg`;
+        info1RM = `<div style="font-size: 0.65rem; color: #2563eb; font-weight: 700; margin-top: 2px;">${e.perc1RM}% de ${e.carga1RM}kg</div>`;
+      }
+
       return `
-        <div class="exercicio-card">
-          <div class="ex-header">
-            <span class="badge-grupo ${bgClass}">${e.grupo || 'Geral'}</span>
-            <div class="ex-nome">${e.nome}</div>
+        <div class="exercicio-card" style="margin-bottom: 20px; border-radius: 15px; overflow: hidden; border: 1px solid #e2e8f0; background: white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+          <div style="height: 180px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; position: relative;">
+            <img src="${gifUrl}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.src='https://via.placeholder.com/400x300/f1f5f9/64748b?text=ASM+Fitness'">
+            <span class="badge-grupo ${bgClass}" style="position: absolute; top: 10px; left: 10px;">${e.grupo || 'Geral'}</span>
           </div>
-          <div class="ex-body">
-            <div class="ex-info-grid">
-              <div class="ex-info-item"><strong>Séries:</strong> ${e.series}</div>
-              <div class="ex-info-item"><strong>Reps:</strong> ${e.reps}</div>
-              <div class="ex-info-item"><strong>Carga:</strong> ${e.carga} kg</div>
-              ${e.pct ? `<div class="ex-info-item"><strong>% 1RM:</strong> ${e.pct}%</div>` : ''}
-              <div class="ex-info-item"><strong>Descanso:</strong> ${e.descanso}s</div>
-              ${e.cadencia ? `<div class="ex-info-item"><strong>Cadência:</strong> ${e.cadencia}</div>` : ''}
-              <div class="ex-info-item"><strong>Técnica:</strong> ${e.tecnica ? e.tecnica.charAt(0).toUpperCase() + e.tecnica.slice(1) : 'Tradicional'}</div>
+          <div class="ex-body" style="padding: 15px;">
+            <div class="ex-nome" style="font-size: 1.1rem; font-weight: 800; color: #1e293b; margin-bottom: 12px;">${e.nome}</div>
+            <div class="ex-info-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: #f8fafc; padding: 12px; border-radius: 12px;">
+              <div class="ex-info-item" style="text-align: center; border-right: 1px solid #e2e8f0;">
+                <div style="font-size: 0.6rem; color: #64748b; text-transform: uppercase;">Séries</div>
+                <div style="font-size: 1rem; font-weight: 900;">${e.series}</div>
+              </div>
+              <div class="ex-info-item" style="text-align: center; border-right: 1px solid #e2e8f0;">
+                <div style="font-size: 0.6rem; color: #64748b; text-transform: uppercase;">Reps</div>
+                <div style="font-size: 1rem; font-weight: 900;">${e.reps}</div>
+              </div>
+              <div class="ex-info-item" style="text-align: center;">
+                <div style="font-size: 0.6rem; color: #64748b; text-transform: uppercase;">Carga</div>
+                <div style="font-size: 1rem; font-weight: 900; color: #2563eb;">${cargaDisplay}</div>
+                ${info1RM}
+              </div>
             </div>
-            ${e.obs ? `<div class="ex-obs"><strong>Obs:</strong> ${e.obs}</div>` : ''}
-            <div class="ex-actions" style="margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap;">
-              ${e.video ? `
-                <a href="${e.video}" target="_blank" class="btn-video" style="flex: 1; min-width: 140px; justify-content: center;">🎥 Ver Execução</a>
-              ` : ''}
-              <button onclick="iniciarCronometro(${e.descanso || 60})" class="btn-timer" style="flex: 1; min-width: 140px; display: flex; align-items: center; justify-content: center; gap: 8px; background: #f8fafc; color: #1e293b; border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 8px; font-weight: 700; cursor: pointer;">
-                ⏱️ Descanso (${e.descanso || 60}s)
+            
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px;">
+              ${e.tecnica ? `<div style="background: #eff6ff; color: #1e40af; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 6px;">🔥 ${e.tecnica}</div>` : ''}
+              ${e.cadencia ? `<div style="background: #f1f5f9; color: #475569; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 6px;">⏱️ ${e.cadencia}</div>` : ''}
+            </div>
+
+            ${e.obs ? `<div style="font-size: 0.8rem; color: #64748b; margin-top: 12px; padding: 8px; background: #fffbeb; border-radius: 8px; border-left: 3px solid #f59e0b;">${e.obs}</div>` : ''}
+
+            <div class="ex-actions" style="margin-top: 15px; display: flex; gap: 8px;">
+              <button onclick="iniciarCronometro(${e.descanso || 60})" class="btn-timer" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; background: #f8fafc; color: #1e293b; border: 1px solid #cbd5e1; padding: 10px; border-radius: 10px; font-weight: 800; cursor: pointer;">
+                ⏱️ ${e.descanso || 60}s
               </button>
+              <button class="btn-check" id="check-${e.id}" style="flex: 2; background: #2563eb; color: white; border: none; padding: 10px; border-radius: 10px; font-weight: 800; cursor: pointer;">Concluir</button>
             </div>
           </div>
         </div>
       `;
     }).join('');
+
+    html += `
+      <div style="margin-top: 2rem; padding: 0 1rem 2rem;">
+        <button class="btn-full" onclick="concluirTreino()" style="background: #10b981; height: 55px; font-size: 1.1rem; font-weight: 800; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">✅ CONCLUIR TREINO ${divisaoAtiva} DE HOJE</button>
+      </div>
+    `;
+  }
+  container.innerHTML = html;
+}
 
     html += `
       <div style="margin-top: 2rem; padding: 0 1rem 2rem;">

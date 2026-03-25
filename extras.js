@@ -240,46 +240,139 @@ function limparAnamnese() {
 }
 
 // ==================== 1RM ====================
+function populateRMExercises() {
+  const select = document.getElementById('rm-exercicio');
+  if (!select) return;
+  
+  const db = typeof getExerciciosCompletos === 'function' ? getExerciciosCompletos() : (typeof EXERCICIOS_DB !== 'undefined' ? EXERCICIOS_DB : []);
+  
+  select.innerHTML = '<option value="">Selecione um exercício</option>' + 
+    db.map(ex => `<option value="${ex.nome}" data-id="${ex.id}">${ex.nome}</option>`).join('');
+}
+
+function calcularCargaTesteRM() {
+  const carga1RM = parseFloat(document.getElementById('rm-1rm-max')?.value || 0);
+  const pct = parseFloat(document.getElementById('rm-pct-1rm')?.value || 0);
+  const inputCarga = document.getElementById('rm-carga-trabalho');
+
+  if (carga1RM > 0 && pct > 0) {
+    const final = Math.round(carga1RM * (pct / 100));
+    if (inputCarga) inputCarga.value = final;
+    return final;
+  } else {
+    if (inputCarga) inputCarga.value = '';
+    return 0;
+  }
+}
+
+function calcular1RMPelasReps() {
+  const carga = parseFloat(document.getElementById('rm-carga-trabalho')?.value || 0);
+  const reps = parseInt(document.getElementById('rm-reps-realizadas')?.value || 0);
+  const input1RM = document.getElementById('rm-1rm-max');
+
+  if (carga > 0 && reps > 0) {
+    // Brzycki formula inversa: 1RM = Carga / (1.0278 - 0.0278 * Reps)
+    const rmEstimado = Math.round(carga / (1.0278 - 0.0278 * reps));
+    // Se o campo 1RM estiver vazio, podemos sugerir o valor calculado pelo teste
+    if (input1RM && (!input1RM.value || input1RM.value == "0")) {
+       // input1RM.value = rmEstimado; 
+    }
+  }
+}
+
+function abrirModalNovoExercicio() {
+  const modal = document.getElementById('modal-novo-exercicio');
+  if (modal) {
+    // Resetar campos do modal
+    document.getElementById('novo-exer-id').value = '';
+    document.getElementById('novo-exer-nome').value = '';
+    document.getElementById('novo-exer-equip').value = '';
+    document.getElementById('novo-exer-video').value = '';
+    document.querySelectorAll('input[name="novo-grupo"]').forEach(cb => cb.checked = false);
+    if (document.getElementById('previa-gif-modal')) document.getElementById('previa-gif-modal').innerHTML = '';
+    
+    modal.style.display = 'flex';
+  }
+}
+
 function calcularRM() {
-  const carga = parseFloat(document.getElementById('rm-carga').value);
-  const reps = parseInt(document.getElementById('rm-reps').value);
-  if (isNaN(carga) || isNaN(reps) || reps < 1) {
-    showToast('Informe carga e repetições', 'error'); return;
+  const selectEx = document.getElementById('rm-exercicio');
+  const exNome = selectEx ? selectEx.value : '';
+  const cargaTrabalho = parseFloat(document.getElementById('rm-carga-trabalho')?.value || 0);
+  const reps = parseInt(document.getElementById('rm-reps-realizadas')?.value || 0);
+  
+  if (!exNome || (cargaTrabalho <= 0 && reps < 1)) {
+    showToast('Informe o exercício, a carga e as repetições realizadas', 'error'); 
+    return;
   }
   
   // Brzycki formula
-  const rm = carga / (1.0278 - 0.0278 * reps);
+  const rm = cargaTrabalho / (1.0278 - 0.0278 * reps);
   
   const res = document.getElementById('resultado-rm');
   if (res) {
     res.style.display = 'block';
     document.getElementById('rm-tabela-resultado').innerHTML = `
-      <div class="result-card highlight">
-        <div class="rc-label">1RM Estimado (Brzycki)</div>
-        <div class="rc-value">${rm.toFixed(1)}</div>
-        <div class="rc-unit">kg</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+        <div class="result-card highlight">
+          <div class="rc-label">1RM Estimado (Brzycki)</div>
+          <div class="rc-value">${rm.toFixed(1)}</div>
+          <div class="rc-unit">kg</div>
+        </div>
+        <div class="result-card" style="background: #f0f9ff; border: 1px solid #bae6fd;">
+          <div class="rc-label" style="color: #0369a1;">Carga do Teste</div>
+          <div class="rc-value" style="color: #0369a1;">${cargaTrabalho}</div>
+          <div class="rc-unit" style="color: #0369a1;">kg p/ ${reps} reps</div>
+        </div>
       </div>
     `;
+
+    // Gerar Zonas de Intensidade
+    const pcts = [100, 95, 90, 85, 80, 75, 70, 65, 60, 55, 50];
+    let htmlPcts = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px;">';
+    pcts.forEach(p => {
+      const c = Math.round(rm * (p / 100));
+      htmlPcts += `
+        <div style="background: white; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+          <div style="font-size: 0.7rem; color: #64748b; font-weight: 800;">${p}%</div>
+          <div style="font-size: 1.1rem; font-weight: 900; color: #1e293b;">${c}kg</div>
+        </div>
+      `;
+    });
+    htmlPcts += '</div>';
+    document.getElementById('rm-percentuais').innerHTML = htmlPcts;
+    
+    res.scrollIntoView({ behavior: 'smooth' });
   }
-  window._ultimoRM = { carga, reps, rm };
+  
+  window._ultimoRM = { 
+    exNome, 
+    carga: cargaTrabalho, 
+    reps, 
+    rm,
+    exId: selectEx.options[selectEx.selectedIndex]?.dataset.id || ''
+  };
 }
 
 function salvarRM() {
-  const selId = document.getElementById('alunoRM')?.value || document.getElementById('alunoPresc')?.value;
-  if (!selId || !window._ultimoRM) { showToast('Calcule o 1RM primeiro', 'error'); return; }
+  const selId = document.getElementById('alunoRM')?.value;
+  if (!selId || !window._ultimoRM) { showToast('Selecione o aluno e calcule o 1RM primeiro', 'error'); return; }
   
   const registro = {
     id: Date.now(),
     alunoId: String(selId),
-    data: new Date().toISOString().slice(0, 10),
+    exercicioId: window._ultimoRM.exId,
+    exercicioNome: window._ultimoRM.exNome,
+    data: document.getElementById('dataRM')?.value || new Date().toISOString().slice(0, 10),
     rm: window._ultimoRM.rm,
-    carga: window._ultimoRM.carga,
-    reps: window._ultimoRM.reps
+    cargaTeste: window._ultimoRM.carga,
+    repsTeste: window._ultimoRM.reps
   };
 
+  if (!state.rms) state.rms = [];
   state.rms.push(registro);
   saveState();
-  showToast('Teste de força salvo!', 'success');
+  showToast('✅ Teste de força salvo com sucesso!', 'success');
 }
 
 // ==================== AERÓBIO ====================
