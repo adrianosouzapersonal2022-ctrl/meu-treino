@@ -120,6 +120,9 @@ function entrarNoApp() {
   // Mensagem de Acesso Liberado
   toast('✅ Acesso liberado com sucesso! Verifique seu treino.', 'success');
   
+  // Enviar mensagem automática de boas-vindas se for o primeiro login do dia
+  enviarMensagemAutomaticaBoasVindas();
+
   // Verificar Acesso (Pagamento) e esconder aba se for gratuito
   verificarAcesso();
 
@@ -132,6 +135,42 @@ function entrarNoApp() {
   carregarPerfil();
   carregarHistoricoPagamentos();
   carregarMensagensMural();
+}
+
+function enviarMensagemAutomaticaBoasVindas() {
+  const hoje = new Date().getDay();
+  const mensagensDiarias = {
+    0: "☀️ Domingo de descanso merecido! Aproveite para recarregar as energias e preparar a mente para a nova semana! 🔋",
+    1: "🚀 Segunda-feira: Dia de começar com tudo! O treino de hoje é a base para uma semana incrível. Vamos pra cima! 💪",
+    2: "🔥 Terça-feira no foco total! A constância é o que traz o resultado. Não pare agora! ⚡",
+    3: "🎯 Quarta-feira: Metade da semana já foi! Mantenha a disciplina e o ritmo. Cada repetição conta! 🏋️",
+    4: "⚡ Quinta-feira: O cansaço tenta parar, mas sua meta é maior! Bora esmagar esse treino! 👊",
+    5: "🌟 Sexta-feira: Dia de fechar a semana com chave de ouro! Sensação de dever cumprido é a melhor recompensa. Bora! 🏆",
+    6: "🔥 Sábado também é dia! Quem treina no fim de semana chega mais rápido no objetivo. Foco total! 🚀"
+  };
+
+  const textoMsg = mensagensDiarias[hoje];
+  const muralKey = 'mural_feedbacks';
+  const mensagens = JSON.parse(localStorage.getItem(muralKey) || '[]');
+  
+  // Verificar se o sistema já enviou a mensagem de hoje para evitar duplicidade
+  const dataHoje = new Date().toLocaleDateString('pt-BR');
+  const jaEnviada = mensagens.some(m => m.isAdmin && m.data.startsWith(dataHoje) && m.texto === textoMsg);
+
+  if (!jaEnviada) {
+    const novaMsg = {
+      id: Date.now(),
+      alunoId: 'system',
+      nome: 'Sistema TREINOFIT',
+      texto: textoMsg,
+      data: dataHoje + ' ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      isAdmin: true,
+      reacoes: []
+    };
+    mensagens.push(novaMsg);
+    localStorage.setItem(muralKey, JSON.stringify(mensagens));
+    console.log('Mensagem automática diária enviada ao mural.');
+  }
 }
 
 function abrirModalEsqueciSenha() {
@@ -1159,6 +1198,17 @@ document.addEventListener('keypress', (e) => {
 });
 
 // ===== INIT =====
+window.addEventListener('scroll', () => {
+  const btnTop = document.getElementById('btn-top-aluno');
+  if (btnTop) {
+    if (window.pageYOffset > 300) {
+      btnTop.style.display = 'flex';
+    } else {
+      btnTop.style.display = 'none';
+    }
+  }
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   // Suporte ao Enter no Login Aluno
   const loginEmailInput = document.getElementById('login-email');
