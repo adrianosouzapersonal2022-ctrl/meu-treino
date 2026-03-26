@@ -1,15 +1,13 @@
-const CACHE_NAME = 'treinofit-cache-v2';
+const CACHE_NAME = 'treinofit-cache-v3';
 const urlsToCache = [
   'aluno.html',
   'aluno.css',
   'aluno.js',
   'logo.png',
-  'manifest.json',
-  'index.html',
-  'app.js',
-  'style.css'
+  'manifest.json'
 ];
 
+// Install: Cache resources
 self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil(
@@ -18,6 +16,7 @@ self.addEventListener('install', event => {
   );
 });
 
+// Activate: Clean old caches
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -32,21 +31,26 @@ self.addEventListener('activate', event => {
   );
 });
 
+// Fetch: Network first, fallback to cache
 self.addEventListener('fetch', event => {
+  // Ignore non-GET requests
+  if (event.request.method !== 'GET') return;
+
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        if (response) return response;
-        return fetch(event.request).then(networkResponse => {
-          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-            return networkResponse;
-          }
+    fetch(event.request)
+      .then(networkResponse => {
+        // If successful, update cache
+        if (networkResponse && networkResponse.status === 200) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then(cache => {
             cache.put(event.request, responseToCache);
           });
-          return networkResponse;
-        });
+        }
+        return networkResponse;
+      })
+      .catch(() => {
+        // If network fails, try cache
+        return caches.match(event.request);
       })
   );
 });

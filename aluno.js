@@ -19,58 +19,82 @@ let divisaoAtiva = 'A'; // Divisão padrão
 let divisaoSelecionadaManualmente = false;
 let diaSelecionadoIdx = null; // Índice do dia selecionado no cronograma (0-6)
 
-// PWA Install Logic para o Aluno
-let deferredPromptAluno;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPromptAluno = e;
-  const banner = document.getElementById('pwa-banner-aluno');
-  if (banner) {
-    banner.style.display = 'block';
-    // Se o botão de instalar sumiu (porque já instalou ou algo assim), garantir que o texto do banner ajude
-    document.getElementById('btn-pwa-install-aluno').style.display = 'block';
-    document.getElementById('ios-install-hint').style.display = 'none';
-  }
-});
-
-// Lógica especial para iOS (onde o beforeinstallprompt não existe)
-window.addEventListener('load', () => {
+// ===== PWA LOGIC (Reforçada) =====
+function checkPWAStatus() {
   const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  const banner = document.getElementById('pwa-banner-aluno');
+  const installBtn = document.getElementById('btn-pwa-install-aluno');
+  const iosHint = document.getElementById('ios-install-hint');
   
-  if (isIos && !isStandalone) {
-    const banner = document.getElementById('pwa-banner-aluno');
-    const installBtn = document.getElementById('btn-pwa-install-aluno');
-    const iosHint = document.getElementById('ios-install-hint');
+  // Guias na aba Perfil
+  const guideAndroid = document.getElementById('install-guide-android');
+  const guideIos = document.getElementById('install-guide-ios');
+
+  // Se já estiver rodando como App, nunca mostrar o banner
+  if (isStandalone) {
+    if (banner) banner.style.display = 'none';
+    if (guideAndroid) guideAndroid.style.display = 'none';
+    if (guideIos) guideIos.style.display = 'none';
+    return;
+  }
+
+  // Lógica para iOS (Dica manual)
+  if (isIos) {
+    if (banner) banner.style.display = 'block';
+    if (installBtn) installBtn.style.display = 'none';
+    if (iosHint) iosHint.style.display = 'block';
+    if (guideIos) guideIos.style.display = 'block';
+    if (guideAndroid) guideAndroid.style.display = 'none';
+  } else {
+    // Lógica para Android/Chrome
+    if (guideAndroid) guideAndroid.style.display = 'block';
+    if (guideIos) guideIos.style.display = 'none';
     
-    if (banner) {
-      banner.style.display = 'block';
-      if (installBtn) installBtn.style.display = 'none';
-      if (iosHint) iosHint.style.display = 'block';
+    if (window.deferredPromptAluno) {
+      if (banner) banner.style.display = 'block';
     }
   }
-});
+}
 
-document.getElementById('btn-pwa-install-aluno')?.addEventListener('click', async () => {
-  if (deferredPromptAluno) {
-    deferredPromptAluno.prompt();
-    const { outcome } = await deferredPromptAluno.userChoice;
-    console.log('User choice:', outcome);
-    if (outcome === 'accepted') {
-      const banner = document.getElementById('pwa-banner-aluno');
-      if (banner) banner.style.display = 'none';
-      toast('App instalado com sucesso! Verifique sua tela de início.', 'success');
-    }
-    deferredPromptAluno = null;
-  } else {
-    // Se o prompt não estiver disponível, pode ser que já esteja instalado ou o navegador não suporte
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    if (isStandalone) {
-      toast('O app já está instalado!', 'info');
-      document.getElementById('pwa-banner-aluno').style.display = 'none';
+window.addEventListener('load', checkPWAStatus);
+
+// Função para disparar o instalador
+window.instalarApp = async function() {
+  const promptEvent = window.deferredPromptAluno;
+  if (!promptEvent) {
+    // Se não houver evento, dar instrução alternativa baseada no sistema
+    const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIos) {
+      alert('No iPhone: Toque no ícone de compartilhamento (quadrado com seta) e selecione "Adicionar à Tela de Início".');
     } else {
-      toast('Siga as instruções para instalar no seu dispositivo.', 'info');
+      alert('Para instalar: Clique nos 3 pontinhos do Chrome (superior direito) e escolha "Instalar aplicativo" ou "Adicionar à tela inicial".');
     }
+    return;
+  }
+
+  // Mostrar o prompt nativo do navegador
+  promptEvent.prompt();
+  
+  // Aguardar a escolha do usuário
+  const { outcome } = await promptEvent.userChoice;
+  console.log(`PWA: Usuário escolheu ${outcome}`);
+  
+  if (outcome === 'accepted') {
+    const banner = document.getElementById('pwa-banner-aluno');
+    if (banner) banner.style.display = 'none';
+    toast('✅ App instalado com sucesso!', 'success');
+  }
+  
+  // Limpar o evento para não ser usado novamente
+  window.deferredPromptAluno = null;
+};
+
+// Listener para o botão de instalação (caso não esteja no HTML com onclick)
+document.addEventListener('DOMContentLoaded', () => {
+  const btnInstall = document.getElementById('btn-pwa-install-aluno');
+  if (btnInstall) {
+    btnInstall.onclick = window.instalarApp;
   }
 });
 
@@ -1052,7 +1076,34 @@ function carregarPerfil() {
     
     ${infoValidade}
 
-    <button onclick="logout()" class="btn-full" style="background: #fee2e2; color: #ef4444; border: 1px solid #fecaca; margin-top: 2rem; font-weight: 800;">SAIR DA CONTA</button>
+    <div style="margin-top: 2rem; padding: 15px; background: #fff; border-radius: 12px; border: 1px solid #e2e8f0;">
+      <h4 style="margin: 0 0 10px 0; font-size: 0.9rem; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+        <span>📱</span> INSTALAR APLICATIVO
+      </h4>
+      <p style="font-size: 0.75rem; color: #64748b; margin-bottom: 15px; line-height: 1.4;">
+        Para uma experiência melhor, instale o TREINOFITASM no seu celular.
+      </p>
+      
+      <div id="install-guide-android" style="display: none;">
+        <button onclick="instalarApp()" class="btn-full" style="background: #2563eb; margin-bottom: 10px;">INSTALAR AGORA (ANDROID)</button>
+        <p style="font-size: 0.65rem; color: #94a3b8; text-align: center;">Se o botão não funcionar, clique nos 3 pontinhos do Chrome e escolha "Instalar aplicativo".</p>
+      </div>
+
+      <div id="install-guide-ios" style="display: none;">
+        <div style="background: #f8fafc; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1;">
+          <p style="font-size: 0.8rem; font-weight: 700; color: #1e293b; margin-bottom: 8px;">Passo a passo no iPhone:</p>
+          <ol style="font-size: 0.75rem; color: #334155; padding-left: 20px; display: flex; flex-direction: column; gap: 5px;">
+            <li>Abra este site no <b>Safari</b>.</li>
+            <li>Toque no ícone de <b>Compartilhar</b> <span style="font-size: 1.1rem;">⎋</span> (quadrado com seta).</li>
+            <li>Role a lista para baixo.</li>
+            <li>Toque em <b>"Adicionar à Tela de Início"</b>.</li>
+            <li>Toque em <b>"Adicionar"</b> no canto superior.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <button onclick="fazerLogout()" class="btn-full" style="background: #fee2e2; color: #ef4444; border: 1px solid #fecaca; margin-top: 1rem; font-weight: 800;">SAIR DA CONTA</button>
   `;
 }
 
@@ -1394,27 +1445,61 @@ window.carregarMensagensMural = function() {
 
   const mensagens = safeParse('mural_feedbacks', '[]');
   
+  // Filtrar mensagens: 
+  // 1. Minhas mensagens
+  // 2. Mensagens sem destinatário (Geral/Comunidade)
+  // 3. Mensagens direcionadas a mim (@)
+  const msgsFiltradas = mensagens.filter(m => {
+    if (!alunoLogado) return false;
+    const souEu = String(m.alunoId) === String(alunoLogado.id);
+    const paraMim = String(m.alunoIdDestino) === String(alunoLogado.id);
+    const ehGeral = !m.alunoIdDestino; // Sem destinatário específico = Público
+    return souEu || paraMim || ehGeral;
+  });
+
   const renderMsg = (mural) => {
-    if (mensagens.length === 0) {
+    if (msgsFiltradas.length === 0) {
       mural.innerHTML = `<p style="text-align: center; color: #94a3b8; font-size: 0.8rem; padding: 20px;">Nenhuma mensagem enviada ainda. Seja o primeiro!</p>`;
       return;
     }
 
     // Ordenar: mais recentes por último para parecer chat
-    mensagens.sort((a, b) => a.id - b.id);
+    msgsFiltradas.sort((a, b) => a.id - b.id);
 
-    mural.innerHTML = mensagens.map(m => {
+    mural.innerHTML = msgsFiltradas.map(m => {
       const ehMinha = alunoLogado && String(m.alunoId) === String(alunoLogado.id) && !m.isAdmin;
+      const ehDirecionada = String(m.alunoIdDestino) === String(alunoLogado.id);
+      const paraProfessor = m.alunoIdDestino === 'admin';
+      
+      let bg = 'white';
+      let border = '#e2e8f0';
+      let align = 'flex-start';
+      
+      if (m.isAdmin) {
+        bg = ehDirecionada ? '#fff4e5' : '#eff6ff';
+        border = ehDirecionada ? '#ffd8a8' : '#bfdbfe';
+      } else if (ehMinha) {
+        bg = '#dcf8c6';
+        border = '#c7e596';
+        align = 'flex-end';
+      } else if (ehDirecionada) {
+        bg = '#f0f9ff';
+        border = '#bae6fd';
+      }
+
       return `
-      <div style="background: ${m.isAdmin ? '#eff6ff' : (ehMinha ? '#dcf8c6' : 'white')}; 
+      <div style="background: ${bg}; 
                   padding: 12px 15px; 
                   border-radius: 16px; 
-                  border: 1px solid ${m.isAdmin ? '#bfdbfe' : (ehMinha ? '#c7e596' : '#e2e8f0')}; 
-                  align-self: ${m.isAdmin ? 'flex-start' : (ehMinha ? 'flex-end' : 'flex-start')}; 
+                  border: 1px solid ${border}; 
+                  align-self: ${align}; 
                   max-width: 85%; 
                   box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
                   margin-bottom: 8px;
                   position: relative;">
+        ${ehDirecionada ? '<div style="font-size: 0.55rem; color: #2563eb; font-weight: 800; text-transform: uppercase; margin-bottom: 2px;">🔔 MENSAGEM PARA VOCÊ</div>' : ''}
+        ${paraProfessor && ehMinha ? '<div style="font-size: 0.55rem; color: #16a34a; font-weight: 800; text-transform: uppercase; margin-bottom: 2px;">📤 ENVIADA AO PROFESSOR</div>' : ''}
+        
         <div style="display: flex; justify-content: space-between; gap: 15px; margin-bottom: 4px; align-items: center;">
           <strong style="font-size: 0.75rem; color: ${m.isAdmin ? '#2563eb' : (ehMinha ? '#166534' : '#1e293b')}; display: flex; align-items: center; gap: 5px;">
             ${m.isAdmin ? '⭐ PROFESSOR' : m.nome}
@@ -1424,7 +1509,6 @@ window.carregarMensagensMural = function() {
         
         <div style="font-size: 0.9rem; color: #334155; line-height: 1.4; word-break: break-word;">${m.texto}</div>
         
-        <!-- RESPOSTA DO PROFESSOR (SE HOUVER) -->
         ${m.respostaProfessor ? `
           <div style="margin-top: 8px; background: #f0fdf4; border-left: 3px solid #16a34a; padding: 6px 10px; border-radius: 8px;">
             <div style="font-size: 0.65rem; color: #166534; font-weight: 800; text-transform: uppercase; margin-bottom: 2px;">Resposta:</div>
@@ -1440,16 +1524,18 @@ window.carregarMensagensMural = function() {
       </div>
     `; }).join('');
 
-    // Auto-scroll para a última mensagem
-    setTimeout(() => {
-      mural.scrollTop = mural.scrollHeight;
-    }, 100);
+    setTimeout(() => { mural.scrollTop = mural.scrollHeight; }, 100);
   };
 
   containers.forEach(renderMsg);
-  
-  if (typeof toast === 'function') toast('Mural atualizado!', 'success');
 }
+
+// Sincronização em tempo real via Storage Event
+window.addEventListener('storage', (e) => {
+  if (e.key === 'mural_feedbacks') {
+    if (typeof window.carregarMensagensMural === 'function') window.carregarMensagensMural();
+  }
+});
 
 function enviarMensagemMural(contexto = 'tab') {
   const inputId = contexto === 'inicio' ? 'input-msg-mural-inicio' : 'input-msg-mural-tab';
@@ -1462,11 +1548,39 @@ function enviarMensagemMural(contexto = 'tab') {
     return;
   }
 
+  // Lógica de Menção @aluno ou @professor
+  let alunoIdDestino = null;
+  if (texto.includes('@')) {
+    const lowerTexto = texto.toLowerCase();
+    
+    // 1. Menção ao professor
+    if (lowerTexto.includes('@professor')) {
+      alunoIdDestino = 'admin';
+      toast('Mensagem direcionada ao Professor', 'info');
+    } else {
+      // 2. Menção a outros alunos (Nome Completo)
+      const todosAlunos = safeParse('alunos', '[]');
+      // Ordenar por tamanho do nome (maior primeiro) para garantir o match mais completo
+      const alunosOrdenados = [...todosAlunos].sort((a, b) => (b.nome || '').length - (a.nome || '').length);
+      
+      for (const aluno of alunosOrdenados) {
+        if (!aluno.nome) continue;
+        const nomeMencao = '@' + aluno.nome.toLowerCase();
+        if (lowerTexto.includes(nomeMencao)) {
+          alunoIdDestino = String(aluno.id);
+          toast(`Mensagem direcionada para: ${aluno.nome}`, 'info');
+          break;
+        }
+      }
+    }
+  }
+
   const mensagens = safeParse('mural_feedbacks', '[]');
   const novaMsg = {
     id: Date.now(),
     alunoId: alunoLogado.id,
-    nome: alunoLogado.nome.split(' ')[0], // Só o primeiro nome
+    alunoIdDestino: alunoIdDestino, // Novo campo para direcionamento
+    nome: alunoLogado.nome.split(' ')[0], // Só o primeiro nome para o chat
     texto: texto,
     data: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
     isAdmin: false,

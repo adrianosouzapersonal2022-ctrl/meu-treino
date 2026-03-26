@@ -1406,9 +1406,26 @@ window.renderMuralAdmin = function() {
 
     mural.innerHTML = mensagens.map(m => {
       const ehDuvidaPendente = !m.isAdmin && !m.respostaProfessor;
+      const ehDirecionada = m.isAdmin && m.alunoIdDestino;
+      const paraMim = m.alunoIdDestino === 'admin';
+      
+      // Buscar nome do aluno destino se for direcionada
+      let infoDestino = '';
+      if (ehDirecionada) {
+        const alunos = safeParse('alunos', '[]');
+        const aDest = alunos.find(a => String(a.id) === String(m.alunoIdDestino));
+        infoDestino = aDest ? `<div style="font-size: 0.6rem; color: #f59e0b; font-weight: 800; margin-bottom: 4px;">🎯 DIRECIONADA PARA: ${aDest.nome.toUpperCase()}</div>` : '';
+      } else if (paraMim) {
+        infoDestino = `<div style="font-size: 0.6rem; color: #2563eb; font-weight: 800; margin-bottom: 4px;">📥 MENSAGEM PARA VOCÊ</div>`;
+      }
+
+      let borderStyle = ehDuvidaPendente ? '#ef4444' : (ehDirecionada ? '#f59e0b' : (paraMim ? '#2563eb' : '#e2e8f0'));
+      let bgStyle = paraMim ? '#eff6ff' : 'white';
+
       return `
-      <div style="background: white; padding: 15px; border-radius: 12px; border: 1px solid ${ehDuvidaPendente ? '#ef4444' : '#e2e8f0'}; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); position: relative;">
+      <div style="background: ${bgStyle}; padding: 15px; border-radius: 12px; border: 1px solid ${borderStyle}; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); position: relative;">
         ${ehDuvidaPendente ? '<div style="position: absolute; top: 5px; right: 5px; background: #ef4444; color: white; font-size: 0.55rem; padding: 2px 6px; border-radius: 4px; font-weight: 800;">PENDENTE</div>' : ''}
+        ${infoDestino}
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <div style="width: 32px; height: 32px; background: ${m.isAdmin ? '#2563eb' : (ehDuvidaPendente ? '#ef4444' : '#f1f5f9')}; color: ${m.isAdmin || ehDuvidaPendente ? 'white' : '#475569'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.9rem;">
@@ -1421,7 +1438,7 @@ window.renderMuralAdmin = function() {
               <div style="font-size: 0.65rem; color: #94a3b8;">${m.data}</div>
             </div>
           </div>
-          <button onclick="removerMensagemMural(${m.id})" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.7rem; font-weight: 700;">EXCLUIR</button>
+          <button onclick="window.removerMensagemMural(${m.id})" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.7rem; font-weight: 700;">EXCLUIR</button>
         </div>
         
         <div style="font-size: 0.9rem; color: #334155; line-height: 1.5; margin-bottom: 10px; padding-left: 40px;">
@@ -1436,10 +1453,10 @@ window.renderMuralAdmin = function() {
 
         <div style="display: flex; flex-direction: column; gap: 8px; padding-left: 40px;">
           <div style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap;">
-            <button onclick="reagirMural(${m.id}, '👍')" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px 8px; border-radius: 15px; cursor: pointer; font-size: 0.9rem;">👍</button>
-            <button onclick="reagirMural(${m.id}, '❤️')" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px 8px; border-radius: 15px; cursor: pointer; font-size: 0.9rem;">❤️</button>
-            <button onclick="reagirMural(${m.id}, '💪')" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px 8px; border-radius: 15px; cursor: pointer; font-size: 0.9rem;">💪</button>
-            <button onclick="reagirMural(${m.id}, '🔥')" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px 8px; border-radius: 15px; cursor: pointer; font-size: 0.9rem;">🔥</button>
+            <button onclick="window.reagirMural(${m.id}, '👍')" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px 8px; border-radius: 15px; cursor: pointer; font-size: 0.9rem;">👍</button>
+            <button onclick="window.reagirMural(${m.id}, '❤️')" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px 8px; border-radius: 15px; cursor: pointer; font-size: 0.9rem;">❤️</button>
+            <button onclick="window.reagirMural(${m.id}, '💪')" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px 8px; border-radius: 15px; cursor: pointer; font-size: 0.9rem;">💪</button>
+            <button onclick="window.reagirMural(${m.id}, '🔥')" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px 8px; border-radius: 15px; cursor: pointer; font-size: 0.9rem;">🔥</button>
             
             <div style="margin-left: auto; display: flex; gap: 3px;">
               ${(m.reacoes || []).map(r => `<span style="background: #eff6ff; padding: 2px 6px; border-radius: 8px; border: 1px solid #bfdbfe; font-size: 0.75rem;">${r}</span>`).join('')}
@@ -1448,8 +1465,8 @@ window.renderMuralAdmin = function() {
 
           ${!m.isAdmin ? `
             <div style="display: flex; gap: 5px;">
-              <input type="text" id="reply-input-${m.id}" placeholder="Responder dúvida..." style="flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.8rem; outline: none;" onkeypress="if(event.key==='Enter') responderMensagem(${m.id})">
-              <button onclick="responderMensagem(${m.id})" style="background: #1e293b; color: white; border: none; padding: 0 10px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.75rem;">OK</button>
+              <input type="text" id="reply-input-${m.id}" placeholder="Responder dúvida..." style="flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.8rem; outline: none;" onkeypress="if(event.key==='Enter') window.responderMensagem(${m.id})">
+              <button onclick="window.responderMensagem(${m.id})" style="background: #1e293b; color: white; border: none; padding: 0 10px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.75rem;">OK</button>
             </div>
           ` : ''}
         </div>
@@ -1544,7 +1561,7 @@ window.salvarFichaCompleta = function() {
   if (typeof renderFichaTabela === 'function') renderFichaTabela();
 };
 
-function reagirMural(id, emoji) {
+window.reagirMural = function(id, emoji) {
   const mensagens = safeParse('mural_feedbacks', '[]');
   const idx = mensagens.findIndex(m => m.id === id);
   if (idx >= 0) {
@@ -1552,18 +1569,18 @@ function reagirMural(id, emoji) {
     if (!mensagens[idx].reacoes.includes(emoji)) {
       mensagens[idx].reacoes.push(emoji);
       localStorage.setItem('mural_feedbacks', JSON.stringify(mensagens));
-      renderMuralAdmin();
+      window.renderMuralAdmin();
     }
   }
-}
+};
 
-function enviarMensagemRapida(texto) {
+window.enviarMensagemRapida = function(texto) {
   const input = document.getElementById('admin-input-msg');
   if (input) input.value = texto;
-  adminEnviarMensagemMural();
-}
+  window.adminEnviarMensagemMural();
+};
 
-function responderMensagem(id) {
+window.responderMensagem = function(id) {
   const input = document.getElementById(`reply-input-${id}`);
   const texto = input ? input.value.trim() : '';
   if (!texto) return;
@@ -1575,20 +1592,41 @@ function responderMensagem(id) {
     if (!mensagens[idx].reacoes) mensagens[idx].reacoes = [];
     if (!mensagens[idx].reacoes.includes('❤️')) mensagens[idx].reacoes.push('❤️');
     localStorage.setItem('mural_feedbacks', JSON.stringify(mensagens));
-    renderMuralAdmin();
+    window.renderMuralAdmin();
     showToast('Resposta enviada!', 'success');
   }
-}
+};
 
-function adminEnviarMensagemMural() {
+window.adminEnviarMensagemMural = function() {
   const input = document.getElementById('admin-input-msg');
   const texto = input ? input.value.trim() : '';
   if (!texto) return;
 
   const mensagens = safeParse('mural_feedbacks', '[]');
+  
+  // Lógica de Menção @aluno (Melhorada para Nome Completo em qualquer parte do texto)
+  let alunoIdDestino = null;
+  if (texto.includes('@')) {
+    const lowerTexto = texto.toLowerCase();
+    const todosAlunos = safeParse('alunos', '[]');
+    // Ordenar por tamanho do nome (maior primeiro) para garantir o match mais completo
+    const alunosOrdenados = [...todosAlunos].sort((a, b) => (b.nome || '').length - (a.nome || '').length);
+    
+    for (const aluno of alunosOrdenados) {
+      if (!aluno.nome) continue;
+      const nomeMencao = '@' + aluno.nome.toLowerCase();
+      if (lowerTexto.includes(nomeMencao)) {
+        alunoIdDestino = String(aluno.id);
+        showToast(`Mensagem direcionada para: ${aluno.nome}`, 'info');
+        break;
+      }
+    }
+  }
+
   const novaMsg = {
     id: Date.now(),
     alunoId: 'admin',
+    alunoIdDestino: alunoIdDestino, // Novo campo para mensagens privadas/direcionadas
     nome: 'Professor Adriano',
     texto: texto,
     data: new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
@@ -1599,14 +1637,11 @@ function adminEnviarMensagemMural() {
   mensagens.push(novaMsg);
   localStorage.setItem('mural_feedbacks', JSON.stringify(mensagens));
   if (input) input.value = '';
-  renderMuralAdmin();
+  window.renderMuralAdmin();
   showToast('Mensagem enviada!', 'success');
-}
+};
 
-/**
- * Envia uma mensagem de teste do sistema para todos os alunos (Simulado no Mural)
- */
-function enviarMensagemTesteSistema() {
+window.enviarMensagemTesteSistema = function() {
   const texto = "🚀 MENSAGEM DE TESTE DO SISTEMA: Olá a todos os alunos! Este é um teste das notificações e do mural da comunidade. Bons treinos! 💪🔥";
   const muralKey = 'mural_feedbacks';
   const mensagens = safeParse(muralKey, '[]');
@@ -1624,21 +1659,25 @@ function enviarMensagemTesteSistema() {
   mensagens.push(novaMsg);
   localStorage.setItem(muralKey, JSON.stringify(mensagens));
   
-  renderMuralAdmin();
-  showToast('Mensagem de teste enviada para todos os alunos!', 'success');
-  console.log('Mensagem de teste do sistema enviada com sucesso.');
-}
+  window.renderMuralAdmin();
+  showToast('Mensagem de teste enviada!', 'success');
+};
 
-// Funções de ação do mural já definidas acima (reagirMural, etc)
-
-function removerMensagemMural(id) {
+window.removerMensagemMural = function(id) {
   if (confirm('Excluir mensagem?')) {
     let mensagens = safeParse('mural_feedbacks', '[]');
     mensagens = mensagens.filter(m => m.id !== id);
     localStorage.setItem('mural_feedbacks', JSON.stringify(mensagens));
-    renderMuralAdmin();
+    window.renderMuralAdmin();
   }
-}
+};
+
+// Sincronização em tempo real via Storage Event
+window.addEventListener('storage', (e) => {
+  if (e.key === 'mural_feedbacks') {
+    if (typeof window.renderMuralAdmin === 'function') window.renderMuralAdmin();
+  }
+});
 
 // ==================== GESTÃO DE DADOS (BACKUP) ====================
 function exportarSistema() {

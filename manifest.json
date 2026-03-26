@@ -1,20 +1,39 @@
 {
-  "name": "TREINOFITASM Aluno",
-  "short_name": "TREINOFITASM",
+  "name": "TREINOFITASM",
+  "short_name": "TREINOFIT",
+  "description": "Consultoria Esportiva Adriano de Souza Moraes",
   "start_url": "aluno.html",
+  "scope": ".",
   "display": "standalone",
   "background_color": "#2563eb",
   "theme_color": "#2563eb",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "logo.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "logo.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
-  ]
+  ],
+  "categories": ["fitness", "health", "lifestyle"],
+  "prefer_related_applications": false
 }

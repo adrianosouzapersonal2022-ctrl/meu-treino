@@ -562,6 +562,61 @@ input[type=range] { width: 100%; accent-color: var(--primary); }
 .badge-pendente { background: #fef3c7; color: #92400e; }
 .badge-cancelado { background: #fee2e2; color: #991b1b; }
 
+/* ===== PWA BANNER ===== */
+.pwa-banner {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  color: white;
+  padding: 1.2rem;
+  border-radius: var(--radius);
+  margin-bottom: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(37, 99, 237, 0.2);
+}
+.pwa-banner-icon {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  font-size: 4rem;
+  opacity: 0.15;
+  transform: rotate(15deg);
+}
+.pwa-banner-content {
+  position: relative;
+  z-index: 2;
+}
+.pwa-banner-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin-bottom: 0.3rem;
+}
+.pwa-banner-text {
+  font-size: 0.85rem;
+  opacity: 0.9;
+  line-height: 1.4;
+  margin-bottom: 1rem;
+}
+.btn-pwa-install {
+  background: white;
+  color: var(--primary);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 0.9rem;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+.ios-hint {
+  font-size: 0.75rem;
+  background: rgba(255,255,255,0.15);
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-top: 10px;
+  line-height: 1.4;
+}
+.ios-hint b { color: #fff; }
+
 /* ===== TOAST ===== */
 .toast-aluno {
   position: fixed;
