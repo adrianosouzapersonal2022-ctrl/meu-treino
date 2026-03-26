@@ -18,7 +18,12 @@ const state = {
   fichas: safeParse('fichas', '[]'),
   anamneses: safeParse('anamneses', '[]'),
   rms: safeParse('rms', '[]'),
-  treinosCustom: safeParse('treinosCustom', '[]')
+  treinosCustom: safeParse('treinosCustom', '[]'),
+  planos: safeParse('planos_config', JSON.stringify([
+    { id: 'mensal', nome: 'MENSAL', preco: 150.00, desc: '• Renovação mês a mês<br>• Prescrição completa<br>• Suporte via App' },
+    { id: 'trimestral', nome: 'TRIMESTRAL', preco: 390.00, desc: '• 3 meses de acompanhamento<br>• R$ 130,00 por mês<br>• Avaliações mensais', popular: true },
+    { id: 'semestral', nome: 'SEMESTRAL', preco: 720.00, desc: '• 6 meses de acompanhamento<br>• R$ 120,00 por mês<br>• Melhor custo-benefício' }
+  ]))
 };
 
 let alunoLogado = null;
@@ -65,6 +70,7 @@ function saveState() {
   localStorage.setItem('anamneses', JSON.stringify(state.anamneses));
   localStorage.setItem('rms', JSON.stringify(state.rms));
   localStorage.setItem('treinosCustom', JSON.stringify(state.treinosCustom));
+  localStorage.setItem('planos_config', JSON.stringify(state.planos));
 }
 
 // ==================== NAVIGATION ====================
@@ -113,9 +119,17 @@ function showPage(name) {
   });
 
   // Ações específicas de cada página
+  if (name === 'cadastro') populateAlunoSelects();
   if (name !== 'cadastro') populateAlunoSelects();
+  if (name === 'treino') {
+    const hoje = new Date().toISOString().slice(0, 10);
+    const di = document.getElementById('presc-data-inicio');
+    if (di) di.value = hoje;
+    atualizarDatasTreino();
+  }
   if (name === 'meus-alunos') renderListaGeralAlunos();
   if (name === 'pagamentos') renderPagamentos();
+  if (name === 'pagamentos') renderPlanosAdmin();
   if (name === 'evolucao') carregarEvolucao();
   if (name === 'treino') {
     if (typeof populateRMExercises === 'function') populateRMExercises();
@@ -1307,12 +1321,15 @@ function renderMuralAdmin() {
   console.log('Iniciando renderização do Mural Admin...');
   
   if (!mural) {
-    console.error('ERRO CRÍTICO: Elemento admin-mural-mensagens não encontrado no DOM!');
+    console.warn('admin-mural-mensagens não encontrado no DOM. Ignorando renderMuralAdmin.');
     return;
   }
 
   try {
     let mensagens = safeParse('mural_feedbacks', '[]');
+
+    // Ordenar por data (mais recente primeiro)
+    mensagens.sort((a, b) => b.id - a.id);
 
     // Renderizar Estatísticas
     if (stats) {
@@ -1423,7 +1440,7 @@ function renderMuralAdmin() {
           ` : ''}
         </div>
       </div>
-    `; }).reverse().join(''); 
+    `; }).join(''); 
     
     console.log('Mural renderizado com sucesso.');
   } catch (err) {
@@ -1431,6 +1448,86 @@ function renderMuralAdmin() {
     mural.innerHTML = `<p style="color: red; padding: 20px;">Erro ao carregar mensagens. Tente atualizar a página.</p>`;
   }
 }
+
+// Funções para gerenciamento de validade e planos
+function atualizarDatasTreino() {
+  const di = document.getElementById('presc-data-inicio');
+  const valInput = document.getElementById('presc-validade');
+  const val = valInput ? parseInt(valInput.value) : 30;
+  const dv = document.getElementById('presc-data-venc');
+  
+  if (di && dv) {
+    const data = new Date(di.value);
+    if (!isNaN(data.getTime())) {
+      data.setDate(data.getDate() + val);
+      dv.value = data.toISOString().slice(0, 10);
+    }
+  }
+}
+
+function renderPlanosAdmin() {
+  const grid = document.getElementById('grid-planos-admin');
+  if (!grid) return;
+  
+  grid.innerHTML = state.planos.map(p => `
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 12px; display: flex; flex-direction: column; gap: 10px;">
+      <strong style="color: var(--primary); font-size: 0.9rem;">${p.nome}</strong>
+      <div class="form-group">
+        <label style="font-size: 0.7rem;">Valor (R$)</label>
+        <input type="number" id="plano-preco-${p.id}" value="${p.preco}" step="0.01" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1;">
+      </div>
+      <div style="font-size: 0.7rem; color: #64748b;">${p.desc.replace(/<br>/g, ' ')}</div>
+    </div>
+  `).join('');
+}
+
+function salvarPlanosAdmin() {
+  state.planos.forEach(p => {
+    const input = document.getElementById(`plano-preco-${p.id}`);
+    if (input) {
+      p.preco = parseFloat(input.value) || 0;
+    }
+  });
+  
+  saveState();
+  showToast('Valores dos planos atualizados no App!', 'success');
+}
+
+// Sobrescrever salvarFichaCompleta para incluir validade
+const originalSalvarFicha = window.salvarFichaCompleta;
+window.salvarFichaCompleta = function() {
+  const selId = document.getElementById('alunoPresc').value;
+  if (!selId) { showToast('Selecione um aluno', 'error'); return; }
+  
+  const diEl = document.getElementById('presc-data-inicio');
+  const dvEl = document.getElementById('presc-data-venc');
+  const valEl = document.getElementById('presc-validade');
+  
+  const dataInicio = diEl ? diEl.value : new Date().toISOString().slice(0, 10);
+  const dataVenc = dvEl ? dvEl.value : '';
+  const validade = valEl ? valEl.value : '30';
+
+  const idx = state.fichas.findIndex(f => String(f.alunoId) === String(selId));
+  const ficha = {
+    alunoId: String(selId),
+    dataCriacao: dataInicio,
+    dataVencimento: dataVenc,
+    validadeDias: validade,
+    sessoesRealizadas: 0,
+    metaSessoes: 24, // Padrão
+    exercicios: window.fichaExercicios || []
+  };
+
+  if (idx >= 0) {
+    state.fichas[idx] = { ...state.fichas[idx], ...ficha };
+  } else {
+    state.fichas.push(ficha);
+  }
+
+  saveState();
+  showToast('Ficha com validade salva!', 'success');
+  if (typeof renderFichaTabela === 'function') renderFichaTabela();
+};
 
 function reagirMural(id, emoji) {
   const mensagens = safeParse('mural_feedbacks', '[]');

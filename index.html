@@ -276,6 +276,17 @@
           </div>
 
           <div class="form-section">
+            <h2 class="section-title">Gerenciar Planos e Preços</h2>
+            <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 1rem;">Altere os valores dos planos que aparecem para os alunos no App.</p>
+            <div id="grid-planos-admin" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+              <!-- Gerado via JS -->
+            </div>
+            <div class="btn-row" style="margin-top: 1rem;">
+              <button class="btn-success" onclick="salvarPlanosAdmin()">Atualizar Planos no App</button>
+            </div>
+          </div>
+
+          <div class="form-section">
             <h2 class="section-title">Registrar Novo Pagamento</h2>
             <form id="form-pagamento" class="form-grid">
               <div class="form-row">
@@ -565,11 +576,31 @@
               <div class="form-section">
                 <h2 class="section-title">Ficha de Treino Montada</h2>
                 <div id="ficha-exercicios-tabela"></div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Validade do Treino (Dias)</label>
+                    <select id="presc-validade" onchange="atualizarDatasTreino()">
+                      <option value="30">30 dias</option>
+                      <option value="60">60 dias</option>
+                      <option value="90">90 dias</option>
+                      <option value="120">120 dias</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Data Inicial</label>
+                    <input type="date" id="presc-data-inicio" onchange="atualizarDatasTreino()" />
+                  </div>
+                  <div class="form-group">
+                    <label>Data de Vencimento</label>
+                    <input type="date" id="presc-data-venc" readonly style="background: #f1f5f9;" />
+                  </div>
+                </div>
+
                 <div class="btn-row">
                   <button type="button" class="btn-secondary" onclick="fichaExercicios=[];renderFichaTabela()">Limpar Ficha</button>
-                  <button type="button" class="btn-primary" onclick="imprimirFichaPro()">Imprimir / PDF</button>
-                  <button type="button" class="btn-success" onclick="salvarFichaCompleta()">Salvar Ficha</button>
-                  <button type="button" class="btn-primary" onclick="gerarRelatorioCompleto()">Relatório Completo</button>
+                  <button type="button" class="btn-success" onclick="abrirModalModelos()">📂 Treinos Prontos</button>
+                  <button type="button" class="btn-primary" onclick="salvarComoModelo()">💾 Salvar como Modelo</button>
+                  <button type="button" class="btn-success" onclick="salvarFichaCompleta()">🚀 Gravar no Cadastro do Aluno</button>
                 </div>
               </div>
 
@@ -916,27 +947,39 @@
 
     <!-- MODAL SUCESSO CADASTRO -->
     <!-- MODAL NOVO EXERCÍCIO (Página Menor Flutuante) -->
-    <div class="form-section" style="background: #f1f5f9; border: 1px dashed var(--primary);">
-              <h2 class="section-title" style="color: var(--primary);">💾 Criar Novo Modelo de Treino</h2>
-              <p style="font-size: 0.8rem; margin-bottom: 1rem;">Monte o treino na aba "Prescrição" e salve como modelo aqui.</p>
-              <div class="form-row">
-                <div class="form-group">
-                  <label>Nome do Modelo</label>
-                  <input type="text" id="novo-modelo-nome" placeholder="Ex: ABC Hipertrofia Masculino" />
+              <div class="form-section" style="background: #f1f5f9; border: 1px dashed var(--primary);">
+                <h2 class="section-title" style="color: var(--primary);">💾 Criar Novo Modelo de Treino</h2>
+                <p style="font-size: 0.8rem; margin-bottom: 1rem;">Monte o treino na aba "Prescrição" e salve como modelo aqui.</p>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Nome do Modelo</label>
+                    <input type="text" id="novo-modelo-nome" placeholder="Ex: ABC Hipertrofia Masculino" />
+                  </div>
+                  <div class="form-group">
+                    <label>Nível Sugerido</label>
+                    <select id="novo-modelo-nivel">
+                      <option value="iniciante">Iniciante</option>
+                      <option value="intermediario">Intermediário</option>
+                      <option value="avançado">Avançado</option>
+                    </select>
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label>Nível Sugerido</label>
-                  <select id="novo-modelo-nivel">
-                    <option value="iniciante">Iniciante</option>
-                    <option value="intermediario">Intermediário</option>
-                    <option value="avançado">Avançado</option>
-                  </select>
-                </div>
-                <div class="form-group" style="align-self: flex-end;">
-                  <button class="btn-success" onclick="salvarModeloCustomizado()" style="width: 100%;">Salvar Modelo Atual</button>
+                
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Validade Padrão (Dias)</label>
+                    <select id="novo-modelo-validade">
+                      <option value="30">30 dias</option>
+                      <option value="60">60 dias</option>
+                      <option value="90">90 dias</option>
+                      <option value="120">120 dias</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="align-self: flex-end;">
+                    <button class="btn-success" onclick="salvarModeloCustomizado()" style="width: 100%;">Salvar Modelo Atual</button>
+                  </div>
                 </div>
               </div>
-            </div>
             
             <div id="grid-treinos-prontos" class="treinos-prontos-grid">
               <!-- Cards gerados via JS -->

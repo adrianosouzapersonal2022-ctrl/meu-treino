@@ -999,18 +999,80 @@ function renderGraficoEvolucao(avs) {
 
 function carregarPerfil() {
   const a = alunoLogado;
-  document.getElementById('perfil-view').innerHTML = `
-    <div class="perfil-row"><span>Nome</span><span>${a.nome}</span></div>
-    <div class="perfil-row"><span>Idade</span><span>${a.idade} anos</span></div>
-    <div class="perfil-row"><span>Objetivo</span><span>${a.objetivo || '—'}</span></div>
+  const pView = document.getElementById('perfil-view');
+  if (!pView) return;
+
+  const ficha = safeParse('fichas', '[]').find(f => String(f.alunoId) === String(a.id));
+  let infoValidade = '';
+  
+  if (ficha && ficha.dataCriacao) {
+    const dCriacao = new Date(ficha.dataCriacao).toLocaleDateString('pt-BR');
+    const dVenc = ficha.dataVencimento ? new Date(ficha.dataVencimento).toLocaleDateString('pt-BR') : 'Indeterminada';
+    const diasRestantes = ficha.dataVencimento ? Math.ceil((new Date(ficha.dataVencimento) - new Date()) / (1000 * 60 * 60 * 24)) : 0;
+    
+    infoValidade = `
+      <div style="margin-top: 15px; padding: 15px; background: #f0f9ff; border-radius: 12px; border: 1px solid #bae6fd;">
+        <h4 style="margin: 0 0 10px 0; font-size: 0.9rem; color: #0369a1; display: flex; align-items: center; gap: 8px;">
+          <span>📅</span> VALIDADE DO TREINO ATUAL
+        </h4>
+        <div style="display: flex; flex-direction: column; gap: 5px; font-size: 0.85rem; color: #1e293b;">
+          <div style="display: flex; justify-content: space-between;"><span>Data de Início:</span> <strong>${dCriacao}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span>Vencimento:</span> <strong style="color: ${diasRestantes < 5 ? '#ef4444' : '#1e293b'};">${dVenc}</strong></div>
+          ${diasRestantes > 0 ? `<div style="text-align: center; margin-top: 8px; font-weight: 800; color: ${diasRestantes < 5 ? '#ef4444' : '#0369a1'};">Faltam ${diasRestantes} dias para vencer!</div>` : ''}
+          ${diasRestantes <= 0 && ficha.dataVencimento ? `<div style="text-align: center; margin-top: 8px; font-weight: 900; color: #ef4444;">⚠️ SEU TREINO VENCEU!</div>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  pView.innerHTML = `
+    <div style="text-align: center; margin-bottom: 1.5rem;">
+      <div style="width: 80px; height: 80px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 800; margin: 0 auto 0.5rem;">
+        ${(a.nome || 'U').charAt(0)}
+      </div>
+      <h3 style="margin: 0; color: #1e293b;">${a.nome}</h3>
+      <p style="margin: 0; font-size: 0.85rem; color: #64748b;">${a.email}</p>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px; font-size: 0.9rem;">
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
+        <span style="color: #64748b;">Objetivo:</span>
+        <strong style="color: #1e293b;">${a.objetivo || 'Não informado'}</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
+        <span style="color: #64748b;">Nível:</span>
+        <strong style="color: #1e293b;">${a.nivel || 'Iniciante'}</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
+        <span style="color: #64748b;">Peso Atual:</span>
+        <strong style="color: #1e293b;">${a.peso || '—'} kg</strong>
+      </div>
+    </div>
+    
+    ${infoValidade}
+
+    <button onclick="logout()" class="btn-full" style="background: #fee2e2; color: #ef4444; border: 1px solid #fecaca; margin-top: 2rem; font-weight: 800;">SAIR DA CONTA</button>
   `;
 }
 
 function carregarHistoricoPagamentos() {
   const container = document.getElementById('historico-pagamentos');
+  const planosGrid = document.querySelector('.planos-grid');
   
-  // Mostrar resumo de planos se for aluno gratuito ou pago
-  // Agora todos podem ver e selecionar planos
+  // Sincronizar planos do Admin se existirem
+  const planosConfig = safeParse('planos_config', '[]');
+  if (planosGrid && planosConfig.length > 0) {
+    planosGrid.innerHTML = planosConfig.map(p => `
+      <div class="plano-card-select" onclick="selecionarPlano('${p.nome}', ${p.preco})" style="border: ${p.popular ? '2px' : '1px'} solid #e2e8f0; padding: 1rem; border-radius: 12px; background: #fff; cursor: pointer; transition: all 0.3s; position: relative;">
+        ${p.popular ? '<span style="position: absolute; top: -10px; right: 10px; background: #2563eb; color: white; font-size: 0.65rem; padding: 2px 8px; border-radius: 10px;">MAIS POPULAR</span>' : ''}
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong>${p.nome}</strong>
+          <span style="color: #2563eb; font-weight: bold;">R$ ${parseFloat(p.preco).toFixed(2)}</span>
+        </div>
+        <p style="font-size: 0.75rem; color: #64748b; margin-top: 0.5rem;">${p.desc}</p>
+      </div>
+    `).join('');
+  }
   
   const pags = safeParse('pagamentos', '[]').filter(p => String(p.alunoId) === String(alunoLogado.id));
   
