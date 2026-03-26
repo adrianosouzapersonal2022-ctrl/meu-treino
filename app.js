@@ -74,13 +74,13 @@ function saveState() {
 }
 
 // ==================== NAVIGATION ====================
-function showPage(name) {
+window.showPage = function(name) {
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
   const adminPages = ['meus-alunos', 'treino', 'comunidade', 'anamnese', 'antropometria', 'pagamentos'];
   
   if (adminPages.includes(name) && !isAdmin) {
     console.error('Acesso negado: Página restrita ao administrador.');
-    showPage('cadastro');
+    window.showPage('cadastro');
     return;
   }
 
@@ -102,7 +102,7 @@ function showPage(name) {
     if (name === 'comunidade') {
       console.log('Entrou na aba Comunidade - Disparando renderMuralAdmin');
       setTimeout(() => {
-        renderMuralAdmin();
+        if (typeof renderMuralAdmin === 'function') renderMuralAdmin();
       }, 100);
     }
   }
@@ -112,7 +112,8 @@ function showPage(name) {
     btn.classList.remove('active');
     btn.removeAttribute('aria-current');
     
-    if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(`'${name}'`)) {
+    const onclickAttr = btn.getAttribute('onclick') || '';
+    if (onclickAttr.includes(`'${name}'`) || onclickAttr.includes(`"${name}"`)) {
       btn.classList.add('active');
       btn.setAttribute('aria-current', 'page');
     }
@@ -121,22 +122,35 @@ function showPage(name) {
   // Ações específicas de cada página
   if (name === 'cadastro') populateAlunoSelects();
   if (name !== 'cadastro') populateAlunoSelects();
+  
+  if (name === 'antropometria') {
+    populateAlunoSelects();
+    // Forçar a exibição da primeira aba (Circunferências)
+    setTimeout(() => {
+      if (typeof window.showTab === 'function') {
+        window.showTab('tab-circunferencias');
+      }
+    }, 50);
+  }
+
   if (name === 'treino') {
     const hoje = new Date().toISOString().slice(0, 10);
     const di = document.getElementById('presc-data-inicio');
     if (di) di.value = hoje;
     atualizarDatasTreino();
-  }
-  if (name === 'meus-alunos') renderListaGeralAlunos();
-  if (name === 'pagamentos') renderPagamentos();
-  if (name === 'pagamentos') renderPlanosAdmin();
-  if (name === 'evolucao') carregarEvolucao();
-  if (name === 'treino') {
     if (typeof populateRMExercises === 'function') populateRMExercises();
   }
+  
+  if (name === 'meus-alunos') renderListaGeralAlunos();
+  if (name === 'pagamentos') {
+    renderPagamentos();
+    renderPlanosAdmin();
+  }
+  if (name === 'evolucao') carregarEvolucao();
 }
 
-const showTab = (id) => {
+// ==================== TABS ====================
+window.showTab = function(id) {
   const target = document.getElementById(id);
   if (!target) return;
 
@@ -1313,7 +1327,7 @@ const CATEGORIAS_MENSAGENS = {
   ]
 };
 
-function renderMuralAdmin() {
+window.renderMuralAdmin = function() {
   const mural = document.getElementById('admin-mural-mensagens');
   const stats = document.getElementById('mural-stats');
   const gridDiario = document.getElementById('mensagens-diarias-grid');
@@ -1443,6 +1457,7 @@ function renderMuralAdmin() {
     `; }).join(''); 
     
     console.log('Mural renderizado com sucesso.');
+    if (typeof showToast === 'function') showToast('Mural atualizado!', 'success');
   } catch (err) {
     console.error('Erro ao renderizar mural admin:', err);
     mural.innerHTML = `<p style="color: red; padding: 20px;">Erro ao carregar mensagens. Tente atualizar a página.</p>`;

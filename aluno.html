@@ -239,13 +239,13 @@
             </div>
             <p style="font-size: 0.75rem; color: #64748b; margin-bottom: 1rem;">Compartilhe sua evolução e veja as mensagens dos colegas!</p>
             
-            <div id="mural-mensagens" style="height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 1rem;">
+            <div id="mural-mensagens-inicio" class="mural-container" style="height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 1rem;">
               <p style="text-align: center; color: #94a3b8; font-size: 0.8rem; padding: 20px;">Carregando mensagens...</p>
             </div>
 
             <div style="display: flex; gap: 8px;">
-              <input type="text" id="input-msg-mural" placeholder="Escreva um feedback ou dúvida..." style="flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; outline: none; font-size: 0.9rem;">
-              <button onclick="enviarMensagemMural()" style="background: #2563eb; color: white; border: none; padding: 0 15px; border-radius: 10px; cursor: pointer; font-weight: 800;">ENVIAR</button>
+              <input type="text" id="input-msg-mural-inicio" placeholder="Escreva um feedback ou dúvida..." style="flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; outline: none; font-size: 0.9rem;">
+              <button onclick="enviarMensagemMural('inicio')" style="background: #2563eb; color: white; border: none; padding: 0 15px; border-radius: 10px; cursor: pointer; font-weight: 800;">ENVIAR</button>
             </div>
           </div>
         </div>
@@ -257,13 +257,13 @@
           <h3 class="card-title">💬 Mural da Comunidade</h3>
           <p style="font-size: 0.75rem; color: #64748b; margin-bottom: 1rem;">Compartilhe sua evolução e veja as mensagens dos colegas!</p>
           
-          <div id="mural-mensagens" style="height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 1rem;">
+          <div id="mural-mensagens-tab" class="mural-container" style="height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 1rem;">
             <p style="text-align: center; color: #94a3b8; font-size: 0.8rem; padding: 20px;">Carregando mensagens...</p>
           </div>
 
           <div style="display: flex; gap: 8px;">
-            <input type="text" id="input-msg-mural" placeholder="Escreva um feedback ou dúvida..." style="flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; outline: none; font-size: 0.9rem;">
-            <button onclick="enviarMensagemMural()" style="background: #2563eb; color: white; border: none; padding: 0 15px; border-radius: 10px; cursor: pointer; font-weight: 800;">ENVIAR</button>
+            <input type="text" id="input-msg-mural-tab" placeholder="Escreva um feedback ou dúvida..." style="flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; outline: none; font-size: 0.9rem;">
+            <button onclick="enviarMensagemMural('tab')" style="background: #2563eb; color: white; border: none; padding: 0 15px; border-radius: 10px; cursor: pointer; font-weight: 800;">ENVIAR</button>
           </div>
         </div>
       </div>

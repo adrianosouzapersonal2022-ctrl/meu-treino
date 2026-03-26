@@ -372,7 +372,7 @@ function fazerLogout() {
 }
 
 // ===== NAVEGAÇÃO ABAS =====
-function showTab(tab) {
+window.showTab = function(tab) {
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
   
@@ -385,6 +385,7 @@ function showTab(tab) {
   // Ao mudar de aba, sempre recarregar os dados para garantir que pegamos as atualizações do professor
   if (tab === 'inicio') carregarInicio();
   if (tab === 'treino') carregarTreino();
+  if (tab === 'comunidade') carregarMensagensMural();
   if (tab === 'avaliacao') carregarAvaliacao();
   if (tab === 'perfil') carregarPerfil();
   if (tab === 'pagamento') carregarHistoricoPagamentos();
@@ -1387,49 +1388,73 @@ function copiarPix() {
 }
 
 // ===== MURAL DE FEEDBACK (CHAT) =====
-function carregarMensagensMural() {
-  const mural = document.getElementById('mural-mensagens');
-  if (!mural) return;
+window.carregarMensagensMural = function() {
+  const containers = document.querySelectorAll('.mural-container');
+  if (containers.length === 0) return;
 
   const mensagens = safeParse('mural_feedbacks', '[]');
   
-  if (mensagens.length === 0) {
-    mural.innerHTML = `<p style="text-align: center; color: #94a3b8; font-size: 0.8rem; padding: 20px;">Nenhuma mensagem enviada ainda. Seja o primeiro!</p>`;
-    return;
-  }
+  const renderMsg = (mural) => {
+    if (mensagens.length === 0) {
+      mural.innerHTML = `<p style="text-align: center; color: #94a3b8; font-size: 0.8rem; padding: 20px;">Nenhuma mensagem enviada ainda. Seja o primeiro!</p>`;
+      return;
+    }
 
-  mural.innerHTML = mensagens.map(m => `
-    <div style="background: ${m.isAdmin ? '#eff6ff' : 'white'}; padding: 15px; border-radius: 16px; border: 1px solid ${m.isAdmin ? '#bfdbfe' : '#e2e8f0'}; align-self: ${(alunoLogado && m.alunoId === alunoLogado.id) ? 'flex-end' : 'flex-start'}; max-width: 90%; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 5px;">
-      <div style="display: flex; justify-content: space-between; gap: 15px; margin-bottom: 6px; align-items: center;">
-        <strong style="font-size: 0.8rem; color: ${m.isAdmin ? '#2563eb' : '#1e293b'}; display: flex; align-items: center; gap: 5px;">
-          ${m.isAdmin ? '⭐' : ''} ${m.nome}
-        </strong>
-        <span style="font-size: 0.65rem; color: #94a3b8;">${m.data}</span>
+    // Ordenar: mais recentes por último para parecer chat
+    mensagens.sort((a, b) => a.id - b.id);
+
+    mural.innerHTML = mensagens.map(m => {
+      const ehMinha = alunoLogado && String(m.alunoId) === String(alunoLogado.id) && !m.isAdmin;
+      return `
+      <div style="background: ${m.isAdmin ? '#eff6ff' : (ehMinha ? '#dcf8c6' : 'white')}; 
+                  padding: 12px 15px; 
+                  border-radius: 16px; 
+                  border: 1px solid ${m.isAdmin ? '#bfdbfe' : (ehMinha ? '#c7e596' : '#e2e8f0')}; 
+                  align-self: ${m.isAdmin ? 'flex-start' : (ehMinha ? 'flex-end' : 'flex-start')}; 
+                  max-width: 85%; 
+                  box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+                  margin-bottom: 8px;
+                  position: relative;">
+        <div style="display: flex; justify-content: space-between; gap: 15px; margin-bottom: 4px; align-items: center;">
+          <strong style="font-size: 0.75rem; color: ${m.isAdmin ? '#2563eb' : (ehMinha ? '#166534' : '#1e293b')}; display: flex; align-items: center; gap: 5px;">
+            ${m.isAdmin ? '⭐ PROFESSOR' : m.nome}
+          </strong>
+          <span style="font-size: 0.6rem; color: #94a3b8;">${m.data}</span>
+        </div>
+        
+        <div style="font-size: 0.9rem; color: #334155; line-height: 1.4; word-break: break-word;">${m.texto}</div>
+        
+        <!-- RESPOSTA DO PROFESSOR (SE HOUVER) -->
+        ${m.respostaProfessor ? `
+          <div style="margin-top: 8px; background: #f0fdf4; border-left: 3px solid #16a34a; padding: 6px 10px; border-radius: 8px;">
+            <div style="font-size: 0.65rem; color: #166534; font-weight: 800; text-transform: uppercase; margin-bottom: 2px;">Resposta:</div>
+            <div style="font-size: 0.8rem; color: #14532d; font-style: italic;">"${m.respostaProfessor}"</div>
+          </div>
+        ` : ''}
+
+        ${m.reacoes && m.reacoes.length > 0 ? `
+          <div style="margin-top: 6px; display: flex; gap: 4px; flex-wrap: wrap;">
+            ${m.reacoes.map(r => `<span style="background: white; padding: 1px 6px; border-radius: 10px; border: 1px solid #e2e8f0; font-size: 0.75rem;">${r}</span>`).join('')}
+          </div>
+        ` : ''}
       </div>
-      
-      <div style="font-size: 0.9rem; color: #334155; line-height: 1.5;">${m.texto}</div>
-      
-      <!-- RESPOSTA DO PROFESSOR (SE HOUVER) -->
-      ${m.respostaProfessor ? `
-        <div style="margin-top: 10px; background: #f0fdf4; border-left: 3px solid #16a34a; padding: 8px 12px; border-radius: 8px;">
-          <div style="font-size: 0.7rem; color: #166534; font-weight: 800; text-transform: uppercase; margin-bottom: 2px;">Resposta do Professor:</div>
-          <div style="font-size: 0.85rem; color: #14532d; font-style: italic;">"${m.respostaProfessor}"</div>
-        </div>
-      ` : ''}
+    `; }).join('');
 
-      ${m.reacoes && m.reacoes.length > 0 ? `
-        <div style="margin-top: 8px; display: flex; gap: 5px; flex-wrap: wrap;">
-          ${m.reacoes.map(r => `<span title="Reação do Professor" style="background: white; padding: 2px 8px; border-radius: 20px; border: 1px solid #e2e8f0; font-size: 0.85rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">${r}</span>`).join('')}
-        </div>
-      ` : ''}
-    </div>
-  `).join('');
+    // Auto-scroll para a última mensagem
+    setTimeout(() => {
+      mural.scrollTop = mural.scrollHeight;
+    }, 100);
+  };
 
-  mural.scrollTop = mural.scrollHeight;
+  containers.forEach(renderMsg);
+  
+  if (typeof toast === 'function') toast('Mural atualizado!', 'success');
 }
 
-function enviarMensagemMural() {
-  const input = document.getElementById('input-msg-mural');
+function enviarMensagemMural(contexto = 'tab') {
+  const inputId = contexto === 'inicio' ? 'input-msg-mural-inicio' : 'input-msg-mural-tab';
+  const input = document.getElementById(inputId);
+  if (!input) return;
   const texto = input.value.trim();
   
   if (!texto || !alunoLogado) {
